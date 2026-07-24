@@ -17,6 +17,7 @@ val create
   -> Diagnostics.t
   -> Progress.t
   -> Document_store.t
+  -> position_encoding:[ `UTF8 | `UTF16 ]
   -> log:(type_:MessageType.t -> message:string -> unit Fiber.t)
   -> t
 

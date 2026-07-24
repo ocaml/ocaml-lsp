@@ -169,7 +169,7 @@ let%expect_test "semantic tokens use UTF-16 positions" =
             print_int value);
           print_newline ());
        Fiber.return ());
-  [%expect {| 0; 4; 5; 8; 0; 0; 8; 1; 19; 0 |}]
+  [%expect {| 0; 4; 4; 8; 0; 0; 7; 1; 19; 0 |}]
 ;;
 
 let%expect_test "tokens for ocaml_lsp_server.ml" =

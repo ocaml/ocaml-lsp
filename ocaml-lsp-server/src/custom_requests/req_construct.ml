@@ -81,11 +81,11 @@ let make_construct_command position with_values depth =
   Query_protocol.Construct (position, with_values, depth)
 ;;
 
-let dispatch_construct position with_values depth pipeline =
-  let position = Position.logical position in
+let dispatch_construct position with_values depth doc pipeline =
+  let position = (Document.merlin_position doc position :> Msource.position) in
   let command = make_construct_command position with_values depth in
   let pos, result = Query_commands.dispatch pipeline command in
-  yojson_of_t { position = Range.of_loc pos; result }
+  yojson_of_t { position = Document.range_of_loc doc pos; result }
 ;;
 
 let on_request ~params state =
@@ -95,6 +95,6 @@ let on_request ~params state =
       Request_params.t_of_yojson params
     in
     let uri = text_document.uri in
-    Util.with_impl_pipeline state uri ~default:`Null
+    Util.with_impl_pipeline_doc state uri ~default:`Null
     @@ dispatch_construct position with_values depth)
 ;;

@@ -82,13 +82,39 @@ let reconstruct_ident source position =
   Option.some_if (ident <> "") ident
 ;;
 
-let range_prefix (lsp_position : Position.t) prefix : Range.t =
-  let start =
-    let len = String.length prefix in
-    let character = lsp_position.character - len in
-    { lsp_position with character }
+let range_around_position doc position ~prefix ~suffix =
+  let text_document = Document.text_document doc in
+  let source = Document.source doc in
+  let offset = Text_document.absolute_position text_document position in
+  let position_of_offset offset default =
+    Msource.get_lexing_pos
+      ~filename:(Document.uri doc |> Uri.to_path)
+      source
+      (`Offset offset)
+    |> Document.position_of_lexical_position doc
+    |> Option.value ~default
   in
-  { Range.start; end_ = lsp_position }
+  let clamped_position = position_of_offset offset position in
+  if
+    clamped_position.line = position.line
+    && clamped_position.character < position.character
+  then
+    Range.create
+      ~start:
+        { position with character = max 0 (position.character - String.length prefix) }
+      ~end_:{ position with character = position.character + String.length suffix }
+  else (
+    let start = position_of_offset (max 0 (offset - String.length prefix)) position in
+    let end_ =
+      position_of_offset
+        (min (String.length (Msource.text source)) (offset + String.length suffix))
+        position
+    in
+    Range.create ~start ~end_)
+;;
+
+let range_prefix doc position prefix =
+  range_around_position doc position ~prefix ~suffix:""
 ;;
 
 let sortText_of_index idx = Printf.sprintf "%04d" idx
@@ -134,8 +160,11 @@ module Complete_by_prefix = struct
         (completion : Query_protocol.completions)
     =
     let range =
-      let logical_pos = Position.logical pos in
+      let logical_pos =
+        (Document.merlin_position (Document.Merlin.to_doc doc) pos :> Msource.position)
+      in
       range_prefix
+        (Document.Merlin.to_doc doc)
         pos
         (prefix_of_position ~short_path:true (Document.Merlin.source doc) logical_pos)
     in
@@ -177,7 +206,7 @@ module Complete_by_prefix = struct
       ~f:(completionItem_of_completion_entry ~deprecated ~range ~compl_params)
   ;;
 
-  let complete_keywords completion_position prefix =
+  let complete_keywords doc completion_position prefix =
     match prefix with
     | "" | "i" | "in" ->
       let ci_for_in =
@@ -187,7 +216,7 @@ module Complete_by_prefix = struct
             (`TextEdit
                 (TextEdit.create
                    ~newText:"in"
-                   ~range:(range_prefix completion_position prefix)))
+                   ~range:(range_prefix doc completion_position prefix)))
           ~kind:CompletionItemKind.Keyword
           ()
       in
@@ -197,7 +226,9 @@ module Complete_by_prefix = struct
 
   let complete doc prefix pos ~deprecated ~resolve =
     let+ (completion : Query_protocol.completions) =
-      let logical_pos = Position.logical pos in
+      let logical_pos =
+        (Document.merlin_position (Document.Merlin.to_doc doc) pos :> Msource.position)
+      in
       Document.Merlin.with_pipeline_exn
         ~name:"completion-prefix"
         doc
@@ -207,7 +238,7 @@ module Complete_by_prefix = struct
       (* we complete only keyword 'in' for now *)
       match Document.Merlin.kind doc with
       | Intf -> []
-      | Impl -> complete_keywords pos prefix
+      | Impl -> complete_keywords (Document.Merlin.to_doc doc) pos prefix
     in
     keyword_completionItems
     @ process_dispatch_resp ~deprecated ~resolve ~prefix doc pos completion
@@ -226,10 +257,10 @@ module Complete_with_construct = struct
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
 
-  let process_dispatch_resp ~supportsJumpToNextHole = function
+  let process_dispatch_resp doc ~supportsJumpToNextHole = function
     | None -> []
     | Some (loc, constructed_exprs) ->
-      let range = Range.of_loc loc in
+      let range = Document.range_of_loc doc loc in
       let deparen_constr_expr expr =
         if
           (not (String.equal expr "()"))
@@ -311,7 +342,7 @@ let complete
        | `Ignore -> Fiber.return None
        | `Provide_completions ->
          let+ items =
-           let position = Position.logical pos in
+           let position = (Document.merlin_position doc pos :> Msource.position) in
            let prefix =
              prefix_of_position ~short_path:false (Document.source doc) position
            in
@@ -362,6 +393,7 @@ let complete
                  |> Client.Experimental_capabilities.supportsJumpToNextHole
                in
                Complete_with_construct.process_dispatch_resp
+                 doc
                  ~supportsJumpToNextHole
                  construct_cmd_resp
              in
@@ -397,23 +429,25 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~mark
        applied completion item and pass it to merlin to get the docs for the
        [compl.label] *)
     let position : Position.t = resolve.position in
-    let logical_position = Position.logical position in
+    let logical_position =
+      Document.merlin_position (Document.Merlin.to_doc doc) position
+    in
     let doc =
       let complete =
-        let start =
-          let prefix =
-            prefix_of_position
-              ~short_path:true
-              (Document.Merlin.source doc)
-              logical_position
-          in
-          { position with character = position.character - String.length prefix }
+        let prefix =
+          prefix_of_position
+            ~short_path:true
+            (Document.Merlin.source doc)
+            (logical_position :> Msource.position)
         in
-        let end_ =
-          let suffix = suffix_of_position (Document.Merlin.source doc) logical_position in
-          { position with character = position.character + String.length suffix }
+        let suffix =
+          suffix_of_position
+            (Document.Merlin.source doc)
+            (logical_position :> Msource.position)
         in
-        let range = Range.create ~start ~end_ in
+        let range =
+          range_around_position (Document.Merlin.to_doc doc) position ~prefix ~suffix
+        in
         `TextDocumentContentChangePartial
           (TextDocumentContentChangePartial.create ~range ~text:compl.label ())
       in

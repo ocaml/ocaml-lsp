@@ -131,3 +131,43 @@ let absolute_range t (range : Range.t) =
   let stop = String_zipper.offset zipper in
   start, stop
 ;;
+
+let position_of_lexical_position_in_text
+      ~position_encoding
+      ~text
+      (position : Lexing.position)
+  =
+  if
+    position.pos_lnum = Lexing.dummy_pos.pos_lnum
+    && position.pos_cnum = Lexing.dummy_pos.pos_cnum
+  then None
+  else (
+    let line = max 0 (position.pos_lnum - 1) in
+    let byte_length = max 0 (position.pos_cnum - position.pos_bol) in
+    let character =
+      match position_encoding with
+      | `UTF8 -> byte_length
+      | `UTF16 ->
+        if
+          position.pos_bol < 0
+          || position.pos_bol > position.pos_cnum
+          || position.pos_cnum > String.length text
+        then byte_length
+        else
+          Uutf.String.fold_utf_8
+            ~pos:position.pos_bol
+            ~len:byte_length
+            (fun length _ -> function
+               | `Uchar uchar -> length + (Uchar.utf_16_byte_length uchar / 2)
+               | `Malformed input -> raise (Invalid_utf (Malformed input)))
+            0
+            text
+    in
+    Some (Position.create ~line ~character))
+;;
+
+let position_of_lexical_position t =
+  position_of_lexical_position_in_text
+    ~position_encoding:t.position_encoding
+    ~text:(text t)
+;;

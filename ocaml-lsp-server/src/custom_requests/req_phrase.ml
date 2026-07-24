@@ -53,11 +53,11 @@ type t = Position.t
 let t_of_yojson x = Position.t_of_yojson x
 let make_phrase_command position target = Query_protocol.Phrase (target, position)
 
-let dispatch_phrase position target pipeline =
-  let position = Position.logical position in
+let dispatch_phrase position target doc pipeline =
+  let position = (Document.merlin_position doc position :> Msource.position) in
   let command = make_phrase_command position target in
   let result = Query_commands.dispatch pipeline command in
-  match Position.of_lexical_position result with
+  match Document.position_of_lexical_position doc result with
   | None -> `Null
   | Some pos -> Position.yojson_of_t pos
 ;;
@@ -68,5 +68,5 @@ let on_request ~params state =
       (Option.value ~default:(`Assoc []) params :> Yojson.Safe.t)
       |> Request_params.t_of_yojson
     in
-    Util.with_pipeline state uri ~default:`Null @@ dispatch_phrase position target)
+    Util.with_pipeline_doc state uri ~default:`Null @@ dispatch_phrase position target)
 ;;

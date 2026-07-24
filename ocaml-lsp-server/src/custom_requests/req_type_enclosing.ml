@@ -85,28 +85,28 @@ let with_pipeline state uri verbosity with_pipeline =
     Document.Merlin.with_configurable_pipeline_exn
       ~config:(config_with_given_verbosity config verbosity)
       merlin
-      with_pipeline)
+      (with_pipeline (Document.Merlin.to_doc merlin)))
 ;;
 
 let make_enclosing_command position index =
   Query_protocol.Type_enclosing (None, position, Some index)
 ;;
 
-let get_first_enclosing_index range_end enclosings =
+let get_first_enclosing_index range_of_loc range_end enclosings =
   List.find_mapi enclosings ~f:(fun i (loc, _, _) ->
-    let range = Range.of_loc loc in
+    let range : Range.t = range_of_loc loc in
     match Position.compare range_end range.end_ with
     | Ordering.Lt | Ordering.Eq -> Some i
     | Ordering.Gt -> None)
 ;;
 
-let dispatch_command pipeline command first_index index =
+let dispatch_command range_of_loc pipeline command first_index index =
   let rec aux i acc = function
     | (_, `String typ, _) :: _ as enclosings when i = index ->
       Some
         ( typ
         , List.map
-            ~f:(fun (loc, _, _) -> Range.of_loc loc)
+            ~f:(fun (loc, _, _) -> range_of_loc loc)
             (List.rev_append acc enclosings) )
     | curr :: enclosings -> aux (succ i) (curr :: acc) enclosings
     | [] -> None
@@ -115,7 +115,7 @@ let dispatch_command pipeline command first_index index =
   aux 0 [] result
 ;;
 
-let dispatch_with_range_end pipeline position index range_end =
+let dispatch_with_range_end range_of_loc pipeline position index range_end =
   (* merlin's `type-enclosing` command takes a position and returns a list of
      increasing enclosures around that position. If it is given the [index]
      parameter, it annotates the corresponding enclosing with its type.
@@ -131,23 +131,27 @@ let dispatch_with_range_end pipeline position index range_end =
      as an offset to calculate the real index, relative to the range *)
   let dummy_command = make_enclosing_command position (-1) in
   let enclosings = Query_commands.dispatch pipeline dummy_command in
-  Option.bind (get_first_enclosing_index range_end enclosings) ~f:(fun first_index ->
-    let real_index = first_index + index in
-    let command = make_enclosing_command position real_index in
-    dispatch_command pipeline command first_index index)
+  Option.bind
+    (get_first_enclosing_index range_of_loc range_end enclosings)
+    ~f:(fun first_index ->
+      let real_index = first_index + index in
+      let command = make_enclosing_command position real_index in
+      dispatch_command range_of_loc pipeline command first_index index)
 ;;
 
-let dispatch_without_range_end pipeline position index =
+let dispatch_without_range_end range_of_loc pipeline position index =
   let command = make_enclosing_command position index in
-  dispatch_command pipeline command 0 index
+  dispatch_command range_of_loc pipeline command 0 index
 ;;
 
-let dispatch_type_enclosing position index range_end pipeline =
-  let position = Position.logical position in
+let dispatch_type_enclosing position index range_end doc pipeline =
+  let position = (Document.merlin_position doc position :> Msource.position) in
+  let range_of_loc = Document.range_of_loc doc in
   let result =
     match range_end with
-    | None -> dispatch_without_range_end pipeline position index
-    | Some range_end -> dispatch_with_range_end pipeline position index range_end
+    | None -> dispatch_without_range_end range_of_loc pipeline position index
+    | Some range_end ->
+      dispatch_with_range_end range_of_loc pipeline position index range_end
   in
   let type_, enclosings =
     match result with

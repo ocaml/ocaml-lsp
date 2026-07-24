@@ -29,7 +29,7 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
     let store = state.store in
     Document_store.get store uri
   in
-  let pos = Position.logical position in
+  let pos = (Document.merlin_position doc position :> Msource.position) in
   let prefix =
     (* The value of [short_path] doesn't make a difference to the final result
        because labels cannot include dots. However, a true value is slightly

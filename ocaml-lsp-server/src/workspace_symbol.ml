@@ -245,17 +245,46 @@ let make_uri_resolver ~root_dir ~build_dir : (Loc.t -> Uri.t option) Base.Staged
       uri)
 ;;
 
-let rec symbol_info ~containerName resolve_uri (item : Query_protocol.item) =
+let make_range_resolver ~position_encoding : (Uri.t -> Loc.t -> Range.t) Base.Staged.t =
+  let cache = ref String.Map.empty in
+  Base.Staged.stage (fun uri ->
+    let path = Uri.to_path uri in
+    match String.Map.find !cache path with
+    | Some range_of_loc -> range_of_loc
+    | None ->
+      let range_of_loc =
+        match
+          Exn_with_backtrace.try_with (fun () ->
+            In_channel.with_open_text path In_channel.input_all)
+        with
+        | Error _ -> Range.of_loc
+        | Ok text ->
+          fun (loc : Loc.t) ->
+            let position position =
+              Text_document.position_of_lexical_position_in_text
+                ~position_encoding
+                ~text
+                position
+            in
+            (match position loc.loc_start, position loc.loc_end with
+             | Some start, Some end_ -> Range.create ~start ~end_
+             | None, _ | _, None -> Range.first_line)
+      in
+      cache := String.Map.set !cache path range_of_loc;
+      range_of_loc)
+;;
+
+let rec symbol_info ~containerName ~range_of_loc resolve_uri (item : Query_protocol.item) =
   let children =
     List.concat_map
       item.children
-      ~f:(symbol_info resolve_uri ~containerName:(Some item.outline_name))
+      ~f:(symbol_info resolve_uri ~range_of_loc ~containerName:(Some item.outline_name))
   in
   match resolve_uri item.location with
   | None -> children
   | Some uri ->
     let kind = outline_kind item.outline_kind in
-    let location = { Location.uri; range = Range.of_loc item.location } in
+    let location = { Location.uri; range = range_of_loc uri item.location } in
     let info =
       SymbolInformation.create
         ~name:item.outline_name
@@ -268,11 +297,17 @@ let rec symbol_info ~containerName resolve_uri (item : Query_protocol.item) =
     info :: children
 ;;
 
-let symbols_of_outline resolve_uri outline =
-  List.concat_map ~f:(symbol_info ~containerName:None resolve_uri) outline
+let symbols_of_outline ~range_of_loc resolve_uri outline =
+  List.concat_map ~f:(symbol_info ~containerName:None ~range_of_loc resolve_uri) outline
 ;;
 
-let symbols_from_cm_file ~filter ~resolve_uri (cancel : Fiber.Cancel.t option) cm_file =
+let symbols_from_cm_file
+      ~filter
+      ~resolve_uri
+      ~range_of_loc
+      (cancel : Fiber.Cancel.t option)
+      cm_file
+  =
   let cmt =
     let filename = string_of_cm cm_file in
     let cancelled =
@@ -294,7 +329,7 @@ let symbols_from_cm_file ~filter ~resolve_uri (cancel : Fiber.Cancel.t option) c
             let browse_tree = Merlin_analysis.Browse_tree.of_node browse in
             Outline.get [ browse_tree ]
           in
-          filter (symbols_of_outline resolve_uri outline))
+          filter (symbols_of_outline ~range_of_loc resolve_uri outline))
      | _ -> [])
 ;;
 
@@ -330,6 +365,7 @@ let run
       ({ query; _ } : WorkspaceSymbolParams.t)
       (workspace_folders : WorkspaceFolder.t list)
       (cancel : Fiber.Cancel.t option)
+      ~position_encoding
   =
   let filter =
     match query with
@@ -349,7 +385,12 @@ let run
            let resolve_uri =
              Base.Staged.unstage (make_uri_resolver ~root_dir ~build_dir)
            in
-           List.concat_map ~f:(symbols_from_cm_file ~filter ~resolve_uri cancel) cm_files))
+           let range_of_loc =
+             Base.Staged.unstage (make_range_resolver ~position_encoding)
+           in
+           List.concat_map
+             ~f:(symbols_from_cm_file ~filter ~resolve_uri ~range_of_loc cancel)
+             cm_files))
   with
   | Cancelled -> Error `Cancelled
 ;;
@@ -359,7 +400,11 @@ let run (state : State.t) (params : WorkspaceSymbolParams.t) =
   let workspaces = Workspaces.workspace_folders (State.workspaces state) in
   let* thread = Lazy_fiber.force state.symbols_thread in
   let* cancel = Server.cancel_token () in
-  let task = Lev_fiber.Thread.task thread ~f:(fun () -> run params workspaces cancel) in
+  let position_encoding = State.position_encoding state in
+  let task =
+    Lev_fiber.Thread.task thread ~f:(fun () ->
+      run params workspaces cancel ~position_encoding)
+  in
   let* res, cancel =
     match task with
     | Error `Stopped -> Fiber.never

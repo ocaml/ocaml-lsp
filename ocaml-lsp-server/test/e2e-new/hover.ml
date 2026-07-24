@@ -34,7 +34,16 @@ let%expect_test "uses UTF-16 positions around astral Unicode characters" =
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {| no hover response |}]
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "int" },
+      "range": {
+        "end": { "character": 28, "line": 0 },
+        "start": { "character": 27, "line": 0 }
+      }
+    }
+    |}]
 ;;
 
 let%expect_test "returns type inferred under cursor (markdown formatting)" =

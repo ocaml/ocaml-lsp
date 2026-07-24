@@ -49,7 +49,7 @@ end
 module TypeSearch = struct
   type t = string Query_protocol.type_search_result list
 
-  let yojson_of_t (t : t) doc_format =
+  let yojson_of_t (t : t) doc doc_format =
     let format =
       match doc_format with
       | Some format -> format
@@ -59,7 +59,7 @@ module TypeSearch = struct
       `Assoc
         [ "name", `String res.name
         ; "typ", `String res.typ
-        ; "loc", Range.yojson_of_t (Range.of_loc res.loc)
+        ; "loc", Range.yojson_of_t (Document.range_of_loc doc res.loc)
         ; ( "doc"
           , match res.doc with
             | Some value ->
@@ -87,10 +87,11 @@ end
 
 let dispatch merlin position limit query with_doc doc_format =
   Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-    let position = Position.logical position in
+    let doc = Document.Merlin.to_doc merlin in
+    let position = (Document.merlin_position doc position :> Msource.position) in
     let query = Query_protocol.Type_search (query, position, limit, with_doc) in
     let results = Query_commands.dispatch pipeline query in
-    TypeSearch.yojson_of_t results doc_format)
+    TypeSearch.yojson_of_t results doc doc_format)
 ;;
 
 let on_request ~params state =

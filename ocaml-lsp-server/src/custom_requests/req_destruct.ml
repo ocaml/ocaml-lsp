@@ -43,12 +43,13 @@ let yojson_of_t { range; content } =
 
 let make_destruct_command start stop = Query_protocol.Case_analysis (start, stop)
 
-let dispatch_destruct range pipeline =
+let dispatch_destruct range doc pipeline =
+  let range = Document.merlin_range doc range in
   let start = range.Range.start |> Position.logical
   and stop = range.Range.end_ |> Position.logical in
   let command = make_destruct_command start stop in
   let loc, content = Query_commands.dispatch pipeline command in
-  yojson_of_t { content; range = Range.of_loc loc }
+  yojson_of_t { content; range = Document.range_of_loc doc loc }
 ;;
 
 let on_request ~params state =
@@ -56,5 +57,5 @@ let on_request ~params state =
     let params = (Option.value ~default:(`Assoc []) params :> Json.t) in
     let Request_params.{ text_document; range } = Request_params.t_of_yojson params in
     let uri = text_document.uri in
-    Util.with_impl_pipeline state uri ~default:`Null @@ dispatch_destruct range)
+    Util.with_impl_pipeline_doc state uri ~default:`Null @@ dispatch_destruct range)
 ;;

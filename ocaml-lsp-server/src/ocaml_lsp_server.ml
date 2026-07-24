@@ -244,6 +244,13 @@ let on_initialize server (ip : InitializeParams.t) =
               Server.Batch.notification batch (PublishDiagnostics d));
             Server.Batch.submit batch))
   in
+  let initialize_info = initialize_info ip.capabilities in
+  let position_encoding =
+    match initialize_info.capabilities.positionEncoding with
+    | None | Some UTF16 -> `UTF16
+    | Some UTF8 -> `UTF8
+    | Some UTF32 | Some (Other _) -> assert false
+  in
   let+ dune =
     let progress =
       Progress.create
@@ -260,21 +267,13 @@ let on_initialize server (ip : InitializeParams.t) =
         diagnostics
         progress
         state.store
+        ~position_encoding
         ~log:(State.log_msg server)
     in
     let+ () = Fiber.Pool.task state.detached ~f:(fun () -> Dune.run dune) in
     dune
   in
-  let initialize_info = initialize_info ip.capabilities in
-  let state =
-    let position_encoding =
-      match initialize_info.capabilities.positionEncoding with
-      | None | Some UTF16 -> `UTF16
-      | Some UTF8 -> `UTF8
-      | Some UTF32 | Some (Other _) -> assert false
-    in
-    State.initialize state ~position_encoding ip workspaces dune diagnostics
-  in
+  let state = State.initialize state ~position_encoding ip workspaces dune diagnostics in
   let state =
     match ip.trace with
     | None -> state
@@ -411,7 +410,7 @@ let text_document_lens
       | Some typ ->
         let loc = item.location in
         let info =
-          let range = Range.of_loc loc in
+          let range = Document.range_of_loc (Document.Merlin.to_doc doc) loc in
           let command = Command.create ~title:typ ~command:"" () in
           CodeLens.create ~range ~command ()
         in
@@ -432,7 +431,7 @@ let selection_range
       : SelectionRange.t option
       =
       let ranges_of_enclosing parent (enclosing : Warnings.loc) =
-        let range = Range.of_loc enclosing in
+        let range = Document.range_of_loc doc enclosing in
         { SelectionRange.range; parent }
       in
       List.fold_left
@@ -446,7 +445,7 @@ let selection_range
           Document.Merlin.dispatch_exn
             ~name:"shape"
             merlin
-            (Enclosing (Position.logical x, None))
+            (Enclosing ((Document.merlin_position doc x :> Msource.position), None))
         in
         selection_range_of_enclosings enclosings)
     in
@@ -462,11 +461,14 @@ let references
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin doc ->
+    let lsp_doc = Document.Merlin.to_doc doc in
     let* occurrences, synced =
       Document.Merlin.dispatch_exn
         ~name:"occurrences"
         doc
-        (Occurrences (`Ident_at (Position.logical position), `Project))
+        (Occurrences
+           ( `Ident_at (Document.merlin_position lsp_doc position :> Msource.position)
+           , `Project ))
     in
     let+ () =
       match synced with
@@ -486,11 +488,22 @@ let references
       (List.filter_map occurrences ~f:(function
          | { loc = _; is_stale = true } -> None
          | { loc; is_stale = false } ->
-           let range = Range.of_loc loc in
            let uri =
              match loc.loc_start.pos_fname with
              | "" -> uri
              | path -> Uri.of_path path
+           in
+           let range =
+             match Document_store.get_opt state.store uri with
+             | Some doc -> Document.range_of_loc doc loc
+             | None ->
+               (match
+                  Exn_with_backtrace.try_with (fun () ->
+                    let path = Uri.to_path uri in
+                    In_channel.with_open_text path In_channel.input_all |> Msource.make)
+                with
+                | Ok source -> Document.range_of_loc_in_source lsp_doc source loc
+                | Error _ -> Range.of_loc loc)
            in
            Log.log ~section:"debug" (fun () ->
              Log.msg
@@ -514,12 +527,16 @@ let highlight
       Document.Merlin.dispatch_exn
         ~name:"occurrences"
         m
-        (Occurrences (`Ident_at (Position.logical position), `Buffer))
+        (Occurrences
+           ( `Ident_at
+               (Document.merlin_position (Document.Merlin.to_doc m) position
+                 :> Msource.position)
+           , `Buffer ))
     in
     let lsp_locs =
       List.filter_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
         let loc = occurrence.loc in
-        let range = Range.of_loc loc in
+        let range = Document.range_of_loc (Document.Merlin.to_doc m) loc in
         (* filter out multi-line ranges, since those are very noisy and happen
            a lot with certain PPXs *)
         match range.start.line = range.end_.line with
@@ -670,7 +687,11 @@ let on_request
                 doc
                 ci
                 resolve
-                (Document.Merlin.doc_comment ~name:"completion-resolve")
+                (fun doc position ->
+                   Document.Merlin.doc_comment
+                     ~name:"completion-resolve"
+                     doc
+                     (position :> Msource.position))
                 ~markdown))
       ()
   | CodeAction params -> Code_actions.compute server params
@@ -714,17 +735,21 @@ let on_request
              Document.Merlin.dispatch_exn
                ~name:"occurrences"
                doc
-               (Occurrences (`Ident_at (Position.logical position), `Buffer))
+               (Occurrences
+                  ( `Ident_at
+                      (Document.merlin_position (Document.Merlin.to_doc doc) position
+                        :> Msource.position)
+                  , `Buffer ))
            in
            let loc =
              List.find_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
                let loc = occurrence.loc in
-               let range = Range.of_loc loc in
+               let range = Document.range_of_loc (Document.Merlin.to_doc doc) loc in
                match occurrence.is_stale, Position.compare_inclusion position range with
                | false, `Inside -> Some loc
                | true, _ | _, `Outside _ -> None)
            in
-           Option.map loc ~f:Range.of_loc)
+           Option.map loc ~f:(Document.range_of_loc (Document.Merlin.to_doc doc)))
       ()
   | TextDocumentRename req -> later Rename.rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req

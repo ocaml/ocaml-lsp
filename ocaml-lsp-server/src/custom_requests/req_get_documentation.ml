@@ -84,7 +84,10 @@ end
 
 let dispatch ~merlin ~position ~identifier ~contentFormat =
   Document.Merlin.with_pipeline_exn merlin (fun pipeline ->
-    let position = Position.logical position in
+    let position =
+      (Document.merlin_position (Document.Merlin.to_doc merlin) position
+        :> Msource.position)
+    in
     let query = Query_protocol.Document (identifier, position) in
     let result = Query_commands.dispatch pipeline query in
     match result with

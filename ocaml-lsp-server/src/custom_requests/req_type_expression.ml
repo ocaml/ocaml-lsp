@@ -40,8 +40,8 @@ let make_type_expr_command position expression =
   Query_protocol.Type_expr (expression, position)
 ;;
 
-let dispatch_type_expr position expression pipeline =
-  let position = Position.logical position in
+let dispatch_type_expr position expression doc pipeline =
+  let position = (Document.merlin_position doc position :> Msource.position) in
   let command = make_type_expr_command position expression in
   let result = Query_commands.dispatch pipeline command in
   Some result
@@ -55,7 +55,11 @@ let on_request ~params state =
       |> Request_params.t_of_yojson
     in
     let* typ =
-      Util.with_pipeline state uri ~default:None (dispatch_type_expr position expression)
+      Util.with_pipeline_doc
+        state
+        uri
+        ~default:None
+        (dispatch_type_expr position expression)
     in
     match typ with
     | Some typ ->

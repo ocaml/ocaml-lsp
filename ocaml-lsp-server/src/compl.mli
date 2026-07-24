@@ -22,7 +22,7 @@ val resolve
   :  Document.Merlin.t
   -> CompletionItem.t
   -> Resolve.t
-  -> (Document.Merlin.t -> [> `Logical of int * int ] -> string option Fiber.t)
+  -> (Document.Merlin.t -> [ `Logical of int * int ] -> string option Fiber.t)
   -> markdown:bool
   -> CompletionItem.t Fiber.t
 
