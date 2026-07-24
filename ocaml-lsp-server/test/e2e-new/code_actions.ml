@@ -121,17 +121,27 @@ let%expect_test "code action only includes nested kinds" =
     {|
     Code actions:
     {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
       "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(0)",
+                "range": {
+                  "end": { "character": 3, "line": 2 },
+                  "start": { "character": 2, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
       },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    } |}]
+      "isPreferred": false,
+      "kind": "refactor.inline",
+      "title": "Inline into uses"
+    }
+    |}]
 ;;
 
 let%expect_test "can type-annotate a function argument" =

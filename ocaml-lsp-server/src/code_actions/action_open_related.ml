@@ -2,6 +2,7 @@ open Import
 open Fiber.O
 
 let command_name = "ocamllsp/open-related-source"
+let kind = CodeActionKind.Other "switch"
 
 let command_run server (params : ExecuteCommandParams.t) =
   let uri =
@@ -59,5 +60,5 @@ let for_uri (capabilities : ShowDocumentClientCapabilities.t option) doc =
           let documentChanges = [ `CreateFile (CreateFile.create ~uri ()) ] in
           Some (WorkspaceEdit.create ~documentChanges ())
       in
-      CodeAction.create ?edit ~title ~kind:(CodeActionKind.Other "switch") ~command ())
+      CodeAction.create ?edit ~title ~kind ~command ())
 ;;

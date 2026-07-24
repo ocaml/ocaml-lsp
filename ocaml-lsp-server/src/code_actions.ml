@@ -26,15 +26,10 @@ module Code_action_error_monoid = struct
 end
 
 let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
-  let action_is_enabled =
-    match params.context.only with
-    | None -> fun _ -> true
-    | Some set ->
-      fun (action : Code_action.t) -> List.mem set action.kind ~equal:Poly.equal
-  in
   let enabled_actions =
     List.filter
-      ~f:action_is_enabled
+      ~f:(fun (action : Code_action.t) ->
+        Code_action.kind_is_requested params.context.only action.kind)
       [ Action_destruct_line.t state
       ; Action_destruct.t state
       ; Action_update_signature.t state
@@ -101,8 +96,21 @@ let compute server (params : CodeActionParams.t) =
     let store = state.store in
     Document_store.get_opt store uri
   in
-  let dune_actions = Dune.code_actions (State.dune state) params.textDocument.uri in
-  let actions = function
+  let kind_is_requested = Code_action.kind_is_requested params.context.only in
+  let dune_actions =
+    if kind_is_requested CodeActionKind.QuickFix
+    then Dune.code_actions (State.dune state) params.textDocument.uri
+    else []
+  in
+  let actions xs =
+    let xs =
+      match params.context.only with
+      | None -> xs
+      | Some _ ->
+        List.filter xs ~f:(fun (action : CodeAction.t) ->
+          Option.exists action.kind ~f:kind_is_requested)
+    in
+    match xs with
     | [] -> None
     | xs -> Some (List.map ~f:(fun a -> `CodeAction a) xs)
   in
@@ -114,16 +122,20 @@ let compute server (params : CodeActionParams.t) =
       let* window = (State.client_capabilities state).window in
       window.showDocument
     in
-    let open_related = Action_open_related.for_uri capabilities doc in
-    let* merlin_jumps =
-      match state.configuration.data.merlin_jump_code_actions with
-      | Some { enable = true } -> Action_jump.code_actions doc params capabilities
-      | Some { enable = false } | None -> Fiber.return []
+    let open_related =
+      if kind_is_requested Action_open_related.kind
+      then Action_open_related.for_uri capabilities doc
+      else []
     in
     (match Document.syntax doc with
      | Ocamllex | Menhir | Cram | Dune ->
        Fiber.return (Reply.now (actions (dune_actions @ open_related)), state)
      | Ocaml | Reason | Mlx ->
+       let* merlin_jumps =
+         match state.configuration.data.merlin_jump_code_actions with
+         | Some { enable = true } -> Action_jump.code_actions doc params capabilities
+         | Some { enable = false } | None -> Fiber.return []
+       in
        let reply () =
          let+ code_action_results = compute_ocaml_code_actions params state doc in
          List.concat [ code_action_results; dune_actions; open_related; merlin_jumps ]
