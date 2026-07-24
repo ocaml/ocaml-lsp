@@ -30,7 +30,7 @@ let print_code_action_provider = function
 
 let print_code_action label action = print_json label (CodeAction.yojson_of_t action)
 
-let%expect_test "inline edit is computed eagerly despite resolve support" =
+let%expect_test "inline edit is resolved lazily when supported" =
   let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
   let capabilities = code_action_capabilities resolveSupport in
   let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
@@ -66,6 +66,8 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
        |> Option.value_exn
      in
      print_code_action "initial response" action;
+     let* resolved = Client.request client (CodeActionResolve action) in
+     print_code_action "after resolve" resolved;
      Test.exit_client client
    in
    run ());
@@ -82,10 +84,35 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
         "merlin-jump-prev-case", "put module name in identifiers",
         "remove module name from identifiers", "remove type annotation",
         "switch", "type-annotate", "update_intf"
-      ]
+      ],
+      "resolveProvider": true
     }
     initial response:
     {
+      "data": {
+        "action": "inline",
+        "uri": "file:///resolve.ml",
+        "range": {
+          "end": { "character": 7, "line": 1 },
+          "start": { "character": 6, "line": 1 }
+        },
+        "version": 0
+      },
+      "isPreferred": false,
+      "kind": "refactor.inline",
+      "title": "Inline into uses"
+    }
+    after resolve:
+    {
+      "data": {
+        "action": "inline",
+        "uri": "file:///resolve.ml",
+        "range": {
+          "end": { "character": 7, "line": 1 },
+          "start": { "character": 6, "line": 1 }
+        },
+        "version": 0
+      },
       "edit": {
         "documentChanges": [
           {

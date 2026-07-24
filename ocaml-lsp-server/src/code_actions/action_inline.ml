@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 module H = Ocaml_parsing.Ast_helper
 
 let action_title = "Inline into uses"
@@ -347,16 +348,19 @@ let inline_edits pipeline task =
   edits, !error
 ;;
 
-let code_action pipeline doc (params : CodeActionParams.t) =
+let inline_task pipeline range =
   let open Option.O in
   let* typedtree =
     match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
     | `Interface _ -> None
     | `Implementation x -> Some x
   in
-  let* task = find_inline_task typedtree params.range.start in
-  let m_edits = inline_edits pipeline task in
-  let* edits, m_error = m_edits in
+  find_inline_task typedtree range.Range.start
+;;
+
+let code_action_for_task pipeline doc task =
+  let open Option.O in
+  let* edits, m_error = inline_edits pipeline task in
   match edits, m_error with
   | [], None -> None
   | [], Some error ->
@@ -382,4 +386,99 @@ let code_action pipeline doc (params : CodeActionParams.t) =
     Some action
 ;;
 
+let code_action pipeline doc (params : CodeActionParams.t) =
+  let open Option.O in
+  let* task = inline_task pipeline params.range in
+  code_action_for_task pipeline doc task
+;;
+
+module Resolve_data = struct
+  let action = "inline"
+
+  type t =
+    { uri : DocumentUri.t
+    ; range : Range.t
+    ; version : int
+    }
+
+  let create doc range =
+    `Assoc
+      [ "action", `String action
+      ; "uri", DocumentUri.yojson_of_t (Document.uri doc)
+      ; "range", Range.yojson_of_t range
+      ; "version", `Int (Document.version doc)
+      ]
+  ;;
+
+  let is_inline = function
+    | `Assoc fields ->
+      (match Json.field fields "action" Json.Conv.string_of_yojson with
+       | Some value -> String.equal value action
+       | None -> false)
+    | _ -> false
+  ;;
+
+  let of_json = function
+    | `Assoc fields ->
+      let uri = Json.field_exn fields "uri" DocumentUri.t_of_yojson in
+      let range = Json.field_exn fields "range" Range.t_of_yojson in
+      let version =
+        Json.field_exn fields "version" (function
+          | `Int version -> version
+          | json -> Json.error "expected an integer" json)
+      in
+      { uri; range; version }
+    | json -> Json.error "invalid inline code action data" json
+  ;;
+end
+
+let unresolved_code_action pipeline doc (params : CodeActionParams.t) =
+  let open Option.O in
+  let* (_ : inline_task) = inline_task pipeline params.range in
+  let data = Resolve_data.create doc params.range in
+  Some
+    (CodeAction.create
+       ~title:action_title
+       ~kind:CodeActionKind.RefactorInline
+       ~data
+       ~isPreferred:false
+       ())
+;;
+
+let content_modified () =
+  Jsonrpc.Response.Error.raise
+    (Jsonrpc.Response.Error.make
+       ~code:Jsonrpc.Response.Error.Code.ContentModified
+       ~message:"The document changed before the code action was resolved"
+       ())
+;;
+
+let resolve (state : State.t) (action : CodeAction.t) =
+  match action.data with
+  | None -> None
+  | Some data when not (Resolve_data.is_inline data) -> None
+  | Some data ->
+    let { Resolve_data.uri; range; version } = Resolve_data.of_json data in
+    let resolve () =
+      let doc =
+        match Document_store.get_opt state.store uri with
+        | Some doc when Int.equal (Document.version doc) version -> doc
+        | None | Some _ -> content_modified ()
+      in
+      let merlin = Document.merlin_exn doc in
+      let+ resolved =
+        Document.Merlin.with_pipeline_exn ~name:"resolve-inline-code-action" merlin
+        @@ fun pipeline ->
+        let open Option.O in
+        let* task = inline_task pipeline range in
+        code_action_for_task pipeline doc task
+      in
+      match resolved with
+      | None -> content_modified ()
+      | Some resolved -> { resolved with data = action.data }
+    in
+    Some (resolve ())
+;;
+
 let t = Code_action.batchable RefactorInline code_action
+let unresolved = Code_action.batchable RefactorInline unresolved_code_action
