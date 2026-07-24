@@ -1,5 +1,10 @@
 # Unreleased
 
+## Features
+
+- Add a code action to open the closest Dune file for the current document.
+  (#1817, fixes #1491, @rgrinberg)
+
 ## Fixes
 
 - Advertise all code-action kinds that the server may return. (#1803, @rgrinberg)
