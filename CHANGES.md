@@ -20,6 +20,8 @@
 - Support `textDocument/implementation` for type declarations in interface files,
   including nested modules, functor results, includes, and aliases.
   (#2074, fixes #1163, @rgrinberg)
+- Classify function parameters and labels in semantic highlighting.
+  (#1857, @rgrinberg)
 
 ## Fixes
 
