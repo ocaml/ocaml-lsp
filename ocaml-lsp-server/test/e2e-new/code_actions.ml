@@ -2447,31 +2447,10 @@ let f = function
   | B -> 1
 |ocaml}
   in
-  let first_diagnostics = Fiber.Ivar.create () in
-  let handler =
-    Client.Handler.make
-      ~on_notification:(fun _ -> function
-         | PublishDiagnostics _ ->
-           let* filled = Fiber.Ivar.peek first_diagnostics in
-           (match filled with
-            | Some _ -> Fiber.return ()
-            | None -> Fiber.Ivar.fill first_diagnostics ())
-         | _ -> Fiber.return ())
-      ()
-  in
+  let on_notification, first_diagnostics = Test.drain_diagnostics () in
+  let handler = Client.Handler.make ~on_notification () in
   Test.run_initialized ~handler (fun client ->
-    let textDocument =
-      TextDocumentItem.create
-        ~uri:Helpers.uri
-        ~languageId:(LanguageKind.Other "ocaml")
-        ~version:0
-        ~text:source
-    in
-    let* () =
-      Client.notification
-        client
-        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-    in
+    let* () = Test.open_document ~client ~uri:Helpers.uri ~source () in
     let* () = Fiber.Ivar.read first_diagnostics in
     let settings = `Assoc [ "diagnostics_delay", `Float 10.0 ] in
     let* () = Client.notification client (ChangeConfiguration { settings }) in
