@@ -16,6 +16,21 @@ let hover ?(uri = Helpers.uri) client position =
        })
 ;;
 
+let test ?capabilities ~request ~print source positions =
+  let rec run client = function
+    | [] -> Fiber.return ()
+    | position :: positions ->
+      let* response = request client position in
+      print response;
+      run client positions
+  in
+  Helpers.test ?capabilities source (fun client -> run client positions)
+;;
+
+let test_hover ?capabilities source positions =
+  test ?capabilities ~request:hover ~print:print_hover source positions
+;;
+
 let markdown_capabilities =
   let hover =
     HoverClientCapabilities.create

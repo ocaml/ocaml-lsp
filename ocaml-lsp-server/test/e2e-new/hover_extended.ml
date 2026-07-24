@@ -250,18 +250,21 @@ let f a b c d e f g h i = 1 + a + b + c + d + e + f + g + h + i
     } |}]
 ;;
 
+let test_hover_extended ?capabilities source positions =
+  Hover_helpers.test
+    ?capabilities
+    ~request:(fun client position -> hover_extended client position (Some 0))
+    ~print:print_hover_extended
+    source
+    positions
+;;
+
 let%expect_test "hoverExtended returns type inferred under cursor" =
   let source =
     {ocaml|let x = 1
 |ocaml}
   in
-  let position = Position.create ~line:0 ~character:4 in
-  let req client =
-    let* resp = hover_extended client position (Some 0) in
-    let () = print_hover_extended resp in
-    Fiber.return ()
-  in
-  Helpers.test source req;
+  test_hover_extended source [ Position.create ~line:0 ~character:4 ];
   [%expect
     {|
     {
@@ -279,13 +282,10 @@ let%expect_test "hoverExtended returns type inferred under cursor with markdown"
     {ocaml|let x = 1
 |ocaml}
   in
-  let position = Position.create ~line:0 ~character:4 in
-  let req client =
-    let* resp = hover_extended client position (Some 0) in
-    let () = print_hover_extended resp in
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  test_hover_extended
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:0 ~character:4 ];
   [%expect
     {|
     {
@@ -299,14 +299,10 @@ let%expect_test "hoverExtended returns type inferred under cursor with markdown"
 ;;
 
 let%expect_test "hoverExtended returns type inferred under cursor with documentation" =
-  let source = Hover_helpers.documented_id_use_source in
-  let position = Position.create ~line:3 ~character:9 in
-  let req client =
-    let* resp = hover_extended client position (Some 0) in
-    let () = print_hover_extended resp in
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  test_hover_extended
+    ~capabilities:Hover_helpers.markdown_capabilities
+    Hover_helpers.documented_id_use_source
+    [ Position.create ~line:3 ~character:9 ];
   [%expect
     {|
     {
@@ -324,14 +320,10 @@ let%expect_test "hoverExtended returns type inferred under cursor with documenta
 
 let%expect_test "hoverExtended returns type inferred under cursor with documentation tags"
   =
-  let source = Hover_helpers.documented_div_use_source in
-  let position = Position.create ~line:23 ~character:10 in
-  let req client =
-    let* resp = hover_extended client position (Some 0) in
-    let () = print_hover_extended resp in
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  test_hover_extended
+    ~capabilities:Hover_helpers.markdown_capabilities
+    Hover_helpers.documented_div_use_source
+    [ Position.create ~line:23 ~character:10 ];
   [%expect
     {|
     {
@@ -355,13 +347,10 @@ let f = 10.
 let sum = f i f
 |ocaml}
   in
-  let position = Position.create ~line:3 ~character:13 in
-  let req client =
-    let* resp = hover_extended client position (Some 0) in
-    let () = print_hover_extended resp in
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  test_hover_extended
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:3 ~character:13 ];
   [%expect
     {|
     {
@@ -381,14 +370,10 @@ and s = string
 type 'a fib = ('a -> unit) -> unit
 |ocaml}
   in
-  let req client =
-    let* hover1 = hover_extended client (Position.create ~line:1 ~character:4) (Some 0) in
-    print_hover_extended hover1;
-    let* hover2 = hover_extended client (Position.create ~line:2 ~character:9) (Some 0) in
-    print_hover_extended hover2;
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  test_hover_extended
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:1 ~character:4; Position.create ~line:2 ~character:9 ];
   [%expect
     {|
     {
@@ -421,12 +406,7 @@ let%expect_test "hoverExtended regression test for #403" =
 let x : foo = 1
 |ocaml}
   in
-  let req client =
-    let* resp = hover_extended client (Position.create ~line:2 ~character:4) (Some 0) in
-    print_hover_extended resp;
-    Fiber.return ()
-  in
-  Helpers.test source req;
+  test_hover_extended source [ Position.create ~line:2 ~character:4 ];
   [%expect
     {|
     {
