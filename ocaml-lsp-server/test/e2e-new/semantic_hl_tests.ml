@@ -59,6 +59,31 @@ let%expect_test "does not advertise unsupported full semantic token requests" =
   [%expect {| advertised |}]
 ;;
 
+let print_semantic_tokens_delta_provider (initialized : InitializeResult.t) =
+  let full =
+    match initialized.capabilities.semanticTokensProvider with
+    | None -> None
+    | Some (`SemanticTokensOptions options) -> options.full
+    | Some (`SemanticTokensRegistrationOptions options) -> options.full
+  in
+  let delta =
+    match full with
+    | Some (`SemanticTokensFullDelta { delta }) -> Option.value delta ~default:false
+    | None | Some (`Bool _) -> false
+  in
+  print_endline (if delta then "advertised" else "not advertised")
+;;
+
+let%expect_test "does not advertise unsupported semantic token deltas" =
+  let full =
+    `ClientSemanticTokensRequestFullDelta
+      (ClientSemanticTokensRequestFullDelta.create ~delta:false ())
+  in
+  let capabilities = semantic_tokens_client_capabilities ~full () in
+  test_initialize ~capabilities print_semantic_tokens_delta_provider;
+  [%expect {| advertised |}]
+;;
+
 let client_capabilities =
   let textDocument =
     let semanticTokens =
