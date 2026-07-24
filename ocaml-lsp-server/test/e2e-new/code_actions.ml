@@ -1061,7 +1061,7 @@ let f (x : t) = x
 |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
   let intf_source = "" in
   let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
   print_code_actions
@@ -1104,7 +1104,7 @@ let f (x : t) = x
 |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
   let intf_source =
     {ocaml|
 val f : t -> t
@@ -1155,7 +1155,7 @@ let f (x : t) (d : bool) =
 |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
   let intf_source =
     {ocaml|
 type t = Foo of int | Bar of bool
@@ -1204,7 +1204,7 @@ let f i s b =
 |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
   let intf_source =
     {ocaml|
 val f : int -> string -> 'a list -> bool -> bool
@@ -1252,7 +1252,7 @@ let f i s l b =
   |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
   let intf_source =
     {ocaml|
 val f : int -> string -> 'a list -> bool -> bool
@@ -1303,7 +1303,7 @@ let h x = x *. 2.0;;
   |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
   let intf_source =
     {ocaml|
 val f :
@@ -1376,7 +1376,7 @@ end
 |ocaml}
   in
   let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.openDocument ~client ~uri ~source:impl_source in
+  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
   let intf_source =
     {ocaml|
 module M : sig type t = I of int | B of bool end

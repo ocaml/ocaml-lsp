@@ -46,7 +46,7 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
   x + 1
 |ocaml}
      in
-     let* () = open_document ~language_id:"ocaml" ~client ~uri ~source in
+     let* () = Test.open_document ~client ~uri ~source () in
      let range =
        Code_actions.range ~start_line:1 ~start_character:6 ~end_line:1 ~end_character:7
      in
