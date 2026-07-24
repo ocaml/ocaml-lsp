@@ -25,6 +25,34 @@ let%expect_test "does not advertise semantic tokens without client support" =
   [%expect {| advertised |}]
 ;;
 
+let semantic_tokens_client_capabilities
+      ?full
+      ?(formats = [ TokenFormat.Relative ])
+      ?(token_types = [])
+      ?(token_modifiers = [])
+      ()
+  =
+  let requests = ClientSemanticTokensRequestOptions.create ?full () in
+  let semanticTokens =
+    SemanticTokensClientCapabilities.create
+      ~formats
+      ~requests
+      ~tokenTypes:token_types
+      ~tokenModifiers:token_modifiers
+      ()
+  in
+  let textDocument = TextDocumentClientCapabilities.create ~semanticTokens () in
+  ClientCapabilities.create ~textDocument ()
+;;
+
+let%expect_test "does not advertise an unsupported semantic token format" =
+  let capabilities =
+    semantic_tokens_client_capabilities ~full:(`Bool true) ~formats:[] ()
+  in
+  test_initialize ~capabilities print_semantic_tokens_provider;
+  [%expect {| advertised |}]
+;;
+
 let client_capabilities =
   let textDocument =
     let semanticTokens =
