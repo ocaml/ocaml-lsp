@@ -346,7 +346,9 @@ include struct
   module ConfigurationParams = ConfigurationParams
   module CreateFile = CreateFile
   module Diagnostic = Diagnostic
+  module DiagnosticOptions = DiagnosticOptions
   module DiagnosticRelatedInformation = DiagnosticRelatedInformation
+  module DiagnosticServerCancellationData = DiagnosticServerCancellationData
   module DiagnosticSeverity = DiagnosticSeverity
   module DiagnosticTag = DiagnosticTag
   module DidChangeConfigurationParams = DidChangeConfigurationParams
@@ -356,6 +358,8 @@ include struct
   module DocumentFilter = DocumentFilter
   module DocumentHighlight = DocumentHighlight
   module DocumentHighlightKind = DocumentHighlightKind
+  module DocumentDiagnosticParams = DocumentDiagnosticParams
+  module DocumentDiagnosticReport = DocumentDiagnosticReport
   module DocumentHighlightParams = DocumentHighlightParams
   module DocumentSymbol = DocumentSymbol
   module DocumentUri = DocumentUri
@@ -384,6 +388,11 @@ include struct
   module PublishDiagnosticsParams = PublishDiagnosticsParams
   module PublishDiagnosticsClientCapabilities = PublishDiagnosticsClientCapabilities
   module ReferenceParams = ReferenceParams
+  module RelatedFullDocumentDiagnosticReport = RelatedFullDocumentDiagnosticReport
+
+  module RelatedUnchangedDocumentDiagnosticReport =
+    RelatedUnchangedDocumentDiagnosticReport
+
   module Registration = Registration
   module RegistrationParams = RegistrationParams
   module RenameOptions = RenameOptions
@@ -439,8 +448,8 @@ include struct
   module WorkspaceEdit = WorkspaceEdit
   module WorkspaceFolder = WorkspaceFolder
   module WorkspaceFoldersChangeEvent = WorkspaceFoldersChangeEvent
-  module WorkspaceSymbolParams = WorkspaceSymbolParams
   module WorkspaceFoldersServerCapabilities = WorkspaceFoldersServerCapabilities
+  module WorkspaceSymbolParams = WorkspaceSymbolParams
   module WorkspaceOptions = WorkspaceOptions
 end
 

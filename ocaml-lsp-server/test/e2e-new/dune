@@ -91,6 +91,7 @@
     document_symbol
     merlin_jump
     phrase
+    pull_diagnostics
     type_expression
     typed_holes
     locate

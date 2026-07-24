@@ -111,90 +111,96 @@ let create
   }
 ;;
 
-let send =
-  let module Range_map = Map.Make (struct
-      include Range
+module Range_map = Map.Make (struct
+    include Range
 
-      let compare x y = Ordering.to_int (compare x y)
-    end)
-  in
-  (* TODO deduplicate related errors as well *)
-  let add_dune_diagnostic pending uri (diagnostic : Diagnostic.t) =
-    let value =
-      match Table.find pending uri with
-      | None -> Range_map.singleton diagnostic.range [ diagnostic ]
-      | Some map ->
-        Range_map.update map ~key:diagnostic.range ~f:(fun diagnostics ->
-          Some
-            (match diagnostics with
-             | None -> [ diagnostic ]
-             | Some diagnostics ->
-               if
-                 List.exists diagnostics ~f:(fun (d : Diagnostic.t) ->
-                   match d.source with
-                   | None -> assert false
-                   | Some source ->
-                     String.equal ocamllsp_source source
-                     &&
-                       (match d.message, diagnostic.message with
-                       | `String m1, `String m2 -> equal_message m1 m2
-                       | `MarkupContent { kind; value }, `MarkupContent mc ->
-                         Poly.equal kind mc.kind && equal_message value mc.value
-                       | _, _ -> false))
-               then diagnostics
-               else diagnostic :: diagnostics))
+    let compare x y = Ordering.to_int (compare x y)
+  end)
+
+let range_map_of_diagnostics diagnostics =
+  List.rev_map diagnostics ~f:(fun (d : Diagnostic.t) -> d.range, d)
+  |> List.fold_left ~init:Range_map.empty ~f:(fun acc (key, diagnostic) ->
+    Range_map.update ~key acc ~f:(function
+      | None -> Some [ diagnostic ]
+      | Some diagnostics -> Some (diagnostic :: diagnostics)))
+;;
+
+(* TODO deduplicate related errors as well *)
+let add_dune_diagnostic diagnostics (diagnostic : Diagnostic.t) =
+  Range_map.update diagnostics ~key:diagnostic.range ~f:(fun existing ->
+    Some
+      (match existing with
+       | None -> [ diagnostic ]
+       | Some existing ->
+         if
+           List.exists existing ~f:(fun (merlin : Diagnostic.t) ->
+             match merlin.source with
+             | None -> assert false
+             | Some source ->
+               String.equal ocamllsp_source source
+               &&
+                 (match merlin.message, diagnostic.message with
+                 | `String m1, `String m2 -> equal_message m1 m2
+                 | `MarkupContent { kind; value }, `MarkupContent mc ->
+                   Poly.equal kind mc.kind && equal_message value mc.value
+                 | _, _ -> false))
+         then existing
+         else diagnostic :: existing))
+;;
+
+let diagnostics_of_range_map diagnostics =
+  Range_map.to_list diagnostics |> List.concat_map ~f:snd
+;;
+
+let merge ~merlin ~dune =
+  List.fold_left dune ~init:(range_map_of_diagnostics merlin) ~f:add_dune_diagnostic
+  |> diagnostics_of_range_map
+;;
+
+let send t which =
+  Fiber.of_thunk (fun () ->
+    let add_pending_dune_diagnostic pending uri diagnostic =
+      let diagnostics = Table.find pending uri |> Option.value ~default:Range_map.empty in
+      let diagnostics = add_dune_diagnostic diagnostics diagnostic in
+      Table.set pending ~key:uri ~data:diagnostics
     in
-    Table.set pending ~key:uri ~data:value
-  in
-  let range_map_of_unduplicated_diagnostics diagnostics =
-    List.rev_map diagnostics ~f:(fun (d : Diagnostic.t) -> d.range, d)
-    |> List.fold_left ~init:Range_map.empty ~f:(fun acc (key, v) ->
-      Range_map.update ~key acc ~f:(function
-        | None -> Some [ v ]
-        | Some xs -> Some (v :: xs)))
-  in
-  fun t which ->
-    Fiber.of_thunk (fun () ->
-      let dirty_uris =
-        match which with
-        | `All -> t.dirty_uris
-        | `One uri -> Base.Set.singleton (module Uri) uri
-      in
-      let pending = Table.create (module Uri) in
-      Base.Set.iter dirty_uris ~f:(fun uri ->
-        let diagnostics = Table.Multi.find t.merlin uri in
-        Table.set
-          pending
-          ~key:uri
-          ~data:(range_map_of_unduplicated_diagnostics diagnostics));
-      let set_dune_source =
-        let annotate_dune_pid = Table.length t.dune > 1 in
-        if annotate_dune_pid
-        then
-          fun pid (d : Diagnostic.t) ->
-            let source = Some (sprintf "dune (pid=%d)" (Pid.to_int pid)) in
-            { d with source }
-        else fun _pid x -> x
-      in
-      if t.report_dune_diagnostics
+    let dirty_uris =
+      match which with
+      | `All -> t.dirty_uris
+      | `One uri -> Base.Set.singleton (module Uri) uri
+    in
+    let pending = Table.create (module Uri) in
+    Base.Set.iter dirty_uris ~f:(fun uri ->
+      let diagnostics = Table.Multi.find t.merlin uri in
+      Table.set pending ~key:uri ~data:(range_map_of_diagnostics diagnostics));
+    let set_dune_source =
+      let annotate_dune_pid = Table.length t.dune > 1 in
+      if annotate_dune_pid
       then
-        Table.fold ~init:() t.dune ~f:(fun ~key:dune ~data:per_dune () ->
-          Table.iter per_dune ~f:(fun (uri, diagnostic) ->
-            if Base.Set.mem dirty_uris uri
-            then (
-              let diagnostic = set_dune_source dune.pid diagnostic in
-              add_dune_diagnostic pending uri diagnostic)));
-      t.dirty_uris
-      <- (match which with
-          | `All -> Base.Set.empty (module Uri)
-          | `One uri -> Base.Set.remove t.dirty_uris uri);
-      Table.fold pending ~init:[] ~f:(fun ~key:uri ~data:diagnostics acc ->
-        let diagnostics = Range_map.to_list diagnostics |> List.concat_map ~f:snd in
-        (* we don't include a version because some of the diagnostics might
+        fun pid (d : Diagnostic.t) ->
+          let source = Some (sprintf "dune (pid=%d)" (Pid.to_int pid)) in
+          { d with source }
+      else fun _pid x -> x
+    in
+    if t.report_dune_diagnostics
+    then
+      Table.fold ~init:() t.dune ~f:(fun ~key:dune ~data:per_dune () ->
+        Table.iter per_dune ~f:(fun (uri, diagnostic) ->
+          if Base.Set.mem dirty_uris uri
+          then (
+            let diagnostic = set_dune_source dune.pid diagnostic in
+            add_pending_dune_diagnostic pending uri diagnostic)));
+    t.dirty_uris
+    <- (match which with
+        | `All -> Base.Set.empty (module Uri)
+        | `One uri -> Base.Set.remove t.dirty_uris uri);
+    Table.fold pending ~init:[] ~f:(fun ~key:uri ~data:diagnostics acc ->
+      let diagnostics = diagnostics_of_range_map diagnostics in
+      (* we don't include a version because some of the diagnostics might
            come from dune which reads from the file system and not from the
            editor's view *)
-        PublishDiagnosticsParams.create ~uri ~diagnostics () :: acc)
-      |> t.send)
+      PublishDiagnosticsParams.create ~uri ~diagnostics () :: acc)
+    |> t.send)
 ;;
 
 let set t what =
@@ -364,9 +370,7 @@ let error_to_diagnostics ~diagnostics ~merlin error =
     ()
 ;;
 
-let merlin_diagnostics diagnostics merlin =
-  let doc = Document.Merlin.to_doc merlin in
-  let uri = Document.uri doc in
+let compute_merlin_diagnostics diagnostics merlin =
   let create_diagnostic = Diagnostic.create ~source:ocamllsp_source in
   let open Fiber.O in
   let+ all_diagnostics =
@@ -409,6 +413,13 @@ let merlin_diagnostics diagnostics merlin =
         |> List.sort ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
           Range.compare d1.range d2.range))
   in
+  all_diagnostics
+;;
+
+let merlin_diagnostics diagnostics merlin =
+  let open Fiber.O in
+  let uri = Document.Merlin.to_doc merlin |> Document.uri in
+  let+ all_diagnostics = compute_merlin_diagnostics diagnostics merlin in
   set diagnostics (`Merlin (uri, all_diagnostics))
 ;;
 

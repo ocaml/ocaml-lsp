@@ -21,6 +21,7 @@ val create
   -> t
 
 val update_workspaces : t -> Workspaces.t -> unit
+val pull_diagnostics : t -> ((Uri.t * Diagnostic.t) list, string) result Fiber.t
 val stop : t -> unit Fiber.t
 val commands : string list
 val on_command : t -> ExecuteCommandParams.t -> Json.t Fiber.t
