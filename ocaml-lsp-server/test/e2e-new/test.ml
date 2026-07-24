@@ -366,3 +366,19 @@ let print_option_list ?(none = "[]") yojson_of_t = function
   | None -> print_endline none
   | Some xs -> print_list yojson_of_t xs
 ;;
+
+let print_locations = function
+  | None -> print_endline "[]"
+  | Some (`Location locations) ->
+    List.iter locations ~f:(fun (location : Location.t) ->
+      print_endline (DocumentUri.to_path location.uri |> Filename.basename);
+      Range.yojson_of_t location.range
+      |> Yojson.Safe.pretty_to_string ~std:false
+      |> print_endline)
+  | Some (`LocationLink links) ->
+    List.iter links ~f:(fun (location : LocationLink.t) ->
+      print_endline (DocumentUri.to_path location.targetUri |> Filename.basename);
+      Range.yojson_of_t location.targetRange
+      |> Yojson.Safe.pretty_to_string ~std:false
+      |> print_endline)
+;;

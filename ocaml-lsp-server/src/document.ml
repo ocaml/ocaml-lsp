@@ -269,6 +269,30 @@ let make wheel config pipeline (doc : DidOpenTextDocumentParams.t) ~position_enc
     | Ocamllex | Menhir | Cram -> Fiber.return (Other { tdoc; syntax }))
 ;;
 
+let make_from_file wheel config pipeline uri ~position_encoding =
+  Fiber.of_thunk (fun () ->
+    let filename = Uri.to_path uri in
+    match Fs_io.read_file filename with
+    | Error _ ->
+      Log.log ~section:"debug" (fun () ->
+        Log.msg "Unable to open file" [ "filename", `String filename ]);
+      Fiber.return None
+    | Ok text ->
+      let+ doc =
+        let params =
+          let textDocument =
+            let languageId : LanguageKind.t =
+              Other (Syntax.to_language_id (Syntax.of_fname filename))
+            in
+            TextDocumentItem.create ~uri ~languageId ~version:0 ~text
+          in
+          DidOpenTextDocumentParams.create ~textDocument
+        in
+        make ~position_encoding wheel config pipeline params
+      in
+      Some doc)
+;;
+
 let update_text ?version t changes =
   match Text_document.apply_content_changes ?version (text_document t) changes with
   | exception Text_document.Invalid_utf error ->
@@ -321,15 +345,15 @@ module Merlin = struct
   let mconfig (t : t) = Merlin_config.config t.merlin_config
 
   let with_pipeline_exn ?name doc f =
-    let+ res = with_pipeline ?name doc f in
-    match res with
+    with_pipeline ?name doc f
+    >>| function
     | Ok s -> s
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
 
   let with_configurable_pipeline_exn ?name ~config doc f =
-    let+ res = with_configurable_pipeline ?name ~config doc f in
-    match res with
+    with_configurable_pipeline ?name ~config doc f
+    >>| function
     | Ok s -> s
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
@@ -353,11 +377,7 @@ module Merlin = struct
   ;;
 
   let syntax_doc pipeline pos =
-    let res =
-      let command = Query_protocol.Syntax_document pos in
-      Query_commands.dispatch pipeline command
-    in
-    match res with
+    match Query_commands.dispatch pipeline (Syntax_document pos) with
     | `Found s -> Some s
     | `No_documentation -> None
   ;;

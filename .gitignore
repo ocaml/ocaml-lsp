@@ -1,4 +1,5 @@
 _build/
+_build_*/
 compile_commands.json
 _opam/
 .idea/

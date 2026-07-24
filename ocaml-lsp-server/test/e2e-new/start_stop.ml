@@ -204,6 +204,7 @@ let%expect_test "start/stop" =
         },
         "foldingRangeProvider": true,
         "hoverProvider": true,
+        "implementationProvider": true,
         "inlayHintProvider": true,
         "referencesProvider": true,
         "renameProvider": { "prepareProvider": true },
