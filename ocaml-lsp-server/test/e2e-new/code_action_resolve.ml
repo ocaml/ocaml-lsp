@@ -79,7 +79,7 @@ let%expect_test "inline edit is computed eagerly despite resolve support" =
         "destruct-line (enumerate cases, use existing match)", "inferred_intf",
         "merlin-jump-fun", "merlin-jump-let", "merlin-jump-match",
         "merlin-jump-module", "merlin-jump-module-type", "merlin-jump-next-case",
-        "merlin-jump-prev-case", "put module name in identifiers",
+        "merlin-jump-prev-case", "open-dune", "put module name in identifiers",
         "remove module name from identifiers", "remove type annotation",
         "switch", "type-annotate", "update_intf"
       ]
