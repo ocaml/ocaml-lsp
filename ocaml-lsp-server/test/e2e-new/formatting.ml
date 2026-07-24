@@ -20,6 +20,18 @@ wrap-comments=true
 |}
 ;;
 
+let ignored_source =
+  {ocaml|let () =
+  let rec gcd a b =
+  match (a, b) with
+    | 0, n
+    | n, 0 ->
+      n
+    | _, _ -> gcd a (b mod a)
+  in print_endline (string_of_int (gcd 48 18))
+|ocaml}
+;;
+
 let setup_ocamlformat content =
   let tmpdir = Test.temp_dir "ocamllsp-test-" in
   let ocamlformat_path = Stdlib.Filename.concat tmpdir ".ocamlformat" in
@@ -140,14 +152,7 @@ end
 ;;
 
 let%expect_test "does not format ignored files" =
-  let source =
-    {ocaml|"let rec gcd a b = match (a, b) with
-  | 0, n
-  | n, 0 ->
-    n
-  | _, _ -> gcd a (b mod a)
-|ocaml}
-  in
+  let source = ignored_source in
   let tmpdir = setup_ocamlformat ocamlformat_config in
   let name = "dont_format_me.ml" in
   Test.write_file (Stdlib.Filename.concat tmpdir ".ocamlformat-ignore") (name ^ "\n");

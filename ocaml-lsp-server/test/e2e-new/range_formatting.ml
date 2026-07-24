@@ -186,17 +186,7 @@ let%expect_test "does not range format unsupported documents" =
 ;;
 
 let%expect_test "does not format ignored files" =
-  let source =
-    {ocaml|let () =
-  let rec gcd a b =
-  match (a, b) with
-    | 0, n
-    | n, 0 ->
-      n
-    | _, _ -> gcd a (b mod a)
-  in print_endline (string_of_int (gcd 48 18))
-|ocaml}
-  in
+  let source = Formatting.ignored_source in
   let range =
     Range.create
       ~start:(Position.create ~line:1 ~character:2)
