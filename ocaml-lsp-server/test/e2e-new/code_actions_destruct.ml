@@ -163,7 +163,7 @@ let f (x:bool) =
     |}]
 ;;
 
-let%expect_test "destruct-line is unavailable on a whole inline match expression" =
+let%expect_test "destruct-line is available on a whole inline match expression" =
   let source =
     {ocaml|
 type t = A | B | C
@@ -176,10 +176,34 @@ let x = match A with
     source
     range
     ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
-  [%expect {| No code actions |}]
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "\n  | B -> _\n  | C -> _",
+                "range": {
+                  "end": { "character": 10, "line": 3 },
+                  "start": { "character": 10, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
 ;;
 
-let%expect_test "destruct-line is unavailable when a match case is on the same line" =
+let%expect_test "destruct-line is available when a match case is on the same line" =
   let source =
     {ocaml|
 type t = A | B | C
@@ -191,7 +215,227 @@ let x = match A with | A -> _
     source
     range
     ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "\n                     | B -> _\n                     | C -> _",
+                "range": {
+                  "end": { "character": 29, "line": 2 },
+                  "start": { "character": 29, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
+;;
+
+let%expect_test "destruct-line expands an inline match without cases" =
+  let source =
+    {ocaml|
+type t = A | B | C
+let x = match A with
+|ocaml}
+  in
+  let range = range ~start_line:2 ~start_character:8 ~end_line:2 ~end_character:13 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "match A with\n        | A -> _\n        | B -> _\n        | C -> _",
+                "range": {
+                  "end": { "character": 20, "line": 2 },
+                  "start": { "character": 8, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
+;;
+
+let%expect_test
+    "destruct-line is not offered when the selection starts before an inline match"
+  =
+  let source =
+    {ocaml|
+type t = A | B | C
+let x = match A with
+|ocaml}
+  in
+  let range = range ~start_line:2 ~start_character:0 ~end_line:2 ~end_character:20 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
   [%expect {| No code actions |}]
+;;
+
+let%expect_test
+    "destruct-line is not offered when a multiline selection starts before an inline \
+     match"
+  =
+  let source =
+    {ocaml|
+type t = A | B | C
+let x = match A with
+  | A -> _
+|ocaml}
+  in
+  let range = range ~start_line:2 ~start_character:0 ~end_line:3 ~end_character:10 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect {| No code actions |}]
+;;
+
+let%expect_test "destruct-line finds a case after a record update" =
+  let source =
+    {ocaml|
+type t = A | B | C
+type r = { value : t }
+let f r = match { r with value = A }.value with | A -> _
+|ocaml}
+  in
+  let range = range ~start_line:3 ~start_character:10 ~end_line:3 ~end_character:15 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "\n                                                | B -> _\n                                                | C -> _",
+                "range": {
+                  "end": { "character": 56, "line": 3 },
+                  "start": { "character": 56, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
+;;
+
+let%expect_test "destruct-line finds the outer case of a nested match" =
+  let source =
+    {ocaml|
+type t = A | B | C
+let x = match (match A with | A -> B | B -> C | C -> A) with | A -> _
+|ocaml}
+  in
+  let range = range ~start_line:2 ~start_character:8 ~end_line:2 ~end_character:13 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "\n                                                             | B -> _\n                                                             | C -> _",
+                "range": {
+                  "end": { "character": 69, "line": 2 },
+                  "start": { "character": 69, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
+;;
+
+let%expect_test
+    "destruct-line finds the outer case of a nested match containing a record update"
+  =
+  let source =
+    {ocaml|
+type t = A | B | C
+type r = { value : t }
+let f r = match (match { r with value = A } with | A -> B | B -> C | C -> A) with | C -> _
+|ocaml}
+  in
+  let range = range ~start_line:3 ~start_character:10 ~end_line:3 ~end_character:15 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "\n                                                                                  | A -> _\n                                                                                  | B -> _",
+                "range": {
+                  "end": { "character": 90, "line": 3 },
+                  "start": { "character": 90, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
 ;;
 
 let%expect_test "destruct-line returns UTF-16 edit ranges" =
