@@ -147,9 +147,13 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
              | Some true ->
                `SemanticTokensFullDelta (SemanticTokensFullDelta.create ~delta:true ()))
       in
+      let config = Semantic_highlighting.create_config semantic_tokens in
       Some
         (`SemanticTokensOptions
-            (SemanticTokensOptions.create ~legend:Semantic_highlighting.legend ~full ()))
+            (SemanticTokensOptions.create
+               ~legend:(Semantic_highlighting.legend config)
+               ~full
+               ()))
     in
     let positionEncoding =
       let open Option.O in

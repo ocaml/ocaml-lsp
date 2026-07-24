@@ -141,10 +141,43 @@ end = struct
   ;;
 end
 
-let legend =
-  SemanticTokensLegend.create
-    ~tokenTypes:Token_type.tokenTypes
-    ~tokenModifiers:Token_modifiers_set.list
+(** [token_type_indices] is indexed by the server's token type index. Each entry
+    contains the corresponding index in the negotiated legend, or [None] when
+    the client does not support that token type. *)
+type config =
+  { legend : SemanticTokensLegend.t
+  ; token_type_indices : int option array
+  }
+
+let negotiate_token_type_indices negotiated_token_types =
+  Token_type.tokenTypes
+  |> Array.of_list
+  |> Array.map ~f:(fun server_token_type ->
+    List.find_mapi negotiated_token_types ~f:(fun index negotiated_token_type ->
+      Option.some_if (String.equal server_token_type negotiated_token_type) index))
+;;
+
+let make_config token_types =
+  let legend =
+    SemanticTokensLegend.create
+      ~tokenTypes:token_types
+      ~tokenModifiers:Token_modifiers_set.list
+  in
+  let token_type_indices = negotiate_token_type_indices token_types in
+  { legend; token_type_indices }
+;;
+
+let create_config (semantic_tokens : SemanticTokensClientCapabilities.t) =
+  List.filter Token_type.tokenTypes ~f:(fun value ->
+    List.mem semantic_tokens.tokenTypes value ~equal:String.equal)
+  |> make_config
+;;
+
+let default_config = make_config Token_type.tokenTypes
+let legend config = config.legend
+
+let token_type_index config token_type =
+  config.token_type_indices.(Token_type.to_int token_type)
 ;;
 
 (** Represents a collection of semantic tokens. *)
@@ -163,7 +196,7 @@ module Tokens : sig
     -> unit
 
   val yojson_of_t : t -> Yojson.Safe.t
-  val encode : t -> int array
+  val encode : t -> config -> int array
 end = struct
   type token =
     { start : Position.t
@@ -173,11 +206,9 @@ end = struct
     }
 
   type t =
-    { mutable tokens : token list (* the last appended token is the head of this list *)
-    ; mutable count : int
-    }
+    { mutable tokens : token list (* the last appended token is the head of this list *) }
 
-  let create () : t = { tokens = []; count = 0 }
+  let create () : t = { tokens = [] }
 
   let append_token : t -> Loc.t -> Token_type.t -> Token_modifiers_set.t -> unit =
     fun t loc token_type token_modifiers ->
@@ -194,8 +225,7 @@ end = struct
             let length = end_.character - start.character in
             { start; length; token_type; token_modifiers }
           in
-          t.tokens <- new_token :: t.tokens;
-          t.count <- t.count + 1)))
+          t.tokens <- new_token :: t.tokens)))
   ;;
 
   let append_token'
@@ -203,8 +233,7 @@ end = struct
     =
     fun t start ~length token_type token_modifiers ->
     let new_token : token = { start; length; token_type; token_modifiers } in
-    t.tokens <- new_token :: t.tokens;
-    t.count <- t.count + 1
+    t.tokens <- new_token :: t.tokens
   ;;
 
   let set_token
@@ -220,7 +249,7 @@ end = struct
     arr.(delta_line_index + 1) <- delta_start;
     arr.(delta_line_index + 2) <- length;
     arr.(delta_line_index + 3) <- token_type;
-    arr.(delta_line_index + 4) <- token_modifiers
+    arr.(delta_line_index + 4) <- Token_modifiers_set.to_int token_modifiers
   ;;
 
   let yojson_of_token { start; length; token_type; token_modifiers } =
@@ -237,39 +266,54 @@ end = struct
 
   let yojson_of_t t = Json.Conv.yojson_of_list yojson_of_token (List.rev t.tokens)
 
-  let encode (t : t) : int array =
-    let data = Array.create ~len:(t.count * 5) 0 in
-    let rec aux ix = function
-      | [] -> ()
-      | [ { start; length; token_type; token_modifiers } ] ->
+  let encode (t : t) (config : config) : int array =
+    let supported_token_count =
+      List.fold_left t.tokens ~init:0 ~f:(fun count token ->
+        match token_type_index config token.token_type with
+        | None -> count
+        | Some _ -> count + 1)
+    in
+    let data = Array.create ~len:(supported_token_count * 5) 0 in
+    let rec encode_tokens index current token_type = function
+      | [] ->
+        let { start; length; token_modifiers; _ } = current in
         set_token
           data
           ~delta_line_index:0
           ~delta_line:start.line
           ~delta_start:start.character
           ~length
-          ~token_type:(Token_type.to_int token_type)
-          ~token_modifiers:(Token_modifiers_set.to_int token_modifiers)
-      | current :: previous :: rest ->
-        let delta_line = current.start.line - previous.start.line in
-        let delta_start =
-          if Int.equal delta_line 0
-          then current.start.character - previous.start.character
-          else current.start.character
-        in
-        let { length; token_type; token_modifiers; _ } = current in
-        let delta_line_index = (ix - 1) * 5 in
-        set_token
-          data
-          ~delta_line_index
-          ~delta_line
-          ~delta_start
-          ~length
-          ~token_type:(Token_type.to_int token_type)
-          ~token_modifiers:(Token_modifiers_set.to_int token_modifiers);
-        aux (ix - 1) (previous :: rest)
+          ~token_type
+          ~token_modifiers
+      | previous :: rest ->
+        (match token_type_index config previous.token_type with
+         | None -> encode_tokens index current token_type rest
+         | Some previous_token_type ->
+           let delta_line = current.start.line - previous.start.line in
+           let delta_start =
+             if Int.equal delta_line 0
+             then current.start.character - previous.start.character
+             else current.start.character
+           in
+           let { length; token_modifiers } = current in
+           set_token
+             data
+             ~delta_line_index:((index - 1) * 5)
+             ~delta_line
+             ~delta_start
+             ~length
+             ~token_type
+             ~token_modifiers;
+           encode_tokens (index - 1) previous previous_token_type rest)
     in
-    aux t.count t.tokens;
+    let rec encode_first_supported = function
+      | [] -> ()
+      | token :: rest ->
+        (match token_type_index config token.token_type with
+         | None -> encode_first_supported rest
+         | Some token_type -> encode_tokens supported_token_count token token_type rest)
+    in
+    encode_first_supported t.tokens;
     data
   ;;
 end
@@ -924,9 +968,18 @@ let compute_tokens doc =
   Fold.apply parsetree
 ;;
 
-let compute_encoded_tokens doc =
+let compute_encoded_tokens config doc =
   let+ tokens = compute_tokens doc in
-  Tokens.encode tokens
+  Tokens.encode tokens config
+;;
+
+let client_config state =
+  let semantic_tokens =
+    let open Option.O in
+    let* text_document = (State.client_capabilities state).textDocument in
+    text_document.semanticTokens
+  in
+  Option.value_map semantic_tokens ~default:default_config ~f:create_config
 ;;
 
 (** Contains implementation of a custom request that provides human-readable
@@ -972,7 +1025,7 @@ let on_request_full : State.t -> SemanticTokensParams.t -> SemanticTokens.t opti
     match Document.kind doc with
     | `Other -> Fiber.return None
     | `Merlin doc ->
-      let+ tokens = compute_encoded_tokens doc in
+      let+ tokens = compute_encoded_tokens (client_config state) doc in
       let resultId = gen_new_id () in
       Document_store.update_semantic_tokens_cache store uri ~resultId ~tokens;
       Some { SemanticTokens.resultId = Some resultId; data = tokens })
@@ -1027,7 +1080,7 @@ let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list
 ;;
 
 module For_tests = struct
-  let token_type = Token_type.of_builtin SemanticTokenTypes.Variable
+  let token_type = Token_type.of_builtin Variable
   let token_type_index = Token_type.to_int token_type
   let token_modifiers = Token_modifiers_set.empty
   let token_modifiers_bitset = Token_modifiers_set.to_int token_modifiers
@@ -1036,7 +1089,7 @@ module For_tests = struct
     let encoded = Tokens.create () in
     List.iter tokens ~f:(fun (start, length) ->
       Tokens.append_token' encoded start ~length token_type token_modifiers);
-    Tokens.encode encoded
+    Tokens.encode encoded default_config
   ;;
 
   let find_diff = find_diff
@@ -1059,7 +1112,7 @@ let on_request_full_delta
     match Document.kind doc with
     | `Other -> Fiber.return None
     | `Merlin doc ->
-      let+ tokens = compute_encoded_tokens doc in
+      let+ tokens = compute_encoded_tokens (client_config state) doc in
       let resultId = gen_new_id () in
       let cached_token_info =
         Document_store.get_semantic_tokens_cache state.store params.textDocument.uri

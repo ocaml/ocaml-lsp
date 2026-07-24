@@ -311,12 +311,12 @@ let%expect_test "direct requests with unsupported client capabilities" =
     semanticTokensProvider.full:
     null
     semantic token response data:
-    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    [ 0, 4, 1, 0, 0, 0, 4, 1, 1, 0 ]
     unsupported full requests:
     semanticTokensProvider.full:
     null
     semantic token response data:
-    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    [ 0, 4, 1, 0, 0, 0, 4, 1, 1, 0 ]
     |}]
 ;;
 
@@ -517,13 +517,8 @@ let%expect_test "does not advertise or send unsupported semantic token types" =
   [%expect
     {|
     semanticTokensProvider.legend.tokenTypes:
-    [
-      "namespace", "type", "class", "enum", "interface", "struct",
-      "typeParameter", "parameter", "variable", "property", "enumMember",
-      "event", "function", "method", "macro", "keyword", "modifier", "comment",
-      "string", "number", "regexp", "operator", "decorator"
-    ]
-    let <variable-0>x</0> = <number-1>1</1>
+    [ "variable" ]
+    let <variable-0>x</0> = 1
     |}]
 ;;
 

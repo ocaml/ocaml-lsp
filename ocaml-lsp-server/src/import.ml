@@ -263,6 +263,7 @@ include struct
   module SelectionRange = SelectionRange
   module SelectionRangeParams = SelectionRangeParams
   module SemanticTokens = SemanticTokens
+  module SemanticTokensClientCapabilities = SemanticTokensClientCapabilities
   module SemanticTokensEdit = SemanticTokensEdit
   module SemanticTokensFullDelta = SemanticTokensFullDelta
   module SemanticTokensLegend = SemanticTokensLegend
