@@ -129,17 +129,26 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ExecuteCommandOptions.create ~commands ()
     in
     let semanticTokensProvider =
-      match client_capabilities.textDocument with
-      | Some { semanticTokens = Some { formats; _ }; _ }
-        when List.mem formats Lsp.Types.TokenFormat.Relative ~equal:Poly.equal ->
-        let full =
-          `SemanticTokensFullDelta (SemanticTokensFullDelta.create ~delta:true ())
-        in
-        Some
-          (`SemanticTokensOptions
-              (SemanticTokensOptions.create ~legend:Semantic_highlighting.legend ~full ()))
-      | None | Some { semanticTokens = None; _ } | Some { semanticTokens = Some _; _ } ->
-        None
+      let open Option.O in
+      let* text_document = client_capabilities.textDocument in
+      let* semantic_tokens = text_document.semanticTokens in
+      match
+        List.mem semantic_tokens.formats Lsp.Types.TokenFormat.Relative ~equal:Poly.equal
+      with
+      | false -> None
+      | true ->
+        (match semantic_tokens.requests.full with
+         | None | Some (`Bool false) -> None
+         | Some (`Bool true) | Some (`ClientSemanticTokensRequestFullDelta _) ->
+           let full =
+             `SemanticTokensFullDelta (SemanticTokensFullDelta.create ~delta:true ())
+           in
+           Some
+             (`SemanticTokensOptions
+                 (SemanticTokensOptions.create
+                    ~legend:Semantic_highlighting.legend
+                    ~full
+                    ())))
     in
     let positionEncoding =
       let open Option.O in
