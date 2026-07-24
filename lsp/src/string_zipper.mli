@@ -20,6 +20,14 @@ val goto_end : t -> t
 val drop_until : t -> t -> t
 val apply_change : t -> Types.Range.t -> [ `UTF16 | `UTF8 ] -> replacement:string -> t
 val offset : t -> int
+val position : t -> offset:int -> [ `UTF16 | `UTF8 ] -> Position.t
+
+val range
+  :  t
+  -> start_offset_inclusive:int
+  -> end_offset_exclusive:int
+  -> [ `UTF16 | `UTF8 ]
+  -> Types.Range.t
 
 module Private : sig
   type zipper := t
