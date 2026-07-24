@@ -18,6 +18,14 @@ let contains (x : t) (y : t) =
   | _ -> false
 ;;
 
+let intersection (x : t) (y : t) =
+  let start = Position.max x.start y.start in
+  let end_ = Position.min x.end_ y.end_ in
+  match Position.compare start end_ with
+  | Lt -> Some { start; end_ }
+  | Eq | Gt -> None
+;;
+
 (* Compares ranges by their lengths*)
 let compare_size (x : t) (y : t) =
   let dx = Position.(x.end_ - x.start) in

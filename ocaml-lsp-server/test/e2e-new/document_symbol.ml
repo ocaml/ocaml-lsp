@@ -754,7 +754,7 @@ let g childs = List.map f childs
     {|
     f: ok
     g: ok
-    arg: selectionRange not contained in range
+    arg: ok
     |}]
 ;;
 
@@ -881,14 +881,14 @@ let
   [%expect
     {|
     contained: range=((0, 0), (0, 11)) selection=((0, 4), (0, 5))
-    overlap before: range=((0, 2), (1, 3)) selection=((0, 0), (0, 6))
-    overlap after: range=((0, 0), (0, 5)) selection=((0, 2), (0, 8))
-    enclosing: range=((0, 2), (0, 5)) selection=((0, 0), (0, 6))
-    touch before: range=((0, 6), (1, 3)) selection=((0, 0), (0, 6))
-    touch after: range=((0, 0), (0, 6)) selection=((0, 6), (0, 12))
-    disjoint before: range=((0, 7), (1, 3)) selection=((0, 0), (0, 6))
-    disjoint after: range=((0, 0), (0, 3)) selection=((0, 10), (0, 16))
-    ghost: range=((1, 24), (1, 25)) selection=((0, 0), (1, 0))
-    ghost overlapping first line: range=((0, 41), (2, 1)) selection=((0, 0), (1, 0))
+    overlap before: range=((0, 2), (1, 3)) selection=((0, 2), (0, 6))
+    overlap after: range=((0, 0), (0, 5)) selection=((0, 2), (0, 5))
+    enclosing: range=((0, 2), (0, 5)) selection=((0, 2), (0, 5))
+    touch before: range=((0, 6), (1, 3)) selection=((0, 6), (1, 3))
+    touch after: range=((0, 0), (0, 6)) selection=((0, 0), (0, 6))
+    disjoint before: range=((0, 7), (1, 3)) selection=((0, 7), (1, 3))
+    disjoint after: range=((0, 0), (0, 3)) selection=((0, 0), (0, 3))
+    ghost: range=((1, 24), (1, 25)) selection=((1, 24), (1, 25))
+    ghost overlapping first line: range=((0, 41), (2, 1)) selection=((0, 41), (2, 1))
     |}]
 ;;
