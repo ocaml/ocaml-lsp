@@ -62,6 +62,32 @@ let find_action action_name action =
 let find_annotate_action = find_action "type-annotate"
 let find_remove_annotation_action = find_action "remove type annotation"
 
+let%expect_test "no code actions for dune documents" =
+  let source = "(library (name foo))\n" in
+  let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
+  let makeRequest textDocument =
+    let context = CodeActionContext.create ~diagnostics:[] () in
+    Lsp.Client_request.CodeAction
+      (CodeActionParams.create ~textDocument ~range ~context ())
+  in
+  iter_lsp_response_result
+    ~path:"dune"
+    ~language_id:"dune"
+    ~makeRequest
+    ~source
+    (function
+    | Error error -> Jsonrpc.Response.Error.yojson_of_t error |> Test.print_result
+    | Ok actions -> print_code_action_result actions);
+  [%expect
+    {|
+    {
+      "data": { "extension": "" },
+      "code": -32600,
+      "message": "unsupported file extension"
+    }
+    |}]
+;;
+
 let%expect_test "code actions" =
   let source =
     {ocaml|
