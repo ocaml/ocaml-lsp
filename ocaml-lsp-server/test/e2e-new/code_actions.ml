@@ -589,6 +589,37 @@ let f (x:bool) =
     |}]
 ;;
 
+let%expect_test "destruct-line is unavailable on a whole inline match expression" =
+  let source =
+    {ocaml|
+type t = A | B | C
+let x = match A with
+  | A -> _
+|ocaml}
+  in
+  let range = range ~start_line:2 ~start_character:8 ~end_line:3 ~end_character:10 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect {| No code actions |}]
+;;
+
+let%expect_test "destruct-line is unavailable when a match case is on the same line" =
+  let source =
+    {ocaml|
+type t = A | B | C
+let x = match A with | A -> _
+|ocaml}
+  in
+  let range = range ~start_line:2 ~start_character:8 ~end_line:2 ~end_character:13 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect {| No code actions |}]
+;;
+
 let%expect_test "destruct-line returns UTF-16 edit ranges" =
   let source =
     {ocaml|
