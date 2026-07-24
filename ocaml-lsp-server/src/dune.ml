@@ -832,7 +832,7 @@ let run t : unit Fiber.t =
 
 let update_workspaces t workspaces =
   match !t with
-  | Closed -> Code_error.raise "dune is already closed" []
+  | Closed -> failwith "dune is already closed"
   | Active active -> active.workspaces <- workspaces
 ;;
 

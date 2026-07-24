@@ -150,9 +150,7 @@ let get_process t =
      | Running p -> Ok p
      | Disabled | Stopped -> Error `No_process
      | Waiting_for_init _ ->
-       Code_error.raise
-         "Expected to receive `Started` or `Stopped` after mailing `Start`"
-         [])
+       failwith "Expected to receive `Started` or `Stopped` after mailing `Start`")
 ;;
 
 let format_type t ~typ =
@@ -213,8 +211,8 @@ let stop t =
 let run_rpc ~logger ~bin t =
   match !t with
   | Disabled -> assert false
-  | Stopped -> Code_error.raise "ocamlformat already stopped" []
-  | Running _ -> Code_error.raise "ocamlformat already running" []
+  | Stopped -> failwith "ocamlformat already stopped"
+  | Running _ -> failwith "ocamlformat already running"
   | Waiting_for_init { ask_init; wait_init } ->
     let* () = Fiber.Ivar.read ask_init in
     (match !t with
