@@ -217,22 +217,34 @@ let test
   : type resp.
     ?capabilities:ClientCapabilities.t
     -> ?uri:DocumentUri.t
+    -> ?expect_errors:bool
     -> src:string
     -> (SemanticTokensParams.t -> resp Client.out_request)
     -> (resp req_ctx -> unit Fiber.t)
     -> unit
   =
-  fun ?(capabilities = client_capabilities) ?(uri = Helpers.uri) ~src req consume_resp ->
+  fun ?(capabilities = client_capabilities)
+    ?(uri = Helpers.uri)
+    ?expect_errors
+    ~src
+    req
+    consume_resp ->
   let wait_for_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
       ~on_notification:(fun client -> function
-         | Lsp.Server_notification.PublishDiagnostics _ ->
-           (* we don't want to close the connection from client-side before we
+         | Lsp.Server_notification.PublishDiagnostics params ->
+           let+ () =
+             (* we don't want to close the connection from client-side before we
              process diagnostics arrived on the channel. TODO: would a better
              solution be to simply flush on closing the connection because now
              semantic tokens tests is coupled to diagnostics *)
-           let+ () = Fiber.Ivar.fill wait_for_diagnostics () in
+             let has_errors =
+               List.exists params.diagnostics ~f:(fun diagnostic ->
+                 diagnostic.severity = Some DiagnosticSeverity.Error)
+             in
+             Fiber.Ivar.fill wait_for_diagnostics has_errors
+           in
            Client.state client
          | _ -> Fiber.return ())
       ()
@@ -261,7 +273,16 @@ let test
       let* () = consume_resp { initializeResult; resp } in
       let* () =
         Fiber.fork_and_join_unit
-          (fun () -> Fiber.Ivar.read wait_for_diagnostics)
+          (fun () ->
+             let+ has_errors = Fiber.Ivar.read wait_for_diagnostics in
+             Option.iter expect_errors ~f:(fun expected ->
+               if not (Bool.equal expected has_errors)
+               then
+                 failwith
+                   (Printf.sprintf
+                      "expected type errors: %b, got: %b"
+                      expected
+                      has_errors)))
           (fun () -> Client.request client Shutdown)
       in
       Client.stop client
@@ -444,7 +465,7 @@ let print_semantic_tokens_legend_field field legend =
   |> Test.print_result
 ;;
 
-let test_semantic_tokens_full ?capabilities ?uri src =
+let test_semantic_tokens_full ?capabilities ?uri ?expect_errors src =
   let print_resp { initializeResult; resp } =
     Fiber.return
     @@
@@ -464,7 +485,7 @@ let test_semantic_tokens_full ?capabilities ?uri src =
            ~annot_mods:true
            src
   in
-  test ?capabilities ?uri ~src (fun p -> SemanticTokensFull p) print_resp
+  test ?capabilities ?uri ?expect_errors ~src (fun p -> SemanticTokensFull p) print_resp
 ;;
 
 let%expect_test "typed value binding produces ordered semantic tokens" =
@@ -645,18 +666,18 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
       type <type|declaration-1>t</1>
 
       type <enum|declaration-2>koo</2> =
-        | <enumMember|declaration-3>Foo</3> of <type|-4>string</4>
-        | <enumMember|declaration-5>Bar</5> of [ `Int of <type|-6>int</6> | `String of <type|-7>string</7> ]
+        | <enumMember|declaration-3>Foo</3> of <type|defaultLibrary-4>string</4>
+        | <enumMember|declaration-5>Bar</5> of [ `Int of <type|defaultLibrary-6>int</6> | `String of <type|defaultLibrary-7>string</7> ]
 
-      val <variable|declaration-8>u</8> : <type|-9>unit</9>
+      val <variable|declaration-8>u</8> : <type|defaultLibrary-9>unit</9>
 
-      val <function|declaration-10>f</10> : <type|-11>unit</11> -> <type|-12>t</12>
+      val <function|declaration-10>f</10> : <type|defaultLibrary-11>unit</11> -> <type|-12>t</12>
     end = struct
-      type <type|declaration-13>t</13> = <type|-14>int</14>
+      type <type|declaration-13>t</13> = <type|defaultLibrary-14>int</14>
 
       type <enum|declaration-15>koo</15> =
-        | <enumMember|declaration-16>Foo</16> of <type|-17>string</17>
-        | <enumMember|declaration-18>Bar</18> of [ `Int of <type|-19>int</19> | `String of <type|-20>string</20> ]
+        | <enumMember|declaration-16>Foo</16> of <type|defaultLibrary-17>string</17>
+        | <enumMember|declaration-18>Bar</18> of [ `Int of <type|defaultLibrary-19>int</19> | `String of <type|defaultLibrary-20>string</20> ]
 
       let <variable|-21>u</21> = ()
 
@@ -666,7 +687,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
     module type <interface|-24>Bar</24> = sig
       type <struct|declaration-25>t</25> =
         { <property|-26>foo</26> : <namespace|-27>Moo</27>.<type|-28>t</28>
-        ; <property|-29>bar</29> : <type|-30>int</30>
+        ; <property|-29>bar</29> : <type|defaultLibrary-30>int</30>
         }
     end
 
@@ -682,14 +703,14 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
 
     module <namespace|definition-59>Foo</59> (<namespace|-60>Arg</60> : <interface|-61>Bar</61>) = struct
       module <namespace|definition-62>Inner_foo</62> = struct
-        type <type|declaration-63>t</63> = <type|-64>string</64>
+        type <type|declaration-63>t</63> = <type|defaultLibrary-64>string</64>
       end
     end
 
     module <namespace|definition-65>Foo_inst</65> = <namespace|-66>Foo</66> (struct
       type <struct|declaration-67>t</67> =
         { <property|-68>foo</68> : <namespace|-69>Moo</69>.<type|-70>t</70>
-        ; <property|-71>bar</71> : <type|-72>int</72>
+        ; <property|-71>bar</71> : <type|defaultLibrary-72>int</72>
         }
     end)
     |}]
@@ -741,7 +762,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 13, "line": 5 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 6 },
@@ -753,13 +774,13 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 23, "line": 6 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 40, "line": 6 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 8 },
@@ -771,7 +792,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 10, "line": 8 },
         "length": 4,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 10 },
@@ -783,7 +804,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 10, "line": 10 },
         "length": 4,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 18, "line": 10 },
@@ -801,7 +822,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 11, "line": 12 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 7, "line": 14 },
@@ -819,7 +840,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 13, "line": 15 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 16 },
@@ -831,13 +852,13 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 23, "line": 16 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 40, "line": 16 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 6, "line": 18 },
@@ -897,7 +918,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 12, "line": 26 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 5, "line": 30 },
@@ -1101,7 +1122,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 13, "line": 42 },
         "length": 6,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       },
       {
         "start_pos": { "character": 7, "line": 46 },
@@ -1149,7 +1170,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "start_pos": { "character": 12, "line": 49 },
         "length": 3,
         "type": "type",
-        "modifiers": []
+        "modifiers": [ "defaultLibrary" ]
       }
     ]
     |}]
@@ -1205,7 +1226,7 @@ let x = { M . foo = 0 ; bar = "bar"}
       |};
   [%expect
     {|
-    module <namespace|definition-0>M</0> = struct type <struct|declaration-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
+    module <namespace|definition-0>M</0> = struct type <struct|declaration-1>r</1> = { <property|-2>foo</2> : <type|defaultLibrary-3>int</3> ; <property|-4>bar</4> : <type|defaultLibrary-5>string</5> } end
 
     let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>}
     |}]
@@ -1273,7 +1294,7 @@ let prefixed = ~!1
   [%expect
     {|
     module type <interface|-0>Operators</0> = sig
-      val ( <operator|declaration-1>++</1> ) : <type|-2>int</2> -> <type|-3>int</3> -> <type|-4>int</4>
+      val ( <operator|declaration-1>++</1> ) : <type|defaultLibrary-2>int</2> -> <type|defaultLibrary-3>int</3> -> <type|defaultLibrary-4>int</4>
     end
 
     let ( <operator|definition-5>++</5> ) : int -> int -> int = fun <parameter|-6>left</6> <parameter|-7>right</7> -> <parameter|-8>left</8> <operator|-9>+</9> <parameter|-10>right</10>
@@ -1358,16 +1379,16 @@ end
 
     let <function|definition-50>alias</50> ((<parameter|-51>left</51>, <parameter|-52>right</52>) as <parameter|-53>pair</53>) = <parameter|-54>left</54>, <parameter|-55>right</55>, <parameter|-56>pair</56>
 
-    let <function|definition-57>constrained</57> <parameter|-58>parameter</58> : <type|-59>int</59> = <parameter|-60>parameter</60>
+    let <function|definition-57>constrained</57> <parameter|-58>parameter</58> : <type|defaultLibrary-59>int</59> = <parameter|-60>parameter</60>
 
     module type <interface|-61>S</61> = sig
-      val <function|declaration-62>f</62> : <parameter|-63>labeled</63>:<type|-64>int</64> -> ?<parameter|-65>optional</65>:<type|-66>string</66> -> <type|-67>float</67> -> <type|-68>unit</68>
+      val <function|declaration-62>f</62> : <parameter|-63>labeled</63>:<type|defaultLibrary-64>int</64> -> ?<parameter|-65>optional</65>:<type|defaultLibrary-66>string</66> -> <type|defaultLibrary-67>float</67> -> <type|defaultLibrary-68>unit</68>
     end
     |}]
 ;;
 
 let%expect_test "built-in types" =
-  test_semantic_tokens_full
+  test_semantic_tokens_full ~expect_errors:false
   @@ String.strip
        {|
 type uses_builtin = int * string * bool
@@ -1376,17 +1397,216 @@ type int = Shadowed
 
 type uses_shadowed = int
 
-type uses_qualified_builtin = Stdlib.int
+module M = struct type int = User end
+
+type uses_qualified = M.int
       |};
   [%expect
     {|
-    type <type|declaration-0>uses_builtin</0> = <type|-1>int</1> * <type|-2>string</2> * <type|-3>bool</3>
+    type <type|declaration-0>uses_builtin</0> = <type|defaultLibrary-1>int</1> * <type|defaultLibrary-2>string</2> * <type|defaultLibrary-3>bool</3>
 
     type <enum|declaration-4>int</4> = <enumMember|declaration-5>Shadowed</5>
 
     type <type|declaration-6>uses_shadowed</6> = <type|-7>int</7>
 
-    type <type|declaration-8>uses_qualified_builtin</8> = <namespace|-9>Stdlib</9>.<type|-10>int</10>
+    module <namespace|definition-8>M</8> = struct type <enum|declaration-9>int</9> = <enumMember|declaration-10>User</10> end
+
+    type <type|declaration-11>uses_qualified</11> = <namespace|-12>M</12>.<type|-13>int</13>
+    |}]
+;;
+
+let%expect_test "predefined constructors and ordinary library aliases" =
+  test_semantic_tokens_full
+    ~uri:(DocumentUri.of_string "file:///foo.mli")
+    ~expect_errors:false
+    {ocaml|val scalars : int * char * string * bytes * float * bool * unit * exn * nativeint * int32 * int64 * floatarray
+val containers : int array * string list * bool option * unit lazy_t * float iarray
+val library_types : int ref * (int, string) result * int List.t
+|ocaml};
+  [%expect
+    {|
+    val <variable|declaration-0>scalars</0> : <type|defaultLibrary-1>int</1> * <type|defaultLibrary-2>char</2> * <type|defaultLibrary-3>string</3> * <type|defaultLibrary-4>bytes</4> * <type|defaultLibrary-5>float</5> * <type|defaultLibrary-6>bool</6> * <type|defaultLibrary-7>unit</7> * <type|defaultLibrary-8>exn</8> * <type|defaultLibrary-9>nativeint</9> * <type|defaultLibrary-10>int32</10> * <type|defaultLibrary-11>int64</11> * <type|defaultLibrary-12>floatarray</12>
+    val <variable|declaration-13>containers</13> : <type|defaultLibrary-14>int</14> <type|defaultLibrary-15>array</15> * <type|defaultLibrary-16>string</16> <type|defaultLibrary-17>list</17> * <type|defaultLibrary-18>bool</18> <type|defaultLibrary-19>option</19> * <type|defaultLibrary-20>unit</20> <type|defaultLibrary-21>lazy_t</21> * <type|defaultLibrary-22>float</22> <type|defaultLibrary-23>iarray</23>
+    val <variable|declaration-24>library_types</24> : <type|defaultLibrary-25>int</25> <type|-26>ref</26> * (<type|defaultLibrary-27>int</27>, <type|defaultLibrary-28>string</28>) <type|-29>result</29> * <type|defaultLibrary-30>int</30> <namespace|-31>List</31>.<type|-32>t</32>
+    |}]
+;;
+
+let%expect_test "built-in spellings in unresolved qualified types" =
+  test_semantic_tokens_full
+    ~expect_errors:true
+    {ocaml|type unbound_member = Stdlib.int
+type unbound_module = Missing.string
+type later = int
+|ocaml};
+  [%expect
+    {|
+    type <type|declaration-0>unbound_member</0> = <namespace|-1>Stdlib</1>.<type|-2>int</2>
+    type <type|declaration-3>unbound_module</3> = <namespace|-4>Missing</4>.<type|-5>string</5>
+    type <type|declaration-6>later</6> = <type|defaultLibrary-7>int</7>
+    |}]
+;;
+
+let%expect_test "built-ins respect aliases and nonrec shadowing" =
+  test_semantic_tokens_full
+    ~expect_errors:false
+    {ocaml|type alias = int
+type nonrec int = int
+type uses_aliases = alias * int * string
+type string = C of string
+type nonrec 'a list = 'a list
+type container_alias = bool list
+|ocaml};
+  [%expect
+    {|
+    type <type|declaration-0>alias</0> = <type|defaultLibrary-1>int</1>
+    type nonrec <type|declaration-2>int</2> = <type|defaultLibrary-3>int</3>
+    type <type|declaration-4>uses_aliases</4> = <type|-5>alias</5> * <type|-6>int</6> * <type|defaultLibrary-7>string</7>
+    type <enum|declaration-8>string</8> = <enumMember|declaration-9>C</9> of <type|-10>string</10>
+    type nonrec <typeParameter|-11>'a</11> <type|declaration-12>list</12> = <typeParameter|-13>'a</13> <type|defaultLibrary-14>list</14>
+    type <type|declaration-15>container_alias</15> = <type|defaultLibrary-16>bool</16> <type|-17>list</17>
+    |}]
+;;
+
+let%expect_test "built-ins respect opens and locally abstract types" =
+  test_semantic_tokens_full
+    ~expect_errors:false
+    {ocaml|module M = struct type int = User end
+module N = M
+let local (type int) (x : int) (y : string) = x, y
+let opened = let open N in fun (x : int) (y : string) -> x, y
+type outside = int
+type locally_opened = N.(int * string)
+open N
+type shadowed = int * string * M.int
+|ocaml};
+  [%expect
+    {|
+    module <namespace|definition-0>M</0> = struct type <enum|declaration-1>int</1> = <enumMember|declaration-2>User</2> end
+    module <namespace|definition-3>N</3> = <namespace|-4>M</4>
+    let <function|definition-5>local</5> (type <typeParameter|-6>int</6>) (<parameter|-7>x</7> : <type|-8>int</8>) (<parameter|-9>y</9> : <type|defaultLibrary-10>string</10>) = <parameter|-11>x</11>, <parameter|-12>y</12>
+    let <variable|-13>opened</13> = let open <namespace|-14>N</14> in fun (<parameter|-15>x</15> : <type|-16>int</16>) (<parameter|-17>y</17> : <type|defaultLibrary-18>string</18>) -> <parameter|-19>x</19>, <parameter|-20>y</20>
+    type <type|declaration-21>outside</21> = <type|defaultLibrary-22>int</22>
+    type <type|declaration-23>locally_opened</23> = N.(<type|-24>int</24> * <type|defaultLibrary-25>string</25>)
+    open <namespace|-26>N</26>
+    type <type|declaration-27>shadowed</27> = <type|-28>int</28> * <type|defaultLibrary-29>string</29> * <namespace|-30>M</30>.<type|-31>int</31>
+    |}]
+;;
+
+let%expect_test "built-ins in expression annotations and class type arguments" =
+  test_semantic_tokens_full
+    ~expect_errors:false
+    {ocaml|class ['a] box = object method id (x : 'a) = x end
+type shape = < count : int; text : string >
+let value (x : int #box) = x
+let coerce (x : int box) = (x :> int #box)
+let annotated = (1 : int)
+|ocaml};
+  [%expect
+    {|
+    class [<typeParameter|-0>'a</0>] box = object method id (<parameter|-1>x</1> : <typeParameter|-2>'a</2>) = <parameter|-3>x</3> end
+    type <type|declaration-4>shape</4> = < count : <type|defaultLibrary-5>int</5>; text : <type|defaultLibrary-6>string</6> >
+    let <function|definition-7>value</7> (<parameter|-8>x</8> : <type|defaultLibrary-9>int</9> #<type|-10>box</10>) = <parameter|-11>x</11>
+    let <function|definition-12>coerce</12> (<parameter|-13>x</13> : <type|defaultLibrary-14>int</14> <type|-15>box</15>) = (<parameter|-16>x</16> :> <type|defaultLibrary-17>int</17> #<type|-18>box</18>)
+    let <variable|-19>annotated</19> = (<number|-20>1</20> : <type|defaultLibrary-21>int</21>)
+    |}]
+;;
+
+let%expect_test "built-ins in signature constraints and packages" =
+  test_semantic_tokens_full
+    ~uri:(DocumentUri.of_string "file:///foo.mli")
+    ~expect_errors:false
+    {ocaml|module type S = sig type t val value : t end
+module type T = S with type t = int
+module type U = S with type t := string
+val packed : (module S with type t = bool)
+module M : sig type int val value : int * string end
+val outside : int
+|ocaml};
+  [%expect
+    {|
+    module type <interface|-0>S</0> = sig type <type|declaration-1>t</1> val <variable|declaration-2>value</2> : <type|-3>t</3> end
+    module type <interface|-4>T</4> = <interface|-5>S</5> with type <type|-6>t</6> = <type|defaultLibrary-7>int</7>
+    module type <interface|-8>U</8> = <interface|-9>S</9> with type <type|-10>t</10> := <type|defaultLibrary-11>string</11>
+    val <namespace|declaration-12>packed</12> : (module S with type t = <type|defaultLibrary-13>bool</13>)
+    module <namespace|declaration-14>M</14> : sig type <type|declaration-15>int</15> val <variable|declaration-16>value</16> : <type|-17>int</17> * <type|defaultLibrary-18>string</18> end
+    val <variable|declaration-19>outside</19> : <type|defaultLibrary-20>int</20>
+    |}]
+;;
+
+(* Merlin can discard an entire wrong-arity type. In that case even its
+   built-in arguments must fall back to plain type tokens, not name guessing. *)
+let%expect_test "built-ins in ill-typed type declarations" =
+  test_semantic_tokens_full
+    ~expect_errors:true
+    {ocaml|type before = int
+type missing_first = missing_type * string
+type missing_last = bool * missing_type
+type wrong_arity = (int, string) list
+type int = missing_type
+type shadowed = int * bytes
+type later = unit option
+|ocaml};
+  [%expect
+    {|
+    type <type|declaration-0>before</0> = <type|defaultLibrary-1>int</1>
+    type <type|declaration-2>missing_first</2> = <type|-3>missing_type</3> * <type|defaultLibrary-4>string</4>
+    type <type|declaration-5>missing_last</5> = <type|defaultLibrary-6>bool</6> * <type|-7>missing_type</7>
+    type <type|declaration-8>wrong_arity</8> = (<type|-9>int</9>, <type|-10>string</10>) <type|-11>list</11>
+    type <type|declaration-12>int</12> = <type|-13>missing_type</13>
+    type <type|declaration-14>shadowed</14> = <type|-15>int</15> * <type|defaultLibrary-16>bytes</16>
+    type <type|declaration-17>later</17> = <type|defaultLibrary-18>unit</18> <type|defaultLibrary-19>option</19>
+    |}]
+;;
+
+let%expect_test "built-ins in ill-typed signatures respect shadowing" =
+  test_semantic_tokens_full
+    ~uri:(DocumentUri.of_string "file:///foo.mli")
+    ~expect_errors:true
+    {ocaml|val before : int
+val broken : missing_type -> string
+module M : sig
+  type int
+  val inside : int * bool
+  val broken : missing_type * int * bytes
+end
+val outside : int
+|ocaml};
+  [%expect
+    {|
+    val <variable|declaration-0>before</0> : <type|defaultLibrary-1>int</1>
+    val <function|declaration-2>broken</2> : <type|-3>missing_type</3> -> <type|defaultLibrary-4>string</4>
+    module <namespace|declaration-5>M</5> : sig
+      type <type|declaration-6>int</6>
+      val <variable|declaration-7>inside</7> : <type|-8>int</8> * <type|defaultLibrary-9>bool</9>
+      val <variable|declaration-10>broken</10> : <type|-11>missing_type</11> * <type|-12>int</12> * <type|defaultLibrary-13>bytes</13>
+    end
+    val <variable|declaration-14>outside</14> : <type|defaultLibrary-15>int</15>
+    |}]
+;;
+
+let%expect_test "built-in modifier uses the negotiated legend" =
+  List.iter
+    [ []; [ "defaultLibrary" ]; [ "definition"; "defaultLibrary" ] ]
+    ~f:(fun token_modifiers ->
+      let capabilities =
+        semantic_tokens_client_capabilities
+          ~full:(`Bool true)
+          ~token_types:[ "type" ]
+          ~token_modifiers
+          ()
+      in
+      Test.print_result (`List (List.map token_modifiers ~f:(fun s -> `String s)));
+      test_semantic_tokens_full ~capabilities ~expect_errors:false "type t = int\n");
+  [%expect
+    {|
+    []
+    type <type|-0>t</0> = <type|-1>int</1>
+
+    [ "defaultLibrary" ]
+    type <type|-0>t</0> = <type|defaultLibrary-1>int</1>
+
+    [ "definition", "defaultLibrary" ]
+    type <type|-0>t</0> = <type|defaultLibrary-1>int</1>
     |}]
 ;;
 
@@ -1461,13 +1681,13 @@ type builtin_after_error = string
       |};
   [%expect
     {|
-    type <type|declaration-0>builtin_before_error</0> = <type|-1>int</1>
+    type <type|declaration-0>builtin_before_error</0> = <type|defaultLibrary-1>int</1>
 
     let <function|definition-2>mismatched</2> <parameter|-3>parameter</3> = <parameter|-4>parameter</4> <operator|-5>+</5> <string|-6>"not an int"</6>
 
     let <function|definition-7>unbound_callee</7> <parameter|-8>parameter</8> = <function|-9>missing_function</9> <parameter|-10>parameter</10>
 
-    let <function|definition-11>annotated</11> (<parameter|-12>parameter</12> : <type|-13>int</13>) : <type|-14>missing_type</14> = <parameter|-15>parameter</15>
+    let <function|definition-11>annotated</11> (<parameter|-12>parameter</12> : <type|defaultLibrary-13>int</13>) : <type|-14>missing_type</14> = <parameter|-15>parameter</15>
 
     let <function|definition-16>later</16> <parameter|-17>parameter</17> = <parameter|-18>parameter</18>
 
@@ -1475,7 +1695,7 @@ type builtin_after_error = string
 
     type <type|declaration-21>shadowed_after_error</21> = <type|-22>int</22>
 
-    type <type|declaration-23>builtin_after_error</23> = <type|-24>string</24>
+    type <type|declaration-23>builtin_after_error</23> = <type|defaultLibrary-24>string</24>
     |}]
 ;;
 
@@ -1500,7 +1720,7 @@ let later parameter = parameter
 |ocaml};
   [%expect
     {|
-    let <function|definition-0>f</0> (((<parameter|-1>left</1>, <parameter|-2>right</2>) as <parameter|-3>pair</3>) : <type|-4>int</4>) = <variable|-5>left</5>, <variable|-6>right</6>, <parameter|-7>pair</7>
+    let <function|definition-0>f</0> (((<parameter|-1>left</1>, <parameter|-2>right</2>) as <parameter|-3>pair</3>) : <type|defaultLibrary-4>int</4>) = <variable|-5>left</5>, <variable|-6>right</6>, <parameter|-7>pair</7>
     let <function|definition-8>later</8> <parameter|-9>parameter</9> = <parameter|-10>parameter</10>
     |}]
 ;;
@@ -1549,7 +1769,7 @@ let later parameter = parameter
 |ocaml};
   [%expect
     {|
-    let <function|definition-0>f</0> <parameter|-1>outer</1> ?(<parameter|-2>optional</2> : <type|-3>int</3> = <string|-4>"bad"</4>) ~<parameter|-5>renamed</5>:<parameter|-6>local</6> () =
+    let <function|definition-0>f</0> <parameter|-1>outer</1> ?(<parameter|-2>optional</2> : <type|defaultLibrary-3>int</3> = <string|-4>"bad"</4>) ~<parameter|-5>renamed</5>:<parameter|-6>local</6> () =
       <parameter|-7>outer</7>, <parameter|-8>optional</8>, <parameter|-9>local</9>
     let <variable|-10>optional</10> = <number|-11>0</11>
     let <function|definition-12>g</12> ?(<parameter|-13>optional</13> = <function|-14>missing</14> <variable|-15>optional</15>) () = <parameter|-16>optional</16>
@@ -1568,9 +1788,9 @@ val later : other:int -> int
 |ocaml};
   [%expect
     {|
-    val <variable|declaration-0>before</0> : <type|-1>int</1>
-    val <function|declaration-2>f</2> : <parameter|-3>labeled</3>:<type|-4>missing_type</4> -> ?<parameter|-5>optional</5>:<type|-6>int</6> -> <type|-7>unit</7> -> <type|-8>int</8>
-    val <function|declaration-9>later</9> : <parameter|-10>other</10>:<type|-11>int</11> -> <type|-12>int</12>
+    val <variable|declaration-0>before</0> : <type|defaultLibrary-1>int</1>
+    val <function|declaration-2>f</2> : <parameter|-3>labeled</3>:<type|-4>missing_type</4> -> ?<parameter|-5>optional</5>:<type|defaultLibrary-6>int</6> -> <type|defaultLibrary-7>unit</7> -> <type|defaultLibrary-8>int</8>
+    val <function|declaration-9>later</9> : <parameter|-10>other</10>:<type|defaultLibrary-11>int</11> -> <type|defaultLibrary-12>int</12>
     |}]
 ;;
 
@@ -1604,9 +1824,7 @@ let later parameter = parameter
     |}]
 ;;
 
-let%expect_test
-    "semantic tokens and deltas recover after breaking and repairing a pattern"
-  =
+let test_semantic_tokens_edits ~source changes =
   let diagnostics = Fiber.Mvar.create () in
   let handler =
     Client.Handler.make
@@ -1615,105 +1833,107 @@ let%expect_test
          | _ -> Fiber.return ())
       ()
   in
-  let source =
-    {ocaml|let f = function
+  Test.run_initialized ~handler ~capabilities:client_capabilities
+  @@ fun client ->
+  let* initialized = Client.initialized client in
+  let legend = semantic_tokens_legend initialized in
+  let uri = Helpers.uri in
+  let textDocument = TextDocumentIdentifier.create ~uri in
+  let full () =
+    let+ response =
+      Client.request
+        client
+        (SemanticTokensFull (SemanticTokensParams.create ~textDocument ()))
+    in
+    match response with
+    | Some { SemanticTokens.resultId = Some result_id; data } -> result_id, data
+    | None | Some { resultId = None; _ } -> failwith "full response has no result id"
+  in
+  let print_snapshot source data =
+    let* diagnostic = Fiber.Mvar.read diagnostics in
+    let has_errors =
+      List.exists diagnostic.diagnostics ~f:(fun diagnostic ->
+        diagnostic.severity = Some DiagnosticSeverity.Error)
+    in
+    Printf.printf "type errors: %b\n" has_errors;
+    (match
+       Semantic_hl_helpers.single_line_non_overlapping_violations
+         ~source
+         ~encoded_tokens:data
+     with
+     | [] -> ()
+     | violations -> failwith (String.concat ~sep:"\n" violations));
+    print_endline
+      (Semantic_hl_helpers.annotate_src_with_tokens
+         ~legend
+         ~encoded_tokens:data
+         ~annot_mods:true
+         source);
+    Fiber.return ()
+  in
+  let* () = Test.open_document ~client ~uri ~source () in
+  let* initial_id, initial_data = full () in
+  print_endline "initial:";
+  let* () = print_snapshot source initial_data in
+  let rec edit source previous_id previous_data = function
+    | [] ->
+      if not (Array.equal Int.equal initial_data previous_data)
+      then failwith "repair did not restore the initial tokens";
+      Test.exit_client client
+    | (version, label, line, character, old_text, newText) :: rest ->
+      let range =
+        Range.create
+          ~start:(Position.create ~line ~character)
+          ~end_:(Position.create ~line ~character:(character + String.length old_text))
+      in
+      let source = Test.apply_edits source [ TextEdit.create ~range ~newText ] in
+      let* () =
+        Client.notification
+          client
+          (TextDocumentDidChange
+             (DidChangeTextDocumentParams.create
+                ~textDocument:(VersionedTextDocumentIdentifier.create ~uri ~version)
+                ~contentChanges:
+                  [ `TextDocumentContentChangePartial
+                      (TextDocumentContentChangePartial.create ~range ~text:newText ())
+                  ]))
+      in
+      let* delta =
+        Client.request
+          client
+          (SemanticTokensDelta
+             (SemanticTokensDeltaParams.create
+                ~previousResultId:previous_id
+                ~textDocument
+                ()))
+      in
+      let reconstructed =
+        match delta with
+        | Some (`SemanticTokensDelta { edits; _ }) ->
+          List.fold_left edits ~init:previous_data ~f:apply_semantic_token_edit
+        | None | Some (`SemanticTokens _) -> failwith "expected a delta response"
+      in
+      let* fresh_id, fresh_data = full () in
+      if not (Array.equal Int.equal reconstructed fresh_data)
+      then failwith "delta differs from fresh full response";
+      Printf.printf "%s (delta matches full):\n" label;
+      let* () = print_snapshot source reconstructed in
+      edit source fresh_id fresh_data rest
+  in
+  edit source initial_id initial_data changes
+;;
+
+let%expect_test
+    "semantic tokens and deltas recover after breaking and repairing a pattern"
+  =
+  test_semantic_tokens_edits
+    ~source:
+      {ocaml|let f = function
   | None -> 0
   | Some (value, apply) -> apply value
 let later parameter = parameter
 |ocaml}
-  in
-  (Test.run_initialized ~handler ~capabilities:client_capabilities
-   @@ fun client ->
-   let* initialized = Client.initialized client in
-   let legend = semantic_tokens_legend initialized in
-   let uri = Helpers.uri in
-   let textDocument = TextDocumentIdentifier.create ~uri in
-   let full () =
-     let+ response =
-       Client.request
-         client
-         (SemanticTokensFull (SemanticTokensParams.create ~textDocument ()))
-     in
-     match response with
-     | Some { SemanticTokens.resultId = Some result_id; data } -> result_id, data
-     | None | Some { resultId = None; _ } -> failwith "full response has no result id"
-   in
-   let print_snapshot source data =
-     let* diagnostic = Fiber.Mvar.read diagnostics in
-     let has_errors =
-       List.exists diagnostic.diagnostics ~f:(fun diagnostic ->
-         diagnostic.severity = Some DiagnosticSeverity.Error)
-     in
-     Printf.printf "type errors: %b\n" has_errors;
-     (match
-        Semantic_hl_helpers.single_line_non_overlapping_violations
-          ~source
-          ~encoded_tokens:data
-      with
-      | [] -> ()
-      | violations -> failwith (String.concat ~sep:"\n" violations));
-     print_endline
-       (Semantic_hl_helpers.annotate_src_with_tokens
-          ~legend
-          ~encoded_tokens:data
-          ~annot_mods:true
-          source);
-     Fiber.return ()
-   in
-   let* () = Test.open_document ~client ~uri ~source () in
-   let* initial_id, initial_data = full () in
-   print_endline "initial:";
-   let* () = print_snapshot source initial_data in
-   let rec edit source previous_id previous_data = function
-     | [] ->
-       if not (Array.equal Int.equal initial_data previous_data)
-       then failwith "repair did not restore the initial tokens";
-       Test.exit_client client
-     | (version, label, old_text, newText) :: rest ->
-       let range =
-         Range.create
-           ~start:(Position.create ~line:1 ~character:4)
-           ~end_:(Position.create ~line:1 ~character:(4 + String.length old_text))
-       in
-       let source = Test.apply_edits source [ TextEdit.create ~range ~newText ] in
-       let* () =
-         Client.notification
-           client
-           (TextDocumentDidChange
-              (DidChangeTextDocumentParams.create
-                 ~textDocument:(VersionedTextDocumentIdentifier.create ~uri ~version)
-                 ~contentChanges:
-                   [ `TextDocumentContentChangePartial
-                       (TextDocumentContentChangePartial.create ~range ~text:newText ())
-                   ]))
-       in
-       let* delta =
-         Client.request
-           client
-           (SemanticTokensDelta
-              (SemanticTokensDeltaParams.create
-                 ~previousResultId:previous_id
-                 ~textDocument
-                 ()))
-       in
-       let reconstructed =
-         match delta with
-         | Some (`SemanticTokensDelta { edits; _ }) ->
-           List.fold_left edits ~init:previous_data ~f:apply_semantic_token_edit
-         | None | Some (`SemanticTokens _) -> failwith "expected a delta response"
-       in
-       let* fresh_id, fresh_data = full () in
-       if not (Array.equal Int.equal reconstructed fresh_data)
-       then failwith "delta differs from fresh full response";
-       Printf.printf "%s (delta matches full):\n" label;
-       let* () = print_snapshot source reconstructed in
-       edit source fresh_id fresh_data rest
-   in
-   edit
-     source
-     initial_id
-     initial_data
-     [ 1, "broken", "None", "0"; 2, "repaired", "0", "None" ]);
+    [ 1, "broken", 1, 4, "None", "0"; 2, "repaired", 1, 4, "0", "None" ];
   [%expect
     {|
     initial:
@@ -1739,6 +1959,46 @@ let later parameter = parameter
     |}]
 ;;
 
+let%expect_test "built-in modifiers and deltas track shadowing and error recovery" =
+  test_semantic_tokens_edits
+    ~source:
+      {ocaml|type num = Other
+type uses = int * string
+|ocaml}
+    [ 1, "shadowed", 0, 5, "num", "int"
+    ; 2, "broken", 0, 11, "Other", "missing_type"
+    ; 3, "repaired", 0, 11, "missing_type", "Other"
+    ; 4, "unshadowed", 0, 5, "int", "num"
+    ];
+  [%expect
+    {|
+    initial:
+    type errors: false
+    type <enum|declaration-0>num</0> = <enumMember|declaration-1>Other</1>
+    type <type|declaration-2>uses</2> = <type|defaultLibrary-3>int</3> * <type|defaultLibrary-4>string</4>
+
+    shadowed (delta matches full):
+    type errors: false
+    type <enum|declaration-0>int</0> = <enumMember|declaration-1>Other</1>
+    type <type|declaration-2>uses</2> = <type|-3>int</3> * <type|defaultLibrary-4>string</4>
+
+    broken (delta matches full):
+    type errors: true
+    type <type|declaration-0>int</0> = <type|-1>missing_type</1>
+    type <type|declaration-2>uses</2> = <type|-3>int</3> * <type|defaultLibrary-4>string</4>
+
+    repaired (delta matches full):
+    type errors: false
+    type <enum|declaration-0>int</0> = <enumMember|declaration-1>Other</1>
+    type <type|declaration-2>uses</2> = <type|-3>int</3> * <type|defaultLibrary-4>string</4>
+
+    unshadowed (delta matches full):
+    type errors: false
+    type <enum|declaration-0>num</0> = <enumMember|declaration-1>Other</1>
+    type <type|declaration-2>uses</2> = <type|defaultLibrary-3>int</3> * <type|defaultLibrary-4>string</4>
+    |}]
+;;
+
 let%expect_test "semantic tokens for GADTs, objects, fields, and functors" =
   test_semantic_tokens_full
     {ocaml|type 'a cell = { mutable field : 'a }
@@ -1758,9 +2018,9 @@ module type S = functor (M : sig type t end) -> sig type u = M.t end
   [%expect
     {|
     type <typeParameter|-0>'a</0> <struct|declaration-1>cell</1> = { mutable <property|-2>field</2> : <typeParameter|-3>'a</3> }
-    type <enum|declaration-4>packed</4> = <enumMember|declaration-5>Pack</5> : <typeParameter|-6>'a</6> * (<typeParameter|-7>'a</7> -> <type|-8>string</8>) -> <type|-9>packed</9>
+    type <enum|declaration-4>packed</4> = <enumMember|declaration-5>Pack</5> : <typeParameter|-6>'a</6> * (<typeParameter|-7>'a</7> -> <type|defaultLibrary-8>string</8>) -> <type|-9>packed</9>
     class virtual base = object (<variable|-10>self</10>)
-      method virtual value : <type|-11>int</11>
+      method virtual value : <type|defaultLibrary-11>int</11>
       method get = <parameter|-12>self</12>#<method|-13>value</13>
     end
     class child = object
@@ -1799,7 +2059,7 @@ module type T = S with module M = N
   [%expect
     {|
     module type <interface|-0>S</0> = sig module <namespace|declaration-1>M</1> : sig type <type|declaration-2>t</2> end end
-    module <namespace|definition-3>N</3> = struct type <type|declaration-4>t</4> = <type|-5>int</5> end
+    module <namespace|definition-3>N</3> = struct type <type|declaration-4>t</4> = <type|defaultLibrary-5>int</5> end
     module type <interface|-6>T</6> = <interface|-7>S</7> with module <namespace|-8>M</8> = <namespace|-9>N</9>
     |}]
 ;;
@@ -1879,7 +2139,7 @@ end
       |};
   [%expect
     {|
-    module <namespace|definition-0>M</0> = struct type <type|declaration-1>t</1> = <type|-2>int</2> end
+    module <namespace|definition-0>M</0> = struct type <type|declaration-1>t</1> = <type|defaultLibrary-2>int</2> end
     module type <interface|-3>S</3> = sig
       open <namespace|-4>M</4>
       val <variable|declaration-5>x</5> : <type|-6>t</6>
@@ -1920,9 +2180,9 @@ let openpat = match m with M2.(C) -> 1 | #t -> 2 | _ -> 0
 |ocaml};
   [%expect
     {|
-    type <typeParameter|-0>'a</0> <type|declaration-1>poly</1> = <typeParameter|-2>'a</2> <type|-3>list</3>
-    type <enum|declaration-4>r</4> = <enumMember|declaration-5>C</5> of { <property|-6>x</6> : <type|-7>int</7> }
-    type <enum|declaration-8>packed</8> = <enumMember|declaration-9>Pack</9> : <typeParameter|-10>'a</10> * (<typeParameter|-11>'a</11> -> <type|-12>string</12>) -> <type|-13>packed</13>
+    type <typeParameter|-0>'a</0> <type|declaration-1>poly</1> = <typeParameter|-2>'a</2> <type|defaultLibrary-3>list</3>
+    type <enum|declaration-4>r</4> = <enumMember|declaration-5>C</5> of { <property|-6>x</6> : <type|defaultLibrary-7>int</7> }
+    type <enum|declaration-8>packed</8> = <enumMember|declaration-9>Pack</9> : <typeParameter|-10>'a</10> * (<typeParameter|-11>'a</11> -> <type|defaultLibrary-12>string</12>) -> <type|-13>packed</13>
     let <function|definition-14>id</14> : int -> int = fun <parameter|-15>x</15> -> <parameter|-16>x</16>
     let <function|definition-17>poly</17> : 'a. 'a -> 'a = fun <parameter|-18>x</18> -> <parameter|-19>x</19>
     let <function|definition-20>f</20> = function <number|-21>0</21> -> <number|-22>1</22> | <enumMember|-23>Pack</23> (<parameter|-24>x</24>, <parameter|-25>g</25>) -> <function|-26>g</26> <variable|-27>x</27> | _ -> <number|-28>0</28>
@@ -1938,7 +2198,7 @@ let openpat = match m with M2.(C) -> 1 | #t -> 2 | _ -> 0
     let <variable|-50>p</50> = (module <namespace|-51>M</51> : S)
     let () = [%foo <variable|-52>bar</52>]
     let <function|definition-53>g</53> (type <typeParameter|-54>a</54>) (<parameter|-55>v</55> : <type|-56>a</56>) = <parameter|-57>v</57>
-    let <variable|-58>h</58> = (fun <parameter|-59>z</59> -> <parameter|-60>z</60> : <type|-61>int</61> -> <type|-62>int</62>)
+    let <variable|-58>h</58> = (fun <parameter|-59>z</59> -> <parameter|-60>z</60> : <type|defaultLibrary-61>int</61> -> <type|defaultLibrary-62>int</62>)
     let* b <operator|-63>=</63> <function|-64>m</64> in <variable|-65>b</65>
     let () = let module <namespace|-66>L</66> = struct end in ()
     module <namespace|definition-67>F</67> (<namespace|-68>X</68> : <interface|-69>S</69>) = struct end
