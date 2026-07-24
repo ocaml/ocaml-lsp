@@ -53,6 +53,12 @@ let%expect_test "does not advertise an unsupported semantic token format" =
   [%expect {| advertised |}]
 ;;
 
+let%expect_test "does not advertise unsupported full semantic token requests" =
+  let capabilities = semantic_tokens_client_capabilities () in
+  test_initialize ~capabilities print_semantic_tokens_provider;
+  [%expect {| advertised |}]
+;;
+
 let client_capabilities =
   let textDocument =
     let semanticTokens =
