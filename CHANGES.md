@@ -4,6 +4,7 @@
 
 - Add a code action to open the closest Dune file for the current document.
   (#1817, fixes #1491, @rgrinberg)
+- Distinguish operators from functions in semantic highlighting. (#1831, @rgrinberg)
 
 ## Fixes
 
