@@ -2,6 +2,29 @@ open Test.Import
 
 let semantic_tokens_full_debug = "ocamllsp/textDocument/semanticTokens/full"
 
+let test_initialize ~capabilities f =
+  Test.run (fun client ->
+    let run_client () = Test.start_client ~capabilities client in
+    let run () =
+      let* initialized = Client.initialized client in
+      f initialized;
+      Client.request client Shutdown
+    in
+    Fiber.fork_and_join_unit run_client (fun () -> run () >>> Client.stop client))
+;;
+
+let print_semantic_tokens_provider (initialized : InitializeResult.t) =
+  let provider = initialized.capabilities.semanticTokensProvider in
+  print_endline (if Option.is_some provider then "advertised" else "not advertised")
+;;
+
+let%expect_test "does not advertise semantic tokens without client support" =
+  test_initialize
+    ~capabilities:(ClientCapabilities.create ())
+    print_semantic_tokens_provider;
+  [%expect {| advertised |}]
+;;
+
 let client_capabilities =
   let textDocument =
     let semanticTokens =
