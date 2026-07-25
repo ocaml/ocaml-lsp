@@ -24,9 +24,8 @@ let%expect_test "can add the first workspace folder after initialization" =
   Stdlib.close_out stderr_chan;
   let stderr = Io.String_path.read_file stderr_path in
   Stdlib.Sys.remove stderr_path;
-  let failed = Base.String.is_substring stderr ~substring:"Assertion failed" in
-  Printf.printf "workspace update error: %b\n" failed;
-  [%expect {| workspace update error: false |}]
+  Printf.printf "stderr: %s\n" (Yojson.Safe.to_string (`String stderr));
+  [%expect {| stderr: "" |}]
 ;;
 
 let%expect_test "disable codelens" =
