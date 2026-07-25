@@ -501,6 +501,6 @@ let%expect_test "generated source has an existing workspace-symbol location" =
   [%expect
     {|
     path: _build/default/lib/gen.ml
-    contents: "let generated_workspace_symbol = 42\n"
+    contents: "let generated_workspace_symbol = 42"
     |}]
 ;;
