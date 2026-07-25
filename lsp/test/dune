@@ -15,6 +15,7 @@
  (inline_tests)
  (libraries
   stdune
+  jsonrpc
   lsp
   yojson
   dyn
