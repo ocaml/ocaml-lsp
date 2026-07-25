@@ -407,6 +407,37 @@ let test_semantic_tokens_full src =
   test ~src (fun p -> SemanticTokensFull p) print_resp
 ;;
 
+let%expect_test "tokens are single-line and non-overlapping when required" =
+  let src =
+    {|module M = struct
+  let value = 1
+  let f x = x + value
+  let text = "first
+second"
+end
+|}
+  in
+  test
+    ~src
+    (fun params -> SemanticTokensFull params)
+    (fun { resp; _ } ->
+       print_endline "protocol violations:";
+       (match resp with
+        | None -> Test.print_result (`String "empty semantic token response")
+        | Some { SemanticTokens.data; _ } ->
+          Semantic_hl_helpers.single_line_non_overlapping_violations
+            ~source:src
+            ~encoded_tokens:data
+          |> List.map ~f:(fun violation -> `String violation)
+          |> fun violations -> Test.print_result (`List violations));
+       Fiber.return ());
+  [%expect
+    {|
+    protocol violations:
+    []
+    |}]
+;;
+
 let%expect_test "does not advertise or send unsupported semantic token types" =
   let src = "let x = 1\n" in
   let capabilities =

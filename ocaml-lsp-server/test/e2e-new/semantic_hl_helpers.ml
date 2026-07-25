@@ -21,6 +21,59 @@ let tokens encoded_tokens =
       })
 ;;
 
+let single_line_non_overlapping_violations ~source ~encoded_tokens =
+  if Array.length encoded_tokens mod 5 <> 0
+  then [ "encoded token array length is not divisible by five" ]
+  else (
+    let line_lengths =
+      String.split_lines source |> List.map ~f:String.length |> Array.of_list
+    in
+    let _, _, _, violations =
+      Array.fold_left
+        (tokens encoded_tokens)
+        ~init:(0, 0, None, [])
+        ~f:(fun (previous_line, previous_character, previous_token, violations) token ->
+          let line = previous_line + token.delta_line in
+          let character =
+            if token.delta_line = 0
+            then previous_character + token.delta_char
+            else token.delta_char
+          in
+          let violations =
+            if line < 0 || line >= Array.length line_lengths
+            then Printf.sprintf "token starts on missing line %d" line :: violations
+            else if character + token.len > line_lengths.(line)
+            then
+              Printf.sprintf
+                "token at %d:%d with length %d extends past line end %d"
+                line
+                character
+                token.len
+                line_lengths.(line)
+              :: violations
+            else violations
+          in
+          let violations =
+            match previous_token with
+            | Some (previous_line, previous_character, previous_length)
+              when line < previous_line
+                   || (line = previous_line
+                       && character < previous_character + previous_length) ->
+              Printf.sprintf
+                "token at %d:%d overlaps token at %d:%d with length %d"
+                line
+                character
+                previous_line
+                previous_character
+                previous_length
+              :: violations
+            | None | Some _ -> violations
+          in
+          line, character, Some (line, character, token.len), violations)
+    in
+    List.rev violations)
+;;
+
 let modifiers ~(legend : string array) (encoded_mods : int) =
   let rec loop encoded_mods i acc =
     if encoded_mods = 0
@@ -112,4 +165,16 @@ let jar = dar|}
     {|
     let <var-0>foo</0> = <var-1>bar</1>
     let <var-2>jar</2> = <mod-3>dar</3> |}]
+;;
+
+let%expect_test "report multiline and overlapping token violations" =
+  single_line_non_overlapping_violations
+    ~source:"abcdef\n"
+    ~encoded_tokens:[| 0; 2; 5; 0; 0; 0; 1; 1; 0; 0 |]
+  |> List.iter ~f:print_endline;
+  [%expect
+    {|
+    token at 0:2 with length 5 extends past line end 6
+    token at 0:3 overlaps token at 0:2 with length 5
+    |}]
 ;;
