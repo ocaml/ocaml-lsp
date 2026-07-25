@@ -6,3 +6,8 @@ val annotate_src_with_tokens
   -> annot_mods:bool
   -> string
   -> string
+
+val single_line_non_overlapping_violations
+  :  source:string
+  -> encoded_tokens:int array
+  -> string list

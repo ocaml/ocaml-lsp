@@ -54,6 +54,8 @@ let semantic_tokens_client_capabilities
       ?(formats = [ TokenFormat.Relative ])
       ?(token_types = [])
       ?(token_modifiers = [])
+      ?multiline_token_support
+      ?overlapping_token_support
       ()
   =
   let requests = ClientSemanticTokensRequestOptions.create ?full () in
@@ -63,6 +65,8 @@ let semantic_tokens_client_capabilities
       ~requests
       ~tokenTypes:token_types
       ~tokenModifiers:token_modifiers
+      ?multilineTokenSupport:multiline_token_support
+      ?overlappingTokenSupport:overlapping_token_support
       ()
   in
   let textDocument = TextDocumentClientCapabilities.create ~semanticTokens () in
@@ -96,10 +100,32 @@ let%expect_test "does not advertise an unsupported semantic token format" =
 ;;
 
 let%expect_test "does not advertise unsupported full semantic token requests" =
+  print_endline "omitted full support:";
   let capabilities = semantic_tokens_client_capabilities () in
+  test_initialize ~capabilities print_semantic_tokens_provider;
+  print_endline "full = false:";
+  let capabilities = semantic_tokens_client_capabilities ~full:(`Bool false) () in
   test_initialize ~capabilities print_semantic_tokens_provider;
   [%expect
     {|
+    omitted full support:
+    semanticTokensProvider:
+    {
+      "full": { "delta": true },
+      "legend": {
+        "tokenModifiers": [
+          "declaration", "definition", "readonly", "static", "deprecated",
+          "abstract", "async", "modification", "documentation", "defaultLibrary"
+        ],
+        "tokenTypes": [
+          "namespace", "type", "class", "enum", "interface", "struct",
+          "typeParameter", "parameter", "variable", "property", "enumMember",
+          "event", "function", "method", "macro", "keyword", "modifier",
+          "comment", "string", "number", "regexp", "operator", "decorator"
+        ]
+      }
+    }
+    full = false:
     semanticTokensProvider:
     {
       "full": { "delta": true },
@@ -135,6 +161,35 @@ let%expect_test "does not advertise unsupported semantic token deltas" =
   test_initialize ~capabilities print_semantic_tokens_full_provider;
   [%expect
     {|
+    semanticTokensProvider.full:
+    { "delta": true }
+    |}]
+;;
+
+let%expect_test "advertises supported semantic token request variants" =
+  let test label full =
+    print_endline label;
+    let capabilities = semantic_tokens_client_capabilities ~full () in
+    test_initialize ~capabilities print_semantic_tokens_full_provider
+  in
+  test "full = true:" (`Bool true);
+  test
+    "full object without delta support:"
+    (`ClientSemanticTokensRequestFullDelta
+        (ClientSemanticTokensRequestFullDelta.create ()));
+  test
+    "full object with delta support:"
+    (`ClientSemanticTokensRequestFullDelta
+        (ClientSemanticTokensRequestFullDelta.create ~delta:true ()));
+  [%expect
+    {|
+    full = true:
+    semanticTokensProvider.full:
+    { "delta": true }
+    full object without delta support:
+    semanticTokensProvider.full:
+    { "delta": true }
+    full object with delta support:
     semanticTokensProvider.full:
     { "delta": true }
     |}]
@@ -268,6 +323,167 @@ let test
     Fiber.fork_and_join_unit run_client run)
 ;;
 
+let print_semantic_tokens_response = function
+  | None -> Test.print_result `Null
+  | Some tokens ->
+    SemanticTokens.yojson_of_t tokens
+    |> Yojson.Safe.Util.member "data"
+    |> Test.print_result
+;;
+
+let%expect_test "direct requests with unsupported client capabilities" =
+  let test_request label capabilities =
+    print_endline label;
+    test
+      ~capabilities
+      ~src:"let x = 1\n"
+      (fun params -> SemanticTokensFull params)
+      (fun { initializeResult; resp } ->
+         print_semantic_tokens_full_provider initializeResult;
+         print_endline "semantic token response data:";
+         print_semantic_tokens_response resp;
+         Fiber.return ())
+  in
+  test_request "missing semantic token capability:" (ClientCapabilities.create ());
+  test_request
+    "unsupported token format:"
+    (semantic_tokens_client_capabilities
+       ~full:(`Bool true)
+       ~formats:[]
+       ~token_types:[ "variable"; "number" ]
+       ());
+  test_request
+    "unsupported full requests:"
+    (semantic_tokens_client_capabilities ~token_types:[ "variable"; "number" ] ());
+  [%expect
+    {|
+    missing semantic token capability:
+    semanticTokensProvider.full:
+    { "delta": true }
+    semantic token response data:
+    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    unsupported token format:
+    semanticTokensProvider.full:
+    { "delta": true }
+    semantic token response data:
+    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    unsupported full requests:
+    semanticTokensProvider.full:
+    { "delta": true }
+    semantic token response data:
+    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    |}]
+;;
+
+let semantic_token_data_json data =
+  `List (Array.to_list data |> List.map ~f:(fun value -> `Int value))
+;;
+
+let apply_semantic_token_edit
+      source
+      ({ SemanticTokensEdit.start; deleteCount; data } : SemanticTokensEdit.t)
+  =
+  let replacement = Option.value data ~default:[||] in
+  Array.concat
+    [ Array.sub source ~pos:0 ~len:start
+    ; replacement
+    ; Array.sub
+        source
+        ~pos:(start + deleteCount)
+        ~len:(Array.length source - start - deleteCount)
+    ]
+;;
+
+let%expect_test "semantic token deltas reconstruct a fresh full response" =
+  let on_notification, diagnostics = Test.drain_diagnostics () in
+  let handler = Client.Handler.make ~on_notification () in
+  let source = "let x = 1\n" in
+  let updated_source = "let x = 1\nlet y = x + 2\n" in
+  (Test.run_initialized ~handler ~capabilities:client_capabilities
+   @@ fun client ->
+   let uri = Helpers.uri in
+   let* () = Test.open_document ~client ~uri ~source () in
+   let textDocument = TextDocumentIdentifier.create ~uri in
+   let* initial =
+     Client.request
+       client
+       (SemanticTokensFull (SemanticTokensParams.create ~textDocument ()))
+   in
+   let initial_result_id, initial_data =
+     match initial with
+     | Some { SemanticTokens.resultId = Some result_id; data } -> result_id, data
+     | None | Some { resultId = None; _ } -> failwith "full response has no result id"
+   in
+   let changed_document = VersionedTextDocumentIdentifier.create ~uri ~version:1 in
+   let content_change =
+     `TextDocumentContentChangeWholeDocument
+       (TextDocumentContentChangeWholeDocument.create ~text:updated_source)
+   in
+   let* () =
+     Client.notification
+       client
+       (TextDocumentDidChange
+          (DidChangeTextDocumentParams.create
+             ~textDocument:changed_document
+             ~contentChanges:[ content_change ]))
+   in
+   let delta_params =
+     SemanticTokensDeltaParams.create ~previousResultId:initial_result_id ~textDocument ()
+   in
+   let* delta = Client.request client (SemanticTokensDelta delta_params) in
+   let* fresh =
+     Client.request
+       client
+       (SemanticTokensFull (SemanticTokensParams.create ~textDocument ()))
+   in
+   print_endline "initial data:";
+   semantic_token_data_json initial_data |> Test.print_result;
+   (match delta with
+    | None -> print_endline "empty delta response"
+    | Some (`SemanticTokens tokens) ->
+      print_endline "delta fell back to full data:";
+      semantic_token_data_json tokens.data |> Test.print_result
+    | Some (`SemanticTokensDelta delta) ->
+      print_endline "delta edits:";
+      SemanticTokensDelta.yojson_of_t delta
+      |> Yojson.Safe.Util.member "edits"
+      |> Test.print_result;
+      let reconstructed =
+        List.fold_left delta.edits ~init:initial_data ~f:apply_semantic_token_edit
+      in
+      print_endline "reconstructed data:";
+      semantic_token_data_json reconstructed |> Test.print_result);
+   print_endline "fresh full data:";
+   (match fresh with
+    | None -> Test.print_result `Null
+    | Some tokens -> semantic_token_data_json tokens.data |> Test.print_result);
+   let* () = Fiber.Ivar.read diagnostics in
+   Test.exit_client client);
+  [%expect
+    {|
+    initial data:
+    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    delta edits:
+    [
+      {
+        "data": [ 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 12, 0, 0, 2, 1, 19, 0 ],
+        "deleteCount": 0,
+        "start": 10
+      }
+    ]
+    reconstructed data:
+    [
+      0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 12,
+      0, 0, 2, 1, 19, 0
+    ]
+    fresh full data:
+    [
+      0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 12,
+      0, 0, 2, 1, 19, 0
+    ]
+    |}]
+;;
+
 let semantic_tokens_legend (initialize_result : InitializeResult.t) =
   match initialize_result.capabilities.semanticTokensProvider with
   | None -> failwith "no server capabilities for semantic tokens"
@@ -298,6 +514,37 @@ let test_semantic_tokens_full src =
            src
   in
   test ~src (fun p -> SemanticTokensFull p) print_resp
+;;
+
+let%expect_test "tokens are single-line and non-overlapping when required" =
+  let src =
+    {|module M = struct
+  let value = 1
+  let f x = x + value
+  let text = "first
+second"
+end
+|}
+  in
+  test
+    ~src
+    (fun params -> SemanticTokensFull params)
+    (fun { resp; _ } ->
+       print_endline "protocol violations:";
+       (match resp with
+        | None -> Test.print_result (`String "empty semantic token response")
+        | Some { SemanticTokens.data; _ } ->
+          Semantic_hl_helpers.single_line_non_overlapping_violations
+            ~source:src
+            ~encoded_tokens:data
+          |> List.map ~f:(fun violation -> `String violation)
+          |> fun violations -> Test.print_result (`List violations));
+       Fiber.return ());
+  [%expect
+    {|
+    protocol violations:
+    []
+    |}]
 ;;
 
 let%expect_test "does not advertise or send unsupported semantic token types" =
