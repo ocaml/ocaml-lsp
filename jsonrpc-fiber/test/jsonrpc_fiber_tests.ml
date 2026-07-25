@@ -428,6 +428,32 @@ let%expect_test "a response received before send returns races with cancellation
   [@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
 ;;
 
+let%expect_test "cancelling before a request starts still sends it" =
+  let incoming, incoming_writer = pipe () in
+  let sent = ref [] in
+  let session = Jrpc.create ~name:"client" (incoming, of_ref sent) () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"cancel" () in
+  let cancel, response = Jrpc.request_with_cancel session request in
+  let run () =
+    Fiber.fork_and_join_unit
+      (fun () -> Jrpc.run session)
+      (fun () ->
+         let* () = Jrpc.fire cancel in
+         let* response = response in
+         (match response with
+          | `Cancelled -> print_endline "cancelled"
+          | `Ok _ -> print_endline "unexpected response");
+         Printf.printf "packets sent: %d\n" (List.length !sent);
+         Out.write incoming_writer None)
+  in
+  Fiber_test.test Dyn.opaque run;
+  [%expect
+    {|
+    cancelled
+    packets sent: 1
+    <opaque> |}]
+;;
+
 let%expect_test "cancelled request IDs remain registered" =
   let request_sent = Fiber.Mvar.create () in
   let incoming, incoming_writer = pipe () in
