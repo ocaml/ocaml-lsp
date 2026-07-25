@@ -44,11 +44,11 @@ let string = "Hello"
            ~settings:(`Assoc [ "codelens", `Assoc [ "enable", `Bool false ] ]))
     in
     let* resp_codelens_disabled = codelens client text_document in
-    print_endline ("CodeLens found: " ^ string_of_int (List.length resp_codelens_disabled));
+    Test.print_result (`List (List.map resp_codelens_disabled ~f:CodeLens.yojson_of_t));
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {| CodeLens found: 0 |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "enable hover extended" =
