@@ -375,6 +375,115 @@ let%expect_test "direct requests with unsupported client capabilities" =
     |}]
 ;;
 
+let semantic_token_data_json data =
+  `List (Array.to_list data |> List.map ~f:(fun value -> `Int value))
+;;
+
+let apply_semantic_token_edit
+      source
+      ({ SemanticTokensEdit.start; deleteCount; data } : SemanticTokensEdit.t)
+  =
+  let replacement = Option.value data ~default:[||] in
+  Array.concat
+    [ Array.sub source ~pos:0 ~len:start
+    ; replacement
+    ; Array.sub
+        source
+        ~pos:(start + deleteCount)
+        ~len:(Array.length source - start - deleteCount)
+    ]
+;;
+
+let%expect_test "semantic token deltas reconstruct a fresh full response" =
+  let on_notification, diagnostics = Test.drain_diagnostics () in
+  let handler = Client.Handler.make ~on_notification () in
+  let source = "let x = 1\n" in
+  let updated_source = "let x = 1\nlet y = x + 2\n" in
+  (Test.run_initialized ~handler ~capabilities:client_capabilities
+   @@ fun client ->
+   let uri = Helpers.uri in
+   let* () = Test.open_document ~client ~uri ~source () in
+   let textDocument = TextDocumentIdentifier.create ~uri in
+   let* initial =
+     Client.request
+       client
+       (SemanticTokensFull (SemanticTokensParams.create ~textDocument ()))
+   in
+   let initial_result_id, initial_data =
+     match initial with
+     | Some { SemanticTokens.resultId = Some result_id; data } -> result_id, data
+     | None | Some { resultId = None; _ } -> failwith "full response has no result id"
+   in
+   let changed_document = VersionedTextDocumentIdentifier.create ~uri ~version:1 in
+   let content_change =
+     `TextDocumentContentChangeWholeDocument
+       (TextDocumentContentChangeWholeDocument.create ~text:updated_source)
+   in
+   let* () =
+     Client.notification
+       client
+       (TextDocumentDidChange
+          (DidChangeTextDocumentParams.create
+             ~textDocument:changed_document
+             ~contentChanges:[ content_change ]))
+   in
+   let delta_params =
+     SemanticTokensDeltaParams.create ~previousResultId:initial_result_id ~textDocument ()
+   in
+   let* delta = Client.request client (SemanticTokensDelta delta_params) in
+   let* fresh =
+     Client.request
+       client
+       (SemanticTokensFull (SemanticTokensParams.create ~textDocument ()))
+   in
+   print_endline "initial data:";
+   semantic_token_data_json initial_data |> Test.print_result;
+   (match delta with
+    | None -> print_endline "empty delta response"
+    | Some (`SemanticTokens tokens) ->
+      print_endline "delta fell back to full data:";
+      semantic_token_data_json tokens.data |> Test.print_result
+    | Some (`SemanticTokensDelta delta) ->
+      print_endline "delta edits:";
+      SemanticTokensDelta.yojson_of_t delta
+      |> Yojson.Safe.Util.member "edits"
+      |> Test.print_result;
+      let reconstructed =
+        List.fold_left delta.edits ~init:initial_data ~f:apply_semantic_token_edit
+      in
+      print_endline "reconstructed data:";
+      semantic_token_data_json reconstructed |> Test.print_result);
+   print_endline "fresh full data:";
+   (match fresh with
+    | None -> Test.print_result `Null
+    | Some tokens -> semantic_token_data_json tokens.data |> Test.print_result);
+   let* () = Fiber.Ivar.read diagnostics in
+   Test.exit_client client);
+  [%expect
+    {|
+    initial data:
+    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    delta edits:
+    [
+      {
+        "data": [ 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 12, 0, 0, 2, 1, 19, 0 ],
+        "deleteCount": 0,
+        "start": 10
+      }
+    ]
+    reconstructed data:
+    [
+      0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 12,
+      0, 0, 2, 1, 19, 0
+    ]
+    fresh full data:
+    [
+      0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 12,
+      0, 0, 2, 1, 19, 0
+    ]
+    |}]
+;;
+
 let semantic_tokens_legend (initialize_result : InitializeResult.t) =
   match initialize_result.capabilities.semanticTokensProvider with
   | None -> failwith "no server capabilities for semantic tokens"
