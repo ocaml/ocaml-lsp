@@ -49,6 +49,7 @@ let _ =
 
 let%expect_test "shadow-3" =
   inline_test
+    ~print_none:true
     {|
 let _ =
   let y = 1 in
@@ -56,7 +57,7 @@ let _ =
   let y = 0 in
   x y + 1
 |};
-  [%expect {| |}]
+  [%expect {| None |}]
 ;;
 
 let%expect_test "shadow-4" =
