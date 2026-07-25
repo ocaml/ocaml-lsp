@@ -820,6 +820,70 @@ let prefixed = ~!1
     |}]
 ;;
 
+let%expect_test "function parameters" =
+  test_semantic_tokens_full
+  @@ String.trim
+       {|
+let f ~labeled ?(optional = 1) unlabeled ~renamed:local (left, right) =
+  labeled + optional + unlabeled + local + left + right
+
+let g = function
+  | Some value -> value
+  | None -> 0
+
+let h (type item) (value : item) = value
+
+let apply continuation value = continuation value
+
+let capture parameter =
+  let nested () = parameter in
+  nested ()
+
+let shadow parameter =
+  let before = parameter in
+  let parameter = 0 in
+  before + parameter
+
+let alias ((left, right) as pair) = left, right, pair
+
+let constrained parameter : int = parameter
+
+module type S = sig
+  val f : labeled:int -> ?optional:string -> float -> unit
+end
+      |};
+  [%expect
+    {|
+    let <function|definition-0>f</0> ~<variable|-1>labeled</1> ?(optional = <number|-2>1</2>) unlabeled ~renamed:local (left, right) =
+      labeled + optional + unlabeled + local + left + right
+
+    let g = function
+      | Some value -> value
+      | None -> 0
+
+    let h (type item) (value : item) = value
+
+    let apply continuation value = continuation value
+
+    let capture parameter =
+      let nested () = parameter in
+      nested ()
+
+    let shadow parameter =
+      let before = parameter in
+      let parameter = 0 in
+      before + parameter
+
+    let alias ((left, right) as pair) = left, right, pair
+
+    let constrained parameter : int = parameter
+
+    module type S = sig
+      val f : labeled:int -> ?optional:string -> float -> unit
+    end
+    |}]
+;;
+
 let%expect_test "comment in unit" =
   test_semantic_tokens_full
   @@ String.trim
