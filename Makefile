@@ -35,7 +35,7 @@ bench: ##
 
 .PHONY: test-ocaml
 test-ocaml: ## Run the unit tests
-	dune build @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
+	dune build @jsonrpc/runtest @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
 
 .PHONY: promote
 promote:
