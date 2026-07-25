@@ -197,6 +197,109 @@ module End_to_end_server = struct
   ;;
 end
 
+let%expect_test "server enforces initialization ordering" =
+  let run () =
+    let notifications = ref [] in
+    let* client_in, server_out = pipe () in
+    let* server_in, client_out = pipe () in
+    let server_io = Lsp_fiber.Fiber_io.make server_in server_out in
+    let client_io = Lsp_fiber.Fiber_io.make client_in client_out in
+    let on_request =
+      let on_request
+        : type response.
+          unit Server.t
+          -> response Client_request.t
+          -> (response Rpc.Reply.t * unit) Fiber.t
+        =
+        fun _ request ->
+        match request with
+        | Initialize _ ->
+          let capabilities = ServerCapabilities.create () in
+          let result = InitializeResult.create ~capabilities () in
+          Fiber.return (Rpc.Reply.now result, ())
+        | _ ->
+          Jsonrpc.Response.Error.raise
+            (Jsonrpc.Response.Error.make ~code:InternalError ~message:"unexpected" ())
+      in
+      { Server.Handler.on_request }
+    in
+    let server =
+      let on_notification _ notification =
+        let method_ = (Client_notification.to_jsonrpc notification).method_ in
+        notifications := method_ :: !notifications;
+        Fiber.return ()
+      in
+      let handler = Server.Handler.make ~on_request ~on_notification () in
+      Server.make handler server_io ()
+    in
+    let request ~id ~method_ params =
+      let params = Jsonrpc.Structured.t_of_yojson params in
+      let request = Jsonrpc.Request.create ~id:(`Int id) ~method_ ~params () in
+      let* () = Fiber_io.send client_io [ Jsonrpc.Packet.Request request ] in
+      let+ packet = Fiber_io.recv client_io in
+      match packet with
+      | Some (Jsonrpc.Packet.Response response) -> response
+      | Some (Notification _ | Request _ | Batch_call _ | Batch_response _) | None ->
+        failwith "expected a response"
+    in
+    let print_response label (response : Jsonrpc.Response.t) =
+      match response.result with
+      | Ok _ -> Printf.printf "%s: ok\n" label
+      | Error error ->
+        Printf.printf "%s: %s\n" label (Jsonrpc.Response.Error.Code.to_string error.code)
+    in
+    let send_notification notification =
+      Fiber_io.send client_io [ Jsonrpc.Packet.Notification notification ]
+    in
+    let configuration_notification () =
+      send_notification
+        (Jsonrpc.Notification.create
+           ~method_:"workspace/didChangeConfiguration"
+           ~params:(`Assoc [ "settings", `Assoc [] ])
+           ())
+    in
+    let exchange () =
+      let* () = configuration_notification () in
+      let* response = request ~id:0 ~method_:"initialize" (`List []) in
+      print_response "malformed initialize" response;
+      let command = ExecuteCommandParams.create ~command:"before-init" () in
+      let* response =
+        request
+          ~id:1
+          ~method_:"workspace/executeCommand"
+          (ExecuteCommandParams.yojson_of_t command)
+      in
+      print_response "before initialize" response;
+      let initialize =
+        InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ()
+      in
+      let* response =
+        request ~id:2 ~method_:"initialize" (InitializeParams.yojson_of_t initialize)
+      in
+      print_response "initialize" response;
+      let* () = configuration_notification () in
+      let* response = request ~id:3 ~method_:"workspace/executeCommand" (`List []) in
+      print_response "malformed request" response;
+      let* response =
+        request ~id:4 ~method_:"initialize" (InitializeParams.yojson_of_t initialize)
+      in
+      print_response "initialize again" response;
+      List.iter (Printf.printf "notification handled: %s\n") (List.rev !notifications);
+      send_notification (Jsonrpc.Notification.create ~method_:"exit" ())
+    in
+    Fiber.all_concurrently_unit [ Server.start server; exchange () ]
+  in
+  Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
+  [%expect
+    {|
+    malformed initialize: InvalidParams
+    before initialize: ServerNotInitialized
+    initialize: ok
+    malformed request: InvalidParams
+    initialize again: InvalidRequest
+    notification handled: workspace/didChangeConfiguration |}]
+;;
+
 let%expect_test "end to end run of lsp tests" =
   test End_to_end_client.run End_to_end_server.run;
   [%expect
