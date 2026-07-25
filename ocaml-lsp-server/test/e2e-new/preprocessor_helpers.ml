@@ -13,7 +13,7 @@ let setup ~name ~fixture ~dune_file =
   Test.write_file path (Io.String_path.read_file fixture);
   Test.write_file (Filename.concat dir "dune-project") "(lang dune 3.24)\n";
   Test.write_file (Filename.concat dir "dune") dune_file;
-  Test.run_command ~cwd:dir "dune build";
+  Test.run_command ~cwd:dir "dune build @check";
   { path; uri = DocumentUri.of_path path }
 ;;
 
