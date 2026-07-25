@@ -429,11 +429,15 @@ let%expect_test "mixed workspaces return symbols only from built workspaces" =
     let* symbols = workspace_symbol client "a_x" in
     print_symbols workspaces symbols;
     Fiber.return ());
-  Printf.printf "show messages: %d\n" (Queue.length show_messages);
+  Printf.printf "show messages: ";
+  let messages =
+    show_messages |> Queue.to_list |> List.map ~f:ShowMessageParams.yojson_of_t
+  in
+  Test.print_result (`List messages);
   [%expect
     {|
     a_x 12 /workspace_symbol_A/bin/a.ml 0:0 0:11
-    show messages: 0
+    show messages: []
     |}]
 ;;
 
