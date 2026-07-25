@@ -3,6 +3,8 @@ open Lsp
 open Lsp.Types
 open Lsp_fiber
 
+module Raw_jsonrpc = Jsonrpc_fiber.Make (Lsp_fiber.Fiber_io)
+
 module Test = struct
   module Client = struct
     let run
@@ -196,6 +198,90 @@ module End_to_end_server = struct
     Fiber.fork_and_join_unit (fun () -> running) (fun () -> Fiber.Pool.run detached)
   ;;
 end
+
+let%expect_test "server enforces initialization ordering" =
+  let run () =
+    let* client_in, server_out = pipe () in
+    let* server_in, client_out = pipe () in
+    let server_io = Lsp_fiber.Fiber_io.make server_in server_out in
+    let client_io = Lsp_fiber.Fiber_io.make client_in client_out in
+    let on_request =
+      let on_request
+        : type response.
+          unit Server.t
+          -> response Client_request.t
+          -> (response Rpc.Reply.t * unit) Fiber.t
+        =
+        fun _ request ->
+        match request with
+        | Initialize _ ->
+          let capabilities = ServerCapabilities.create () in
+          let result = InitializeResult.create ~capabilities () in
+          Fiber.return (Rpc.Reply.now result, ())
+        | _ ->
+          Jsonrpc.Response.Error.raise
+            (Jsonrpc.Response.Error.make ~code:InternalError ~message:"unexpected" ())
+      in
+      { Server.Handler.on_request }
+    in
+    let server =
+      let handler = Server.Handler.make ~on_request () in
+      Server.make handler server_io ()
+    in
+    let client = Raw_jsonrpc.create ~name:"raw client" client_io () in
+    let request ~id ~method_ params =
+      let params = Jsonrpc.Structured.t_of_yojson params in
+      Jsonrpc.Request.create ~id:(`Int id) ~method_ ~params ()
+    in
+    let print_response label (response : Jsonrpc.Response.t) =
+      match response.result with
+      | Ok _ -> Printf.printf "%s: ok\n" label
+      | Error error ->
+        Printf.printf
+          "%s: %s\n"
+          label
+          (Jsonrpc.Response.Error.Code.to_string error.code)
+    in
+    let exchange () =
+      let command = ExecuteCommandParams.create ~command:"before-init" () in
+      let* response =
+        request
+          ~id:1
+          ~method_:"workspace/executeCommand"
+          (ExecuteCommandParams.yojson_of_t command)
+        |> Raw_jsonrpc.request client
+      in
+      print_response "before initialize" response;
+      let initialize = InitializeParams.create ~capabilities:(ClientCapabilities.create ()) () in
+      let* response =
+        request
+          ~id:2
+          ~method_:"initialize"
+          (InitializeParams.yojson_of_t initialize)
+        |> Raw_jsonrpc.request client
+      in
+      print_response "initialize" response;
+      let* response =
+        request
+          ~id:3
+          ~method_:"initialize"
+          (InitializeParams.yojson_of_t initialize)
+        |> Raw_jsonrpc.request client
+      in
+      print_response "initialize again" response;
+      Raw_jsonrpc.notification
+        client
+        (Jsonrpc.Notification.create ~method_:"exit" ())
+    in
+    Fiber.all_concurrently_unit [ Server.start server; Raw_jsonrpc.run client; exchange () ]
+  in
+  Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
+  [%expect
+    {|
+    before initialize: ServerNotInitialized
+    initialize: ok
+    initialize again: InvalidRequest |}]
+;;
 
 let%expect_test "end to end run of lsp tests" =
   test End_to_end_client.run End_to_end_server.run;
