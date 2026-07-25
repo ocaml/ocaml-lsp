@@ -91,6 +91,7 @@ module T : sig
     :  ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> ?stderr:Unix.file_descr
+    -> ?timeout:float
     -> ?capabilities:ClientCapabilities.t
     -> ?workspaceFolders:WorkspaceFolder.t list option
     -> (unit Client.t -> 'a Fiber.t)
@@ -179,11 +180,12 @@ end = struct
         ?extra_env
         ?handler
         ?stderr
+        ?timeout
         ?(capabilities = ClientCapabilities.create ())
         ?workspaceFolders
         f
     =
-    run ?extra_env ?handler ?stderr
+    run ?extra_env ?handler ?stderr ?timeout
     @@ fun client ->
     let run_client () = start_client ~capabilities ?workspaceFolders client in
     let run_test () =

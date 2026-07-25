@@ -74,6 +74,7 @@
     declaration
     definition
     diagnostics
+    dune_diagnostics
     metrics
     refactor_extract
     semantic_hl_data
