@@ -411,19 +411,19 @@ let%expect_test "semantic token deltas reconstruct a fresh full response" =
     delta edits:
     [
       {
-        "data": [ 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 12, 0, 0, 2, 1, 19, 0 ],
+        "data": [ 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 21, 0, 0, 2, 1, 19, 0 ],
         "deleteCount": 0,
         "start": 10
       }
     ]
     reconstructed data:
     [
-      0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 12,
+      0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 21,
       0, 0, 2, 1, 19, 0
     ]
     fresh full data:
     [
-      0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 12,
+      0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8, 0, 0, 4, 1, 8, 0, 0, 2, 1, 21,
       0, 0, 2, 1, 19, 0
     ]
     |}]
@@ -619,7 +619,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
 
     let <function|definition-39>f</39> (<variable|-40>foo</40> : <type|-41>t</41>) =
       match <variable|-42>foo</42> with
-      | <namespace|-43>Moo</43>.<enumMember|-44>Foo</44> <variable|-45>s</45> -> <variable|-46>s</46> <function|-47>^</47> <function|-48>string_of_int</48> <number|-49>0</49>
+      | <namespace|-43>Moo</43>.<enumMember|-44>Foo</44> <variable|-45>s</45> -> <variable|-46>s</46> <operator|-47>^</47> <function|-48>string_of_int</48> <number|-49>0</49>
       | <namespace|-50>Moo</50>.<enumMember|-51>Bar</51> (`BarInt <variable|-52>i</52>) -> <function|-53>string_of_int</53> <variable|-54>i</54>
       | <namespace|-55>Moo</55>.<enumMember|-56>Bar</56> (`BarString <variable|-57>s</57>) -> <variable|-58>s</58>
 
@@ -634,7 +634,8 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         { <property|-68>foo</68> : <namespace|-69>Moo</69>.<type|-70>t</70>
         ; <property|-71>bar</71> : <type|-72>int</72>
         }
-    end) |}]
+    end)
+    |}]
 ;;
 
 let test_semantic_tokens_full_debug src =
@@ -940,7 +941,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
       {
         "start_pos": { "character": 19, "line": 36 },
         "length": 1,
-        "type": "function",
+        "type": "operator",
         "modifiers": []
       },
       {
@@ -1093,7 +1094,8 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
         "type": "type",
         "modifiers": []
       }
-    ] |}]
+    ]
+    |}]
 ;;
 
 let%expect_test "highlighting longidents with space between identifiers" =
@@ -1108,7 +1110,8 @@ let joo = Bar.   jar
     {|
     let <variable|-0>foo</0> = <namespace|-1>Bar</1>.<variable|-2>jar</2>
 
-    let <variable|-3>joo</3> = <namespace|-4>Bar</4>.   <variable|-5>jar</5> |}]
+    let <variable|-3>joo</3> = <namespace|-4>Bar</4>.   <variable|-5>jar</5>
+    |}]
 ;;
 
 let%expect_test "highlighting longidents with space between identifiers and infix fns" =
@@ -1125,13 +1128,14 @@ Bar. ( + ) ;;
     |};
   [%expect
     {|
-    <namespace|-0>Bar</0>.<variable|-1>(+)</1> ;;
+    <namespace|-0>Bar</0>.(<operator|-1>+</1>) ;;
 
-    <namespace|-2>Bar</2>.<namespace|-3>(</3> <namespace|-4>+</4> <variable|-5>)</5> ;;
+    <namespace|-2>Bar</2>.( <operator|-3>+</3> ) ;;
 
-    <namespace|-6>Bar</6>. <variable|-7>(+)</7> ;;
+    <namespace|-4>Bar</4>. (<operator|-5>+</5>) ;;
 
-    <namespace|-8>Bar</8>. <namespace|-9>(</9> <namespace|-10>+</10> <variable|-11>)</11> ;; |}]
+    <namespace|-6>Bar</6>. ( <operator|-7>+</7> ) ;;
+    |}]
 ;;
 
 let%expect_test "longidents in records" =
@@ -1146,7 +1150,8 @@ let x = { M . foo = 0 ; bar = "bar"}
     {|
     module <namespace|definition-0>M</0> = struct type <struct|definition-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
 
-    let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>} |}]
+    let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>}
+    |}]
 ;;
 
 let%expect_test "operators" =
@@ -1156,12 +1161,19 @@ let%expect_test "operators" =
 let x = 1.0 *. 2.0
 let y = 1 * 2
 let z = 0 >>= 1
+let plus = (+)
+let ( ++ ) left right = left + right
+let sum = ( ++ ) 1 2
       |};
   [%expect
     {|
-    let <variable|-0>x</0> = <number|-1>1.0</1> <function|-2>*.</2> <number|-3>2.0</3>
-    let <variable|-4>y</4> = <number|-5>1</5> <function|-6>*</6> <number|-7>2</7>
-    let <variable|-8>z</8> = <number|-9>0</9> <function|-10>>>=</10> <number|-11>1</11> |}]
+    let <variable|-0>x</0> = <number|-1>1.0</1> <operator|-2>*.</2> <number|-3>2.0</3>
+    let <variable|-4>y</4> = <number|-5>1</5> <operator|-6>*</6> <number|-7>2</7>
+    let <variable|-8>z</8> = <number|-9>0</9> <operator|-10>>>=</10> <number|-11>1</11>
+    let <variable|-12>plus</12> = (<operator|-13>+</13>)
+    let ( <operator|definition-14>++</14> ) <variable|-15>left</15> <variable|-16>right</16> = <variable|-17>left</17> <operator|-18>+</18> <variable|-19>right</19>
+    let <variable|-20>sum</20> = ( <operator|-21>++</21> ) <number|-22>1</22> <number|-23>2</23>
+    |}]
 ;;
 
 let%expect_test "operator syntax variants" =
@@ -1199,32 +1211,32 @@ let prefixed = ~!1
   [%expect
     {|
     module type <interface|-0>Operators</0> = sig
-      val <function|definition-1>( ++ )</1> : <type|-2>int</2> -> <type|-3>int</3> -> <type|-4>int</4>
+      val ( <operator|definition-1>++</1> ) : <type|-2>int</2> -> <type|-3>int</3> -> <type|-4>int</4>
     end
 
-    let <function|definition-5>( ++ )</5> : int -> int -> int = fun <variable|-6>left</6> <variable|-7>right</7> -> <variable|-8>left</8> <function|-9>+</9> <variable|-10>right</10>
+    let ( <operator|definition-5>++</5> ) : int -> int -> int = fun <variable|-6>left</6> <variable|-7>right</7> -> <variable|-8>left</8> <operator|-9>+</9> <variable|-10>right</10>
 
-    let <variable|-11>modulo</11> = <variable|-12>(mod)</12>
+    let <variable|-11>modulo</11> = (<operator|-12>mod</12>)
 
-    let <function|definition-13>( let* )</13> <variable|-14>option</14> <variable|-15>continuation</15> =
+    let ( <operator|definition-13>let*</13> ) <variable|-14>option</14> <variable|-15>continuation</15> =
       match <variable|-16>option</16> with
       | <enumMember|-17>None</17> -> <enumMember|-18>None</18>
       | <enumMember|-19>Some</19> <variable|-20>value</20> -> <function|-21>continuation</21> <variable|-22>value</22>
 
-    let <function|definition-23>( and* )</23> <variable|-24>left</24> <variable|-25>right</25> =
+    let ( <operator|definition-23>and*</23> ) <variable|-24>left</24> <variable|-25>right</25> =
       match <variable|-26>left</26>, <variable|-27>right</27> with
       | <enumMember|-28>Some</28> <variable|-29>left</29>, <enumMember|-30>Some</30> <variable|-31>right</31> -> <enumMember|-32>Some</32> (<variable|-33>left</33>, <variable|-34>right</34>)
       | _ -> <enumMember|-35>None</35>
 
     let <variable|-36>binding</36> =
-      let* <variable|-37>left</37> = <enumMember|-38>Some</38> <number|-39>1</39>
-      and* <variable|-40>right</40> = <enumMember|-41>Some</41> <number|-42>2</42> in
-      <enumMember|-43>Some</43> (<variable|-44>left</44> <function|-45>+</45> <variable|-46>right</46>)
+      <operator|-37>let*</37> <variable|-38>left</38> = <enumMember|-39>Some</39> <number|-40>1</40>
+      <operator|-41>and*</41> <variable|-42>right</42> = <enumMember|-43>Some</43> <number|-44>2</44> in
+      <enumMember|-45>Some</45> (<variable|-46>left</46> <operator|-47>+</47> <variable|-48>right</48>)
 
-    let <function|definition-47>dereference</47> <variable|-48>reference</48> = <function|-49>!</49><variable|-50>reference</50>
+    let <function|definition-49>dereference</49> <variable|-50>reference</50> = <operator|-51>!</51><variable|-52>reference</52>
 
-    let <function|definition-51>( ~! )</51> <variable|-52>value</52> = <variable|-53>value</53>
-    let <variable|-54>prefixed</54> = <function|-55>~!</55><number|-56>1</56>
+    let ( <operator|definition-53>~!</53> ) <variable|-54>value</54> = <variable|-55>value</55>
+    let <variable|-56>prefixed</56> = <operator|-57>~!</57><number|-58>1</58>
     |}]
 ;;
 

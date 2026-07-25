@@ -297,57 +297,96 @@ end = struct
     Tokens.append_token' tokens pos ~length token_type token_modifiers
   ;;
 
-  (* TODO: make sure we follow specs when parsing -
-     https://v2.ocaml.org/manual/names.html#sss:refer-named *)
-  let lident
-        ({ loc; _ } : Longident.t Loc.loc)
-        rightmost_name
-        ?(modifiers = Token_modifiers_set.empty)
-        ()
-    =
+  let advance_lexing_position (start : Lexing.position) text ~length =
+    let position = ref start in
+    for i = 0 to length - 1 do
+      let pos_cnum = !position.pos_cnum + 1 in
+      position
+      := if Char.equal text.[i] '\n'
+         then
+           { !position with
+             pos_lnum = !position.pos_lnum + 1
+           ; pos_bol = pos_cnum
+           ; pos_cnum
+           }
+         else { !position with pos_cnum }
+    done;
+    !position
+  ;;
+
+  let precise_name_loc (loc : Loc.t) name =
     if loc.loc_ghost
-    then ()
+    then loc
     else (
-      let start = Position.of_lexical_position loc.loc_start in
-      match start with
-      | None -> ()
-      | Some start ->
-        let lid = source_excerpt loc in
-        let i = ref 0 in
-        let line = ref start.line in
-        let character = ref start.character in
-        let parse_word () : Position.t * [ `Length of int ] =
-          let left_pos = { Position.line = !line; character = !character } in
-          while
-            !i < String.length lid
-            &&
-            match lid.[!i] with
-            | '\n' | ' ' | '.' -> false
-            | _ -> true
-          do
-            incr character;
-            incr i
-          done;
-          left_pos, `Length (!character - left_pos.character)
+      let excerpt = source_excerpt loc in
+      match String.substr_index excerpt ~pattern:name with
+      | None -> loc
+      | Some offset ->
+        let loc_start = advance_lexing_position loc.loc_start excerpt ~length:offset in
+        let loc_end =
+          advance_lexing_position loc_start name ~length:(String.length name)
         in
-        while !i < String.length lid do
-          match lid.[!i] with
-          | '\n' ->
-            incr line;
-            character := 0;
-            incr i
-          | ' ' | '.' ->
-            incr character;
-            incr i
-          | _ ->
-            let pos, `Length length = parse_word () in
-            let token_type, mods =
-              if !i = String.length lid
-              then rightmost_name, modifiers
-              else Token_type.module_, Token_modifiers_set.empty
-            in
-            add_token' pos ~length token_type mods
-        done)
+        { loc with loc_start; loc_end })
+  ;;
+
+  let add_name_token loc name token_type token_modifiers =
+    add_token (precise_name_loc loc name) token_type token_modifiers
+  ;;
+
+  let is_operator_name name =
+    let is_operator_initial = function
+      | '!'
+      | '?'
+      | '~'
+      | '='
+      | '<'
+      | '>'
+      | '@'
+      | '^'
+      | '|'
+      | '&'
+      | '+'
+      | '-'
+      | '*'
+      | '/'
+      | '$'
+      | '%'
+      | '#'
+      | '.'
+      | ':' -> true
+      | _ -> false
+    in
+    List.mem
+      [ "asr"; "land"; "lor"; "lsl"; "lsr"; "lxor"; "mod"; "or" ]
+      name
+      ~equal:String.equal
+    || (String.length name > 0 && is_operator_initial name.[0])
+    || (String.length name > 3
+        && (String.is_prefix name ~prefix:"let" || String.is_prefix name ~prefix:"and")
+        && is_operator_initial name.[3])
+  ;;
+
+  let rec longident_components ({ txt; loc } : Longident.t Loc.loc) =
+    match txt with
+    | Lident name -> [ name, loc ]
+    | Ldot (prefix, name) -> longident_components prefix @ [ name.txt, name.loc ]
+    | Lapply (fn, arg) -> longident_components fn @ longident_components arg
+  ;;
+
+  let lident longident rightmost_name ?(modifiers = Token_modifiers_set.empty) () =
+    let components = longident_components longident in
+    let last = List.length components - 1 in
+    List.iteri components ~f:(fun index (name, loc) ->
+      let token_type, token_modifiers =
+        if index = last
+        then
+          ( (if is_operator_name name
+             then Token_type.of_builtin Operator
+             else rightmost_name)
+          , modifiers )
+        else Token_type.module_, Token_modifiers_set.empty
+      in
+      add_name_token loc name token_type token_modifiers)
   ;;
 
   let constructor_arguments
@@ -438,9 +477,12 @@ end = struct
       | Parsetree.Ppat_var fn_name, _ ->
         (match pvb_expr.pexp_desc with
          | Pexp_function _ ->
-           add_token
+           add_name_token
              fn_name.loc
-             (Token_type.of_builtin Function)
+             fn_name.txt
+             (if is_operator_name fn_name.txt
+              then Token_type.of_builtin Operator
+              else Token_type.of_builtin Function)
              (Token_modifiers_set.singleton Definition);
            self.expr self pvb_expr;
            `Custom_iterator
@@ -449,11 +491,14 @@ end = struct
         , Pexp_constraint (e, exp_ct) )
         when Loc.compare pat_ct.ptyp_loc exp_ct.ptyp_loc = 0 ->
         (* handles [let f : t -> unit = fun t -> ()] *)
-        add_token
+        add_name_token
           n.loc
+          n.txt
           (match pat_ct.ptyp_desc with
            | Ptyp_poly (_, { ptyp_desc = Ptyp_arrow _; _ }) | Ptyp_arrow _ ->
-             Token_type.of_builtin Function
+             if is_operator_name n.txt
+             then Token_type.of_builtin Operator
+             else Token_type.of_builtin Function
            | _ -> Token_type.of_builtin Variable)
           Token_modifiers_set.empty;
         self.typ self pat_ct;
@@ -533,9 +578,12 @@ end = struct
                  after the first argument *)
               Loc.compare lid.loc fst_arg.pexp_loc > 0 ->
          self.expr self fst_arg;
-         (* [lident] parses the identifier to find module names, which we don't
-            need to do for infix operators. *)
-         add_token lid.loc (Token_type.of_builtin Function) Token_modifiers_set.empty;
+         (* The operator is the only identifier at this infix position. *)
+         add_name_token
+           lid.loc
+           (Longident.last lid.txt)
+           (Token_type.of_builtin Operator)
+           Token_modifiers_set.empty;
          List.iter rest ~f:(fun (_, e) -> self.expr self e)
        | _ ->
          lident lid (Token_type.of_builtin Function) ();
@@ -625,7 +673,12 @@ end = struct
       | Pexp_letop { let_; ands; body } ->
         List.iter
           (let_ :: ands)
-          ~f:(fun { Parsetree.pbop_op = _; pbop_pat; pbop_exp; pbop_loc = _ } ->
+          ~f:(fun { Parsetree.pbop_op; pbop_pat; pbop_exp; pbop_loc = _ } ->
+            add_name_token
+              pbop_op.loc
+              pbop_op.txt
+              (Token_type.of_builtin Operator)
+              Token_modifiers_set.empty;
             self.pat self pbop_pat;
             if
               Loc.compare pbop_pat.ppat_loc pbop_exp.pexp_loc
@@ -777,10 +830,14 @@ end = struct
         ({ pval_name; pval_type; pval_prim = _; pval_attributes; pval_loc = _ } :
           Parsetree.value_description)
     =
-    add_token
+    add_name_token
       pval_name.loc
+      pval_name.txt
       (match pval_type.ptyp_desc with
-       | Ptyp_arrow (_, _, _) -> Token_type.of_builtin Function
+       | Ptyp_arrow (_, _, _) ->
+         if is_operator_name pval_name.txt
+         then Token_type.of_builtin Operator
+         else Token_type.of_builtin Function
        | Ptyp_class (_, _) -> Token_type.of_builtin Class
        | Ptyp_package _ -> Token_type.module_
        | Ptyp_extension _
