@@ -8,6 +8,8 @@
 
 ## Fixes
 
+- Report unsupported LSP request methods as unavailable instead of internal
+  server errors. (#1862, @rgrinberg)
 - Advertise semantic-token support only to clients that declare the capability.
   (#1851, @rgrinberg)
 - Advertise semantic-token support only to clients that support the relative

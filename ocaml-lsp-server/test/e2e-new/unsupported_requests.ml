@@ -1,6 +1,6 @@
 open Test.Import
 
-let%expect_test "unsupported standard requests are reported as internal errors" =
+let%expect_test "unsupported standard requests are reported as unavailable" =
   (Test.run_initialized
    @@ fun client ->
    let textDocument =
@@ -23,6 +23,6 @@ let%expect_test "unsupported standard requests are reported as internal errors" 
    Test.shutdown_client client);
   [%expect
     {|
-    { "code": -32603, "message": "Request not supported yet!" }
+    { "code": -32601, "message": "Request not supported yet!" }
     |}]
 ;;

@@ -11,7 +11,7 @@ let make_error = Jsonrpc.Response.Error.make
 
 let not_supported () =
   Jsonrpc.Response.Error.raise
-    (make_error ~code:InternalError ~message:"Request not supported yet!" ())
+    (make_error ~code:MethodNotFound ~message:"Request not supported yet!" ())
 ;;
 
 let view_metrics_command_name = "ocamllsp/view-metrics"
