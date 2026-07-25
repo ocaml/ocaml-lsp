@@ -284,12 +284,16 @@ end = struct
               (fun () ->
                  match p with
                  | Failed | Interrupted | Success ->
+                   let refresh_load_path = Poly.equal p Success in
                    let* () =
                      Document_store.parallel_iter document_store ~f:(fun doc ->
                        match Document.kind doc with
                        | `Other -> Fiber.return ()
                        | `Merlin merlin ->
-                         Diagnostics.merlin_diagnostics diagnostics merlin)
+                         Diagnostics.merlin_diagnostics
+                           ~refresh_load_path
+                           diagnostics
+                           merlin)
                    in
                    Diagnostics.send diagnostics `All
                  | _ -> Fiber.return ())

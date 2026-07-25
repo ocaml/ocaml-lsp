@@ -36,7 +36,7 @@ val tags_of_message
   -> string
   -> DiagnosticTag.t list option
 
-val merlin_diagnostics : t -> Document.Merlin.t -> unit Fiber.t
+val merlin_diagnostics : ?refresh_load_path:bool -> t -> Document.Merlin.t -> unit Fiber.t
 val set_report_dune_diagnostics : t -> report_dune_diagnostics:bool -> unit Fiber.t
 val set_shorten_merlin_diagnostics : t -> shorten_merlin_diagnostics:bool -> unit Fiber.t
 

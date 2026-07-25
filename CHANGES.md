@@ -14,6 +14,8 @@
 - Reject negative JSON-RPC `Content-Length` headers. (#1873, @rgrinberg)
 - Report unsupported LSP request methods as unavailable instead of internal
   server errors. (#1862, @rgrinberg)
+- Prevent stale missing-module diagnostics after Dune restores build artifacts.
+  (#1872, fixes #1209, @rgrinberg)
 - Advertise semantic-token support only to clients that declare the capability.
   (#1851, @rgrinberg)
 - Advertise semantic-token support only to clients that support the relative
