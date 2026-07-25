@@ -104,3 +104,21 @@ let f (x : t) =
   print_pipeline_count ~prep:activate_jump ~name:"unknown" ~only:jump_kinds ~source range;
   [%expect {| unknown pipelines: 7 |}]
 ;;
+
+let%expect_test "destruct actions duplicate case analysis" =
+  let source =
+    {ocaml|let f (x : bool) =
+  match x
+|ocaml}
+  in
+  let range =
+    Code_actions.range ~start_line:1 ~start_character:8 ~end_line:1 ~end_character:9
+  in
+  let only =
+    [ CodeActionKind.Other "destruct (enumerate cases)"
+    ; CodeActionKind.Other "destruct-line (enumerate cases, use existing match)"
+    ]
+  in
+  print_pipeline_count ~name:"destruct" ~only ~source range;
+  [%expect {| destruct pipelines: 2 |}]
+;;

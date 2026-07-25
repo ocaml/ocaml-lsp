@@ -44,7 +44,6 @@
     action_inline
     action_open_dune
     action_mark_remove
-    code_action_destruct_protocol
     code_action_protocol
     code_action_resolve
     code_actions
