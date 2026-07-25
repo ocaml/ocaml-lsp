@@ -102,6 +102,9 @@ type _ t =
   | TypeHierarchySupertypes :
       TypeHierarchySupertypesParams.t
       -> TypeHierarchyItem.t list option t
+  | WorkspaceTextDocumentContent :
+      TextDocumentContentParams.t
+      -> TextDocumentContentResult.t t
   | UnknownRequest :
       { meth : string
       ; params : Jsonrpc.Structured.t option

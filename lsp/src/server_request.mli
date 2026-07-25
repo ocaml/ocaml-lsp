@@ -16,6 +16,7 @@ type _ t =
   | WorkspaceFoldingRangeRefresh : unit t
   | WorkspaceInlayHintRefresh : unit t
   | WorkspaceInlineValueRefresh : unit t
+  | WorkspaceTextDocumentContentRefresh : TextDocumentContentRefreshParams.t -> unit t
   | UnknownRequest : string * Jsonrpc.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
