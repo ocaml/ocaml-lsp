@@ -40,7 +40,7 @@ let handler opened =
 
 let request_actions ?(language_id = "ocaml") client path =
   let uri = DocumentUri.of_path path in
-  let* () = open_document ~language_id ~client ~uri ~source:"let x = 1\n" in
+  let* () = Test.open_document ~language_id ~client ~uri ~source:"let x = 1\n" () in
   let params =
     let range =
       let position = Position.create ~line:0 ~character:0 in

@@ -2,19 +2,6 @@ open Test.Import
 
 let change_config ~client params = Client.notification client (ChangeConfiguration params)
 
-let open_document ~language_id ~client ~uri ~source =
-  let textDocument =
-    TextDocumentItem.create
-      ~uri
-      ~languageId:(LanguageKind.Other language_id)
-      ~version:0
-      ~text:source
-  in
-  Client.notification
-    client
-    (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
-;;
-
 let create_handler_with_diagnostics_callbacks ~got_diagnostics ~diagnostics_callback =
   Client.Handler.make ~on_notification:(fun _ -> function
     | PublishDiagnostics diagnostics ->
@@ -49,7 +36,7 @@ let open_document_with_client ~prep ~path ~source client =
   in
   let uri = DocumentUri.of_path path in
   let* () = prep client in
-  open_document ~language_id:"ocaml" ~client ~uri ~source
+  Test.open_document ~client ~uri ~source ()
 ;;
 
 let iter_lsp_response_internal
@@ -70,7 +57,7 @@ let iter_lsp_response_internal
     let* (_ : InitializeResult.t) = Client.initialized client in
     let uri = DocumentUri.of_path path in
     let* () = prep client in
-    let* () = open_document ~language_id ~client ~uri ~source in
+    let* () = Test.open_document ~language_id ~client ~uri ~source () in
     let* response =
       Fiber.collect_errors (fun () ->
         let request =

@@ -36,7 +36,7 @@ let apply_inlay_hints
   in
   let inlay_hints =
     Test.run_request
-      ~prep:(fun client -> Test.openDocument ~client ~uri ~source)
+      ~prep:(fun client -> Test.open_document ~client ~uri ~source ())
       ~settings:(`Assoc [ "inlayHints", `Assoc regular_config ])
       (InlayHint request)
   in

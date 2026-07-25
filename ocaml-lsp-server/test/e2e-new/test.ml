@@ -271,11 +271,11 @@ let custom_request client meth params =
   Client.request client (UnknownRequest { meth; params })
 ;;
 
-let openDocument ~client ~uri ~source =
+let open_document ?(language_id = "ocaml") ~client ~uri ~source () =
   let textDocument =
     TextDocumentItem.create
       ~uri
-      ~languageId:(LanguageKind.Other "ocaml")
+      ~languageId:(LanguageKind.Other language_id)
       ~version:0
       ~text:source
   in
