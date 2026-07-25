@@ -40,15 +40,20 @@ module Process = struct
     ; stdin : Lev_fiber.Io.output Lev_fiber.Io.t
     ; stdout : Lev_fiber.Io.input Lev_fiber.Io.t
     ; session : Lev_fiber_csexp.Session.t
+    ; mutable exited : bool
+    ; mutable shutdown_timer : Lev_fiber.Timer.Wheel.task option
     }
 
-  let to_dyn { pid; initial_cwd; _ } =
-    let open Dyn in
-    record [ "pid", Pid.to_dyn pid; "initial_cwd", string initial_cwd ]
-  ;;
-
   let waitpid t =
-    let+ status = Lev_fiber.waitpid ~pid:(Pid.to_int t.pid) in
+    let* status = Lev_fiber.waitpid ~pid:(Pid.to_int t.pid) in
+    t.exited <- true;
+    let shutdown_timer = t.shutdown_timer in
+    t.shutdown_timer <- None;
+    let* () =
+      match shutdown_timer with
+      | None -> Fiber.return ()
+      | Some timer -> Lev_fiber.Timer.Wheel.cancel timer
+    in
     (match status with
      | Unix.WEXITED n ->
        (match n with
@@ -56,9 +61,32 @@ module Process = struct
         | n -> Format.eprintf "%s finished with code = %d@.%!" t.prog n)
      | WSIGNALED s -> Format.eprintf "%s finished signal = %d@.%!" t.prog s
      | WSTOPPED _ -> ());
-    Format.eprintf "closed merlin process@.%s@." (Dyn.to_string @@ to_dyn t);
     Lev_fiber.Io.close t.stdin;
-    Lev_fiber.Io.close t.stdout
+    Lev_fiber.Io.close t.stdout;
+    Fiber.return ()
+  ;;
+
+  let await_exit t wheel =
+    if t.exited
+    then Fiber.return true
+    else
+      let* timer = Lev_fiber.Timer.Wheel.task wheel in
+      if t.exited
+      then
+        let+ () = Lev_fiber.Timer.Wheel.cancel timer in
+        true
+      else (
+        t.shutdown_timer <- Some timer;
+        let+ (_ : [ `Ok | `Cancelled ]) = Lev_fiber.Timer.Wheel.await timer in
+        t.shutdown_timer <- None;
+        t.exited)
+  ;;
+
+  let send_signal t signal =
+    if not t.exited
+    then (
+      try Unix.kill (Pid.to_int t.pid) signal with
+      | Unix.Unix_error (Unix.ESRCH, _, _) -> ())
   ;;
 
   let start ~dir =
@@ -107,7 +135,15 @@ module Process = struct
       let* stdin = make stdin_w Output in
       let+ stdout = make stdout_r Input in
       let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
-      { prog; pid; initial_cwd = dir; stdin; stdout; session }
+      { prog
+      ; pid
+      ; initial_cwd = dir
+      ; stdin
+      ; stdout
+      ; session
+      ; exited = false
+      ; shutdown_timer = None
+      }
   ;;
 end
 
@@ -142,27 +178,29 @@ and entry =
   { db : db
   ; process : Process.t
   ; mutable ref_count : int
+  ; mutable stopping : bool
   }
 
 module Entry = struct
   type t = entry
 
-  let create db process = { db; process; ref_count = 0 }
+  let create db process = { db; process; ref_count = 0; stopping = false }
   let equal = ( == )
   let incr t = t.ref_count <- t.ref_count + 1
+
+  let stop t =
+    if t.stopping
+    then Fiber.return ()
+    else (
+      t.stopping <- true;
+      Table.remove t.db.running t.process.initial_cwd;
+      Dot_protocol_io.Commands.halt t.process.session)
+  ;;
 
   let destroy (t : t) =
     assert (t.ref_count > 0);
     t.ref_count <- t.ref_count - 1;
-    if t.ref_count > 0
-    then Fiber.return ()
-    else (
-      Table.remove t.db.running t.process.initial_cwd;
-      Format.eprintf
-        "halting %s merlin process@.%s@."
-        t.process.prog
-        (Dyn.to_string (Process.to_dyn t.process));
-      Dot_protocol_io.Commands.halt t.process.session)
+    if t.ref_count > 0 then Fiber.return () else stop t
   ;;
 end
 
@@ -366,10 +404,32 @@ module DB = struct
   let run t = Fiber.Pool.run t.pool
 
   let stop t =
-    let* () = Fiber.return () in
-    Table.iter t.running ~f:(fun running ->
-      let pid = running.process.pid in
-      Unix.kill (Pid.to_int pid) (if Sys.win32 then Sys.sigkill else Sys.sigterm));
-    Fiber.Pool.stop t.pool
+    let running =
+      Table.fold t.running ~init:[] ~f:(fun ~key:_ ~data acc -> data :: acc)
+    in
+    match running with
+    | [] -> Fiber.Pool.stop t.pool
+    | running ->
+      (* Give the protocol-level halt a chance to complete before escalating to
+         signals. SIGKILL is necessary because Dune can remain blocked waiting
+         for protocol input after SIGTERM. *)
+      let* wheel = Lev_fiber.Timer.Wheel.create ~delay:0.5 in
+      let signal_after_timeout signal =
+        Fiber.parallel_iter running ~f:(fun entry ->
+          let+ exited = Process.await_exit entry.process wheel in
+          if not exited then Process.send_signal entry.process signal)
+      in
+      let shutdown () =
+        let* () = Fiber.parallel_iter running ~f:Entry.stop in
+        let* () = signal_after_timeout (if Sys.win32 then Sys.sigkill else Sys.sigterm) in
+        let* () =
+          if Sys.win32 then Fiber.return () else signal_after_timeout Sys.sigkill
+        in
+        Fiber.Pool.stop t.pool
+      in
+      Fiber.fork_and_join_unit
+        (fun () -> Lev_fiber.Timer.Wheel.run wheel)
+        (fun () ->
+           Fiber.finalize shutdown ~finally:(fun () -> Lev_fiber.Timer.Wheel.stop wheel))
   ;;
 end
