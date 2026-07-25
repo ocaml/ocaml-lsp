@@ -1100,6 +1100,30 @@ end
     |}]
 ;;
 
+let%expect_test "built-in types" =
+  test_semantic_tokens_full
+  @@ String.trim
+       {|
+type uses_builtin = int * string * bool
+
+type int = Shadowed
+
+type uses_shadowed = int
+
+type uses_qualified_builtin = Stdlib.int
+      |};
+  [%expect
+    {|
+    type <type|definition-0>uses_builtin</0> = <type|-1>int</1> * <type|-2>string</2> * <type|-3>bool</3>
+
+    type <enum|definition-4>int</4> = <enumMember|definition-5>Shadowed</5>
+
+    type <type|definition-6>uses_shadowed</6> = <type|-7>int</7>
+
+    type <type|definition-8>uses_qualified_builtin</8> = <namespace|-9>Stdlib</9>.<type|-10>int</10>
+    |}]
+;;
+
 let%expect_test "comment in unit" =
   test_semantic_tokens_full
   @@ String.trim
