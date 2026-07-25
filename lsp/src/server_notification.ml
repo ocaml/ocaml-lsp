@@ -57,6 +57,9 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
   | "window/logMessage" ->
     let+ params = Json.message_params params LogMessageParams.t_of_yojson in
     LogMessage params
+  | "$/logTrace" ->
+    let+ params = Json.message_params params LogTraceParams.t_of_yojson in
+    LogTrace params
   | "telemetry/event" ->
     let+ params = Json.message_params params (fun x -> x) in
     TelemetryNotification params
