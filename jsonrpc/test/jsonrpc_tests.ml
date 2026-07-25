@@ -45,7 +45,7 @@ let%expect_test "JSON-RPC packets round trip through JSON" =
   [%expect {| |}]
 ;;
 
-let%expect_test "JSON-RPC response decoding accepts ambiguous results" =
+let%expect_test "JSON-RPC response decoding rejects ambiguous results" =
   check_rejected
     "both result and error"
     (`Assoc
@@ -59,7 +59,7 @@ let%expect_test "JSON-RPC response decoding accepts ambiguous results" =
     (`Assoc [ "jsonrpc", `String "2.0"; "id", `Int 1 ]);
   [%expect
     {|
-    both result and error: accepted
+    both result and error: rejected
     neither result nor error: rejected |}]
 ;;
 
