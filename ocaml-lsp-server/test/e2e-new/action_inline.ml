@@ -1,4 +1,6 @@
-let inline_test = Code_actions.code_action_test ~title:"Inline into uses"
+let inline_test ?print_none source =
+  Code_actions.code_action_test ?print_none ~title:"Inline into uses" source
+;;
 
 let%expect_test "" =
   inline_test
@@ -16,6 +18,7 @@ let _ =
 
 let%expect_test "shadow-1" =
   inline_test
+    ~print_none:true
     {|
 let _ =
   let y = 1 in
@@ -23,7 +26,7 @@ let _ =
   let y = 0 in
   x + 1
 |};
-  [%expect {| |}]
+  [%expect {| None |}]
 ;;
 
 let%expect_test "shadow-2" =
