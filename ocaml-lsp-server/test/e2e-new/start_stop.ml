@@ -36,29 +36,23 @@ let%expect_test "advertises every code action kind that the server may return" =
        | Some (`CodeActionOptions { codeActionKinds = Some kinds; _ }) -> kinds
        | None | Some (`Bool _) | Some (`CodeActionOptions _) -> []
      in
-     let expected =
-       [ "refactor.extract"
-       ; "combine-cases"
-       ; "destruct-line (enumerate cases, use existing match)"
-       ; "update_intf"
-       ; "switch"
-       ; "merlin-jump-fun"
-       ; "merlin-jump-match"
-       ; "merlin-jump-let"
-       ; "merlin-jump-module"
-       ; "merlin-jump-module-type"
-       ; "merlin-jump-next-case"
-       ; "merlin-jump-prev-case"
-       ]
-     in
-     List.iter expected ~f:(fun name ->
-       let kind = CodeActionKind.t_of_yojson (`String name) in
-       if not (List.mem advertised kind ~equal:Poly.equal)
-       then Printf.printf "missing: %s\n" name);
+     Test.print_result (`List (List.map advertised ~f:CodeActionKind.yojson_of_t));
      Client.request client Shutdown
    in
    Fiber.fork_and_join_unit run_client (fun () -> run () >>> Client.stop client));
-  [%expect {| |}]
+  [%expect
+    {|
+    [
+      "quickfix", "refactor.extract", "refactor.inline", "combine-cases",
+      "construct", "destruct (enumerate cases)",
+      "destruct-line (enumerate cases, use existing match)", "inferred_intf",
+      "merlin-jump-fun", "merlin-jump-let", "merlin-jump-match",
+      "merlin-jump-module", "merlin-jump-module-type", "merlin-jump-next-case",
+      "merlin-jump-prev-case", "open-dune", "put module name in identifiers",
+      "remove module name from identifiers", "remove type annotation", "switch",
+      "type-annotate", "update_intf"
+    ]
+    |}]
 ;;
 
 let%expect_test "start/stop" =
