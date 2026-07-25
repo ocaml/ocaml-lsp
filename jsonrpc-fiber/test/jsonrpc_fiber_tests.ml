@@ -63,6 +63,24 @@ end
 
 module Response_before_send_jrpc = Jsonrpc_fiber.Make (Response_before_send_chan)
 
+module Recording_chan = struct
+  type t =
+    { input : Jsonrpc.Packet.t In.t
+    ; sent : Jsonrpc.Packet.t list list ref
+    }
+
+  let close _ _ = Fiber.return ()
+
+  let send t packets =
+    t.sent := packets :: !(t.sent);
+    Fiber.return ()
+  ;;
+
+  let recv t = In.read t.input
+end
+
+module Recording_jrpc = Jsonrpc_fiber.Make (Recording_chan)
+
 let print_json json = print_endline (Yojson.Safe.pretty_to_string ~std:false json)
 
 let no_output () =
@@ -434,6 +452,63 @@ let%expect_test "a response received before send returns races with cancellation
   Fiber_test.test Dyn.opaque run;
   [%expect.unreachable]
   [@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
+;;
+
+let%expect_test "submitting a batch sends one ordered packet group" =
+  let incoming, incoming_writer = pipe () in
+  let sent = ref [] in
+  let channel : Recording_chan.t = { input = incoming; sent } in
+  let session = Recording_jrpc.create ~name:"client" channel () in
+  let batch = Recording_jrpc.Batch.create () in
+  let notification = Jsonrpc.Notification.create ~method_:"first" () in
+  Recording_jrpc.Batch.notification batch notification;
+  let request id method_ = Jsonrpc.Request.create ~id:(`Int id) ~method_ () in
+  let first = Recording_jrpc.Batch.request batch (request 1 "second") in
+  let second = Recording_jrpc.Batch.request batch (request 2 "third") in
+  let run_batch () =
+    let* () = Recording_jrpc.submit session batch in
+    let methods =
+      match !sent with
+      | [ packets ] ->
+        List.map packets ~f:(function
+          | Jsonrpc.Packet.Notification notification -> notification.method_
+          | Request request -> request.method_
+          | Response _ | Batch_call _ | Batch_response _ -> "unexpected")
+      | _ -> [ "unexpected send count" ]
+    in
+    Printf.printf "sent: %s\n" (String.concat ~sep:", " methods);
+    let* () =
+      Out.write
+        incoming_writer
+        (Some (Jsonrpc.Packet.Response (Jsonrpc.Response.ok (`Int 1) (`String "one"))))
+    in
+    let* () =
+      Out.write
+        incoming_writer
+        (Some (Jsonrpc.Packet.Response (Jsonrpc.Response.ok (`Int 2) (`String "two"))))
+    in
+    let* first, second =
+      Fiber.fork_and_join
+        (fun () -> Recording_jrpc.Batch.await first)
+        (fun () -> Recording_jrpc.Batch.await second)
+    in
+    let result response =
+      match response.Jsonrpc.Response.result with
+      | Ok (`String value) -> value
+      | Ok _ | Error _ -> "unexpected"
+    in
+    Printf.printf "responses: %s, %s\n" (result first) (result second);
+    Out.write incoming_writer None
+  in
+  Fiber_test.test
+    Dyn.opaque
+    (fun () ->
+       Fiber.fork_and_join_unit (fun () -> Recording_jrpc.run session) run_batch);
+  [%expect
+    {|
+    sent: first, second, third
+    responses: one, two
+    <opaque> |}]
 ;;
 
 let%expect_test "stopping a session wakes pending requests" =
