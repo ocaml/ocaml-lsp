@@ -10,10 +10,10 @@ let print_status (status : Unix.process_status) =
 ;;
 
 module T : sig
-  val run : ?timeout:float -> (unit Client.t -> 'a Fiber.t) -> 'a
+  val run : ?on_spawn:(int -> unit) -> (unit Client.t -> 'a Fiber.t) -> 'a
 end = struct
-  let run ?timeout f =
-    let status, a = Test.run_with_status ?timeout f in
+  let run ?on_spawn f =
+    let status, a = Test.run_with_status ?on_spawn f in
     print_status status;
     a
   ;;
@@ -38,8 +38,8 @@ let send_exit_before_initialize () =
   status
 ;;
 
-let test ?timeout run =
-  T.run ?timeout (fun client ->
+let test ?on_spawn run =
+  T.run ?on_spawn (fun client ->
     let run_client () = Test.start_client ~capabilities:client_capabilities client in
     Fiber.fork_and_join_unit run_client (run client))
 ;;
@@ -66,17 +66,14 @@ let%expect_test
 ;;
 
 let%expect_test "ocamllsp does not exit if only Shutdown notification is sent" =
+  let pid = ref None in
   let run client () =
     let* (_ : InitializeResult.t) = Client.initialized client in
-    Client.request client Shutdown
+    let+ () = Client.request client Shutdown in
+    Unix.kill (Option.value_exn !pid) Sys.sigterm
   in
-  (* This test deliberately waits for the watchdog to kill the server. One
-     second leaves ample time to receive the shutdown response without paying
-     the default three-second wait. *)
-  test ~timeout:1.0 run;
-  [%expect
-    {|
-    ocamllsp killed with signal = -7  |}]
+  test ~on_spawn:(fun process -> pid := Some process) run;
+  [%expect {| ocamllsp killed with signal = -11 |}]
 ;;
 
 let%expect_test
