@@ -61,6 +61,28 @@ let%expect_test "LSP headers are parsed case-insensitively" =
   [%expect {| read packet: true |}]
 ;;
 
+let check_read_error label input =
+  match Framing.read input with
+  | _ -> Printf.printf "%s: accepted\n" label
+  | exception Lsp.Io.Error message -> Printf.printf "%s: %s\n" label message
+;;
+
+let%expect_test "LSP framing rejects invalid lengths and truncated bodies" =
+  check_read_error "missing" (Channel.input [ "Content-Type: application/json"; "" ]);
+  check_read_error "nonnumeric" (Channel.input [ "Content-Length: many"; "" ]);
+  let negative = Channel.input [ "Content-Length: -1"; "" ] in
+  check_read_error "negative" negative;
+  Printf.printf "negative read requested: %b\n" (negative.requested_bytes = [ -1 ]);
+  check_read_error "truncated" (Channel.input ~body:"{}" [ "Content-Length: 3"; "" ]);
+  [%expect
+    {|
+    missing: content length absent
+    nonnumeric: Content-Length is invalid
+    negative: content length absent
+    negative read requested: false
+    truncated: unable to read json |}]
+;;
+
 let%expect_test "LSP framing reads and writes JSON-RPC packets" =
   let packet =
     Jsonrpc.Packet.Notification
