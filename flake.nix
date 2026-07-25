@@ -1,7 +1,7 @@
 {
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:nix-ocaml/nix-overlays";
+    nixpkgs.url = "github:NixOS/nixpkgs";
     merlin = {
       url = "github:ocaml/merlin";
       flake = false;
@@ -47,8 +47,6 @@
             merlin-lib = osuper.merlin-lib.overrideAttrs (o: { src = merlin; });
           });
       };
-      ocamlVersionOverlay =
-        (ocaml: self: super: { ocamlPackages = super.ocaml-ng.${ocaml}; });
       makeLocalPackages = pkgs:
         let buildDunePackage = pkgs.ocamlPackages.buildDunePackage;
         in rec {
@@ -133,10 +131,32 @@
     } // (flake-utils.lib.eachDefaultSystem (system:
       let
         pkgsWithoutOverlays = (import nixpkgs { inherit system; });
+        # The project uses Dune language 3.24, which is newer than the Dune in
+        # the current Nixpkgs snapshot.
+        duneLatest = pkgsWithoutOverlays.dune_3.overrideAttrs (_: {
+          version = "3.24.1";
+          src = pkgsWithoutOverlays.fetchurl {
+            url = "https://github.com/ocaml/dune/releases/download/3.24.1/dune-3.24.1.tbz";
+            hash = "sha256-Co6qYt/LlFgCvK+abyAmylIoMz7jkaG97dPnCj8m6iw=";
+          };
+        });
+        ocamlVersionOverlay = ocaml: _final: prev: {
+          ocamlPackages = prev.ocaml-ng.${ocaml}.overrideScope (_: _: {
+            dune = duneLatest;
+            dune_3 = duneLatest;
+          });
+        };
         makeNixpkgs = ocaml: merlin:
-          pkgsWithoutOverlays.appendOverlays [ (ocamlVersionOverlay ocaml) (overlay merlin) ];
+          pkgsWithoutOverlays.appendOverlays [
+            (ocamlVersionOverlay ocaml)
+            (overlay merlin)
+          ];
         pkgs = makeNixpkgs "ocamlPackages_5_5" inputs.merlin;
         localPackages = makeLocalPackages pkgs;
+        checkPkgs = pkgsWithoutOverlays.appendOverlays [
+          (ocamlVersionOverlay "ocamlPackages_5_5")
+        ];
+        checkPackages = makeLocalPackages checkPkgs;
         devShell = localPackages: nixpkgs:
           nixpkgs.mkShell {
             buildInputs = [ nixpkgs.ocamlPackages.utop ];
@@ -162,12 +182,23 @@
               # present
               pkgsWithoutOverlays.ocaml
               (ocamlformat pkgsWithoutOverlays)
-              pkgsWithoutOverlays.ocamlPackages.dune
+              duneLatest
             ];
           };
 
-          check = pkgs.mkShell {
-            inputsFrom = builtins.attrValues localPackages;
+          check = checkPkgs.mkShell {
+            inputsFrom = builtins.attrValues checkPackages;
+            buildInputs = with checkPkgs.ocamlPackages; [
+              dune_3
+              base_quickcheck
+              ppx_expect
+              ppx_sexp_conv
+              (ocamlformat checkPkgs)
+            ];
+            # Keep Dune RPC Unix socket paths below the platform limit.
+            shellHook = ''
+              export TMPDIR=/tmp
+            '';
           };
         };
       }));
