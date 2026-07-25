@@ -67,21 +67,7 @@ let%expect_test "does not advertise an unsupported semantic token format" =
   [%expect
     {|
     semanticTokensProvider:
-    {
-      "full": { "delta": true },
-      "legend": {
-        "tokenModifiers": [
-          "declaration", "definition", "readonly", "static", "deprecated",
-          "abstract", "async", "modification", "documentation", "defaultLibrary"
-        ],
-        "tokenTypes": [
-          "namespace", "type", "class", "enum", "interface", "struct",
-          "typeParameter", "parameter", "variable", "property", "enumMember",
-          "event", "function", "method", "macro", "keyword", "modifier",
-          "comment", "string", "number", "regexp", "operator", "decorator"
-        ]
-      }
-    }
+    null
     |}]
 ;;
 
@@ -351,7 +337,7 @@ let%expect_test "direct requests with unsupported client capabilities" =
     [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
     unsupported token format:
     semanticTokensProvider.full:
-    { "delta": true }
+    null
     semantic token response data:
     [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
     unsupported full requests:
