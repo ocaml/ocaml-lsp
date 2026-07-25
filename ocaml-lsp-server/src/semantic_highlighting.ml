@@ -15,6 +15,7 @@ module Token_type : sig
   type t
 
   val of_builtin : SemanticTokenTypes.t -> t
+  val of_index : int -> t
   val module_ : t
   val module_type : t
   val to_int : t -> int
@@ -54,6 +55,8 @@ end = struct
     ]
   ;;
 
+  let of_index index = List.nth_exn legend index
+
   let tokenTypes : string list =
     List.map legend ~f:(fun s ->
       match SemanticTokenTypes.yojson_of_t s with
@@ -83,6 +86,7 @@ module Token_modifiers_set : sig
   type t
 
   val to_int : t -> int
+  val of_int : int -> t
   val singleton : SemanticTokenModifiers.t -> t
   val empty : t
   val list : string list
@@ -91,6 +95,7 @@ end = struct
   type t = int
 
   let to_int x = x
+  let of_int x = x
   let empty = 0
 
   let singleton : SemanticTokenModifiers.t -> t = function
@@ -179,16 +184,22 @@ let make_config ~token_types ~token_modifiers =
   { legend; token_type_indices; token_modifier_bits }
 ;;
 
-let create_config (semantic_tokens : SemanticTokensClientCapabilities.t) =
+let config_of_client_values ~token_types ~token_modifiers =
   let token_types =
     List.filter Token_type.tokenTypes ~f:(fun value ->
-      List.mem semantic_tokens.tokenTypes value ~equal:String.equal)
+      List.mem token_types value ~equal:String.equal)
   in
   let token_modifiers =
     List.filter Token_modifiers_set.list ~f:(fun value ->
-      List.mem semantic_tokens.tokenModifiers value ~equal:String.equal)
+      List.mem token_modifiers value ~equal:String.equal)
   in
   make_config ~token_types ~token_modifiers
+;;
+
+let create_config (semantic_tokens : SemanticTokensClientCapabilities.t) =
+  config_of_client_values
+    ~token_types:semantic_tokens.tokenTypes
+    ~token_modifiers:semantic_tokens.tokenModifiers
 ;;
 
 let default_config =
@@ -201,7 +212,7 @@ let token_type_index config token_type =
   config.token_type_indices.(Token_type.to_int token_type)
 ;;
 
-let token_modifiers_bitset config token_modifiers =
+let remap_token_modifiers config encoded =
   let rec loop server_index encoded result =
     if Int.equal encoded 0
     then result
@@ -216,7 +227,11 @@ let token_modifiers_bitset config token_modifiers =
       in
       loop (server_index + 1) (encoded lsr 1) result)
   in
-  loop 0 (Token_modifiers_set.to_int token_modifiers) 0
+  loop 0 encoded 0
+;;
+
+let token_modifiers_bitset config token_modifiers =
+  remap_token_modifiers config (Token_modifiers_set.to_int token_modifiers)
 ;;
 
 (** Represents a collection of semantic tokens. *)
@@ -1125,16 +1140,28 @@ let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list
 ;;
 
 module For_tests = struct
-  let token_type = Token_type.of_builtin Variable
-  let token_type_index = Token_type.to_int token_type
-  let token_modifiers = Token_modifiers_set.empty
-  let token_modifiers_bitset = Token_modifiers_set.to_int token_modifiers
+  type nonrec config = config
 
-  let encode tokens =
+  let server_token_types = Token_type.tokenTypes
+  let server_token_modifiers = Token_modifiers_set.list
+  let create_config = config_of_client_values
+  let legend config = config.legend
+  let default_token_type = Token_type.of_builtin Variable
+  let token_type_index = Token_type.to_int default_token_type
+  let token_modifiers_bitset = Token_modifiers_set.to_int Token_modifiers_set.empty
+
+  let encode
+        ?(config = default_config)
+        ?(token_type_index = token_type_index)
+        ?(token_modifiers = token_modifiers_bitset)
+        tokens
+    =
+    let token_type = Token_type.of_index token_type_index in
+    let token_modifiers = Token_modifiers_set.of_int token_modifiers in
     let encoded = Tokens.create () in
     List.iter tokens ~f:(fun (start, length) ->
       Tokens.append_token' encoded start ~length token_type token_modifiers);
-    Tokens.encode encoded default_config
+    Tokens.encode encoded config
   ;;
 
   let find_diff = find_diff
