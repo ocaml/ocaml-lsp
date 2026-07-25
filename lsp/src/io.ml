@@ -68,10 +68,10 @@ struct
              caseless_equal k content_length_lowercase
              && content_length = init_content_length
            then (
-             let content_length = int_of_string_opt (String.trim v) in
-             match content_length with
-             | None -> Io.raise (Error "Content-Length is invalid")
-             | Some content_length -> loop chan content_length content_type)
+             match int_of_string_opt (String.trim v) with
+             | Some content_length when content_length >= 0 ->
+               loop chan content_length content_type
+             | None | Some _ -> Io.raise (Error "Content-Length is invalid"))
            else if caseless_equal k content_type_lowercase && content_type = None
            then (
              let content_type = String.trim v in

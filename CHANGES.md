@@ -8,6 +8,7 @@
 
 ## Fixes
 
+- Reject negative JSON-RPC `Content-Length` headers. (#1873, @rgrinberg)
 - Report unsupported LSP request methods as unavailable instead of internal
   server errors. (#1862, @rgrinberg)
 - Advertise semantic-token support only to clients that declare the capability.
