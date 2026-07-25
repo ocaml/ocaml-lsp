@@ -248,11 +248,14 @@ module Response = struct
       if jsonrpc <> Constant.jsonrpcv
       then Json.error "Invalid response" json
       else (
-        match Json.field fields Constant.result (fun x -> x) with
-        | Some res -> { id; result = Ok res }
-        | None ->
-          let result = Error (Json.field_exn fields Constant.error Error.t_of_yojson) in
-          { id; result })
+        match
+          ( Json.field fields Constant.result (fun x -> x)
+          , Json.field fields Constant.error Error.t_of_yojson )
+        with
+        | Some result, None -> { id; result = Ok result }
+        | None, Some error -> { id; result = Error error }
+        | Some _, Some _ -> Json.error "response contains both result and error" json
+        | None, None -> Json.error "response contains neither result nor error" json)
     | _ -> Json.error "Jsonrpc.Result.t" json
   ;;
 
@@ -293,15 +296,7 @@ module Packet = struct
        | Some method_ ->
          let params = Json.field fields Constant.params Structured.t_of_yojson in
          Request { Request.method_; params; id }
-       | None ->
-         Response
-           (match Json.field fields Constant.result (fun x -> x) with
-            | Some result -> { Response.id; result = Ok result }
-            | None ->
-              let error =
-                Json.field_exn fields Constant.error Response.Error.t_of_yojson
-              in
-              { id; result = Error error }))
+       | None -> Response (Response.t_of_yojson (`Assoc fields)))
   ;;
 
   let t_of_yojson_single json =
