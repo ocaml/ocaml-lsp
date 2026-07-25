@@ -2,7 +2,10 @@ open Test.Import
 
 let%expect_test "it should allow double opening the same document" =
   let diagnostics = Fiber.Mvar.create () in
-  let drain_diagnostics () = Fiber.Mvar.read diagnostics in
+  let drain_diagnostics () =
+    let+ diagnostics = Fiber.Mvar.read diagnostics in
+    PublishDiagnosticsParams.yojson_of_t diagnostics |> Test.print_result
+  in
   let handler =
     let on_request
           (type resp state)
@@ -18,7 +21,7 @@ let%expect_test "it should allow double opening the same document" =
     in
     Client.Handler.make
       ~on_notification:(fun _ -> function
-         | PublishDiagnostics _ -> Fiber.Mvar.write diagnostics ()
+         | PublishDiagnostics params -> Fiber.Mvar.write diagnostics params
          | _ -> Fiber.return ())
       ~on_request:{ Client.Handler.on_request }
       ()
@@ -50,7 +53,37 @@ let%expect_test "it should allow double opening the same document" =
    let* () = open_ "text 2" in
    let* () = drain_diagnostics () in
    Client.stop client);
-  [%expect {| |}]
+  [%expect
+    {|
+    {
+      "diagnostics": [
+        {
+          "message": "Unbound value text",
+          "range": {
+            "end": { "character": 4, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          },
+          "severity": 1,
+          "source": "ocamllsp"
+        }
+      ],
+      "uri": "file:///foo.ml"
+    }
+    {
+      "diagnostics": [
+        {
+          "message": "Unbound value text",
+          "range": {
+            "end": { "character": 4, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          },
+          "severity": 1,
+          "source": "ocamllsp"
+        }
+      ],
+      "uri": "file:///foo.ml"
+    }
+    |}]
 ;;
 
 let%expect_test "missing dune leaves an opened document unavailable (#1417)" =
