@@ -236,6 +236,33 @@ let set_diagnostics detached diagnostics doc =
          Diagnostics.send diagnostics (`One uri)))
 ;;
 
+let register_dune_and_cram_text_document_sync server (capabilities : ClientCapabilities.t)
+  =
+  match capabilities.textDocument with
+  | Some
+      { TextDocumentClientCapabilities.synchronization =
+          Some { TextDocumentSyncClientCapabilities.dynamicRegistration = Some true; _ }
+      ; _
+      } ->
+    let documentSelector =
+      [ "cram"; "dune"; "dune-project"; "dune-workspace" ]
+      |> List.map ~f:(fun language ->
+        `TextDocumentFilter (TextDocumentFilter.create ~language ()))
+    in
+    let registerOptions =
+      TextDocumentRegistrationOptions.create ~documentSelector ()
+      |> TextDocumentRegistrationOptions.yojson_of_t
+    in
+    let make method_ =
+      let id = "ocamllsp-cram-dune-files/" ^ method_ in
+      Registration.create ~id ~method_ ~registerOptions ()
+    in
+    let registrations = [ make "textDocument/didOpen"; make "textDocument/didClose" ] in
+    let params = RegistrationParams.create ~registrations in
+    Server.request server (Server_request.ClientRegisterCapability params)
+  | _ -> Fiber.return ()
+;;
+
 let on_initialize server (ip : InitializeParams.t) =
   let state : State.t = Server.state server in
   let workspaces = Workspaces.create ip in
@@ -298,38 +325,7 @@ let on_initialize server (ip : InitializeParams.t) =
     | None -> state
     | Some trace -> { state with trace }
   in
-  let resp =
-    match ip.capabilities.textDocument with
-    | Some
-        { TextDocumentClientCapabilities.synchronization =
-            Some { TextDocumentSyncClientCapabilities.dynamicRegistration = Some true; _ }
-        ; _
-        } ->
-      Reply.later (fun send ->
-        let* () = send initialize_info in
-        let register =
-          RegistrationParams.create
-            ~registrations:
-              (let make method_ =
-                 let id = "ocamllsp-cram-dune-files/" ^ method_ in
-                 (* TODO not nice to copy paste *)
-                 let registerOptions =
-                   let documentSelector =
-                     [ "cram"; "dune"; "dune-project"; "dune-workspace" ]
-                     |> List.map ~f:(fun language ->
-                       `TextDocumentFilter (TextDocumentFilter.create ~language ()))
-                   in
-                   TextDocumentRegistrationOptions.create ~documentSelector ()
-                   |> TextDocumentRegistrationOptions.yojson_of_t
-                 in
-                 Registration.create ~id ~method_ ~registerOptions ()
-               in
-               [ make "textDocument/didOpen"; make "textDocument/didClose" ])
-        in
-        Server.request server (Server_request.ClientRegisterCapability register))
-    | _ -> Reply.now initialize_info
-  in
-  resp, state
+  Reply.now initialize_info, state
 ;;
 
 module Formatter = struct
@@ -857,12 +853,17 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
     in
     Dune.update_workspaces (State.dune state) (State.workspaces state);
     Fiber.return state
+  | Initialized ->
+    let+ () =
+      task_if_running state.detached ~f:(fun () ->
+        register_dune_and_cram_text_document_sync server (State.client_capabilities state))
+    in
+    state
   | DidChangeWatchedFiles _
   | DidCreateFiles _
   | DidDeleteFiles _
   | DidRenameFiles _
   | WillSaveTextDocument _
-  | Initialized
   | WorkDoneProgressCancel _
   | WorkDoneProgress _
   | NotebookDocumentDidOpen _
