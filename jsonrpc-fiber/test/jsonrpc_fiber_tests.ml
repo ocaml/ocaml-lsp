@@ -454,6 +454,58 @@ let%expect_test "a response received before send returns races with cancellation
   [@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
 ;;
 
+let%expect_test "duplicate request IDs are sent before rejection" =
+  let first_sent = Fiber.Ivar.create () in
+  let sent_count = ref 0 in
+  let incoming, incoming_writer = pipe () in
+  let output : Jsonrpc.Packet.t Out.t =
+    Out.create (function
+      | Some (Jsonrpc.Packet.Request _) ->
+        incr sent_count;
+        let* sent = Fiber.Ivar.peek first_sent in
+        (match sent with
+         | Some () -> Fiber.return ()
+         | None -> Fiber.Ivar.fill first_sent ())
+      | Some
+          (Jsonrpc.Packet.Notification _
+          | Response _
+          | Batch_call _
+          | Batch_response _)
+      | None -> Fiber.return ())
+  in
+  let session = Jrpc.create ~name:"client" (incoming, output) () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"duplicate" () in
+  let classify = function
+    | Ok _ -> "answered"
+    | Error [ _ ] -> "rejected"
+    | Error _ -> "unexpected errors"
+  in
+  let operations () =
+    let first () = Fiber.collect_errors (fun () -> Jrpc.request session request) in
+    let duplicate () =
+      let* () = Fiber.Ivar.read first_sent in
+      let* result = Fiber.collect_errors (fun () -> Jrpc.request session request) in
+      let count = !sent_count in
+      let* () = Jrpc.stop session in
+      let+ () = Out.write incoming_writer None in
+      result, count
+    in
+    let+ first, (duplicate, count) = Fiber.fork_and_join first duplicate in
+    Printf.printf "first: %s\n" (classify first);
+    Printf.printf "duplicate: %s\n" (classify duplicate);
+    Printf.printf "packets sent: %d\n" count
+  in
+  Fiber_test.test
+    Dyn.opaque
+    (fun () -> Fiber.fork_and_join_unit (fun () -> Jrpc.run session) operations);
+  [%expect
+    {|
+    first: rejected
+    duplicate: rejected
+    packets sent: 2
+    <opaque> |}]
+;;
+
 let%expect_test "submitting a batch sends one ordered packet group" =
   let incoming, incoming_writer = pipe () in
   let sent = ref [] in
