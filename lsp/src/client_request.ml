@@ -276,6 +276,9 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "textDocument/prepareCallHierarchy" ->
     let+ params = parse CallHierarchyPrepareParams.t_of_yojson in
     E (TextDocumentPrepareCallHierarchy params)
+  | "textDocument/prepareTypeHierarchy" ->
+    let+ params = parse TypeHierarchyPrepareParams.t_of_yojson in
+    E (TextDocumentPrepareTypeHierarchy params)
   | "textDocument/prepareRename" ->
     let+ params = parse PrepareRenameParams.t_of_yojson in
     E (TextDocumentPrepareRename params)
