@@ -31,21 +31,7 @@ let%expect_test "does not advertise semantic tokens without client support" =
   [%expect
     {|
     semanticTokensProvider:
-    {
-      "full": { "delta": true },
-      "legend": {
-        "tokenModifiers": [
-          "declaration", "definition", "readonly", "static", "deprecated",
-          "abstract", "async", "modification", "documentation", "defaultLibrary"
-        ],
-        "tokenTypes": [
-          "namespace", "type", "class", "enum", "interface", "struct",
-          "typeParameter", "parameter", "variable", "property", "enumMember",
-          "event", "function", "method", "macro", "keyword", "modifier",
-          "comment", "string", "number", "regexp", "operator", "decorator"
-        ]
-      }
-    }
+    null
     |}]
 ;;
 
@@ -147,8 +133,9 @@ let%expect_test "does not advertise unsupported full semantic token requests" =
 
 let print_semantic_tokens_full_provider initialized =
   print_endline "semanticTokensProvider.full:";
-  semantic_tokens_provider_json initialized
-  |> Yojson.Safe.Util.member "full"
+  (match semantic_tokens_provider_json initialized with
+   | `Null -> `Null
+   | provider -> Yojson.Safe.Util.member "full" provider)
   |> Test.print_result
 ;;
 
@@ -359,7 +346,7 @@ let%expect_test "direct requests with unsupported client capabilities" =
     {|
     missing semantic token capability:
     semanticTokensProvider.full:
-    { "delta": true }
+    null
     semantic token response data:
     [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
     unsupported token format:

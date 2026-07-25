@@ -129,11 +129,15 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ExecuteCommandOptions.create ~commands ()
     in
     let semanticTokensProvider =
-      let full =
-        `SemanticTokensFullDelta (SemanticTokensFullDelta.create ~delta:true ())
-      in
-      `SemanticTokensOptions
-        (SemanticTokensOptions.create ~legend:Semantic_highlighting.legend ~full ())
+      match client_capabilities.textDocument with
+      | Some { semanticTokens = Some _; _ } ->
+        let full =
+          `SemanticTokensFullDelta (SemanticTokensFullDelta.create ~delta:true ())
+        in
+        Some
+          (`SemanticTokensOptions
+              (SemanticTokensOptions.create ~legend:Semantic_highlighting.legend ~full ()))
+      | None | Some { semanticTokens = None; _ } -> None
     in
     let positionEncoding =
       let open Option.O in
@@ -162,7 +166,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ~documentSymbolProvider:(`Bool true)
       ~workspaceSymbolProvider:(`Bool true)
       ~foldingRangeProvider:(`Bool true)
-      ~semanticTokensProvider
+      ?semanticTokensProvider
       ~experimental
       ~renameProvider
       ~inlayHintProvider:(`Bool true)
