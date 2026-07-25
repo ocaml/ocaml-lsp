@@ -42,6 +42,20 @@ end
 
 module Framing = Lsp.Io.Make (Immediate) (Channel)
 
+let print_packet label packet =
+  Printf.printf
+    "%s:\n%s\n"
+    label
+    (Yojson.Safe.pretty_to_string ~std:false (Jsonrpc.Packet.yojson_of_t packet))
+;;
+
+let print_requested_bytes label requested_bytes =
+  Printf.printf
+    "%s: [%s]\n"
+    label
+    (String.concat ", " (List.map string_of_int requested_bytes))
+;;
+
 let%expect_test "LSP headers are parsed case-insensitively" =
   let packet =
     Jsonrpc.Packet.Notification (Jsonrpc.Notification.create ~method_:"notify" ())
@@ -57,8 +71,12 @@ let%expect_test "LSP headers are parsed case-insensitively" =
       ]
   in
   let parsed = Framing.read input |> Option.get in
-  Printf.printf "read packet: %b\n" (parsed = packet);
-  [%expect {| read packet: true |}]
+  assert (parsed = packet);
+  print_packet "decoded packet" parsed;
+  [%expect
+    {|
+    decoded packet:
+    { "method": "notify", "jsonrpc": "2.0" } |}]
 ;;
 
 let check_read_error label input =
@@ -67,19 +85,41 @@ let check_read_error label input =
   | exception Lsp.Io.Error message -> Printf.printf "%s: %s\n" label message
 ;;
 
+let%expect_test "LSP framing handles EOF and malformed packet bodies" =
+  (match Framing.read (Channel.input []) with
+   | None -> print_endline "clean EOF: end of stream"
+   | Some packet -> print_packet "clean EOF returned a packet" packet);
+  let check label body =
+    let input =
+      Channel.input ~body [ Printf.sprintf "Content-Length: %d" (String.length body); "" ]
+    in
+    match Framing.read input with
+    | _ -> Printf.printf "%s: accepted\n" label
+    | exception Yojson.Json_error _ -> Printf.printf "%s: invalid JSON\n" label
+    | exception Jsonrpc.Json.Of_json _ -> Printf.printf "%s: invalid packet\n" label
+  in
+  check "truncated JSON" "{";
+  check "scalar packet" "null";
+  [%expect
+    {|
+    clean EOF: end of stream
+    truncated JSON: invalid JSON
+    scalar packet: invalid packet |}]
+;;
+
 let%expect_test "LSP framing rejects invalid lengths and truncated bodies" =
   check_read_error "missing" (Channel.input [ "Content-Type: application/json"; "" ]);
   check_read_error "nonnumeric" (Channel.input [ "Content-Length: many"; "" ]);
   let negative = Channel.input [ "Content-Length: -1"; "" ] in
   check_read_error "negative" negative;
-  Printf.printf "negative read requested: %b\n" (negative.requested_bytes = [ -1 ]);
+  print_requested_bytes "negative body reads" negative.requested_bytes;
   check_read_error "truncated" (Channel.input ~body:"{}" [ "Content-Length: 3"; "" ]);
   [%expect
     {|
     missing: content length absent
     nonnumeric: Content-Length is invalid
     negative: content length absent
-    negative read requested: false
+    negative body reads: []
     truncated: unable to read json |}]
 ;;
 
@@ -93,15 +133,12 @@ let%expect_test "LSP framing reads and writes JSON-RPC packets" =
   in
   let body = Jsonrpc.Packet.yojson_of_t packet |> Yojson.Safe.to_string in
   let input =
-    Channel.input
-      ~body
-      [ Printf.sprintf "Content-Length: %d" (String.length body); "" ]
+    Channel.input ~body [ Printf.sprintf "Content-Length: %d" (String.length body); "" ]
   in
   let parsed = Framing.read input |> Option.get in
-  Printf.printf "read round trip: %b\n" (parsed = packet);
-  Printf.printf
-    "requested exact body length: %b\n"
-    (List.hd input.requested_bytes = String.length body);
+  assert (parsed = packet);
+  print_packet "decoded packet" parsed;
+  print_requested_bytes "body reads" input.requested_bytes;
   let output = ref [] in
   Framing.write output packet;
   let chunks = List.hd !output in
@@ -112,17 +149,33 @@ let%expect_test "LSP framing reads and writes JSON-RPC packets" =
   in
   let expected_header =
     Printf.sprintf
-      "Content-Length: %d\r\nContent-Type: application/vscode-jsonrpc; charset=utf-8\r\n\r\n"
+      "Content-Length: %d\r\n\
+       Content-Type: application/vscode-jsonrpc; charset=utf-8\r\n\
+       \r\n"
       (String.length written_body)
   in
-  Printf.printf "write content length: %b\n" (String.equal header expected_header);
-  Printf.printf
-    "write round trip: %b\n"
-    (Jsonrpc.Packet.t_of_yojson (Yojson.Safe.from_string written_body) = packet);
+  assert (String.equal header expected_header);
+  Printf.printf "written header: %S\n" header;
+  let written_packet =
+    Jsonrpc.Packet.t_of_yojson (Yojson.Safe.from_string written_body)
+  in
+  assert (written_packet = packet);
+  print_packet "written packet" written_packet;
   [%expect
     {|
-    read round trip: true
-    requested exact body length: true
-    write content length: true
-    write round trip: true |}]
+    decoded packet:
+    {
+      "params": { "message": "hello 😀" },
+      "method": "window/logMessage",
+      "jsonrpc": "2.0"
+    }
+    body reads: [80]
+    written header: "Content-Length: 80\r\nContent-Type: application/vscode-jsonrpc; charset=utf-8\r\n\r\n"
+    written packet:
+    {
+      "params": { "message": "hello 😀" },
+      "method": "window/logMessage",
+      "jsonrpc": "2.0"
+    }
+    |}]
 ;;
