@@ -1371,6 +1371,37 @@ type uses_qualified_builtin = Stdlib.int
     |}]
 ;;
 
+let%expect_test "parameter modifiers in debug output" =
+  test_semantic_tokens_full_debug
+  @@ String.trim
+       {|
+let f ~labeled ?optional () = ()
+      |};
+  [%expect
+    {|
+    [
+      {
+        "start_pos": { "character": 4, "line": 0 },
+        "length": 1,
+        "type": "function",
+        "modifiers": [ "definition" ]
+      },
+      {
+        "start_pos": { "character": 7, "line": 0 },
+        "length": 7,
+        "type": "variable",
+        "modifiers": []
+      },
+      {
+        "start_pos": { "character": 16, "line": 0 },
+        "length": 8,
+        "type": "variable",
+        "modifiers": []
+      }
+    ]
+    |}]
+;;
+
 let%expect_test "comment in unit" =
   test_semantic_tokens_full
   @@ String.trim
