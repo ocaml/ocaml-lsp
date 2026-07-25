@@ -495,11 +495,12 @@ let%expect_test "generated source has an existing workspace-symbol location" =
      | Some symbol ->
        let path = DocumentUri.to_path symbol.location.uri in
        Printf.printf "path: %s\n" (relative_path ~root:workspace.path path);
-       Printf.printf "exists: %b\n" (Stdlib.Sys.file_exists path));
+       let contents = Io.String_path.read_file path in
+       Printf.printf "contents: %s\n" (Yojson.Safe.to_string (`String contents)));
     Fiber.return ());
   [%expect
     {|
     path: _build/default/lib/gen.ml
-    exists: true
+    contents: "let generated_workspace_symbol = 42\n"
     |}]
 ;;
