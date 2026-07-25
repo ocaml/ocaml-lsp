@@ -56,7 +56,6 @@ let run_document_test f =
   Test.run_initialized ~handler
   @@ fun client ->
   let* () = f client in
-  let* () = Lev_fiber.Timer.sleepf 0.1 in
   Test.exit_client client
 ;;
 
