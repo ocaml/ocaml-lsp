@@ -8,8 +8,9 @@ let capabilities =
   ClientCapabilities.create ~textDocument ()
 ;;
 
-let%expect_test "dynamic registration arrives before initialized" =
+let%expect_test "dynamic registration waits for initialized" =
   let registration_received = Fiber.Ivar.create () in
+  let sending_initialized = ref false in
   let on_request
         (type resp state)
         (client : state Client.t)
@@ -18,6 +19,8 @@ let%expect_test "dynamic registration arrives before initialized" =
     =
     match request with
     | ClientRegisterCapability params ->
+      if not !sending_initialized
+      then failwith "received client/registerCapability before sending initialized";
       let* () = Fiber.Ivar.fill registration_received params in
       Fiber.return (Lsp_fiber.Rpc.Reply.now (), Client.state client)
     | _ -> assert false
@@ -34,18 +37,20 @@ let%expect_test "dynamic registration arrives before initialized" =
    let reproduce () =
      let* (_ : InitializeResult.t) = Client.initialized client in
      print_endline "received initialize response";
-     let* registration = Fiber.Ivar.read registration_received in
-     print_endline "received client/registerCapability before sending initialized:";
-     RegistrationParams.yojson_of_t registration |> Test.print_result;
      print_endline "sending initialized";
+     sending_initialized := true;
      let* () = Client.notification client Initialized in
+     let* registration = Fiber.Ivar.read registration_received in
+     print_endline "received client/registerCapability after sending initialized:";
+     RegistrationParams.yojson_of_t registration |> Test.print_result;
      Test.shutdown_client client
    in
    Fiber.fork_and_join_unit run_client reproduce);
   [%expect
     {|
     received initialize response
-    received client/registerCapability before sending initialized:
+    sending initialized
+    received client/registerCapability after sending initialized:
     {
       "registrations": [
         {
@@ -74,6 +79,5 @@ let%expect_test "dynamic registration arrives before initialized" =
         }
       ]
     }
-    sending initialized
     |}]
 ;;
