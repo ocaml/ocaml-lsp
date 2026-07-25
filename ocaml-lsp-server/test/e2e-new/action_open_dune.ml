@@ -67,7 +67,7 @@ let print_action ~root label action =
    | None -> `Null
    | Some action -> CodeAction.yojson_of_t action)
   |> Yojson.Safe.pretty_to_string ~std:false
-  |> String.replace_all ~sub:root ~by:"<workspace>"
+  |> String.substr_replace_all ~pattern:root ~with_:"<workspace>"
   |> print_endline
 ;;
 
@@ -112,7 +112,8 @@ let%expect_test "open the closest dune file without crossing a project boundary"
        let+ opened = Fiber.Ivar.read opened in
        Printf.printf
          "show document: %s\n"
-         (Uri.to_string opened |> String.replace_all ~sub:root ~by:"<workspace>")
+         (Uri.to_string opened
+          |> String.substr_replace_all ~pattern:root ~with_:"<workspace>")
    in
    let* actions = request_actions ~language_id:"dune" client closest_dune in
    print_action ~root "dune file action" (find_open_dune_action actions);

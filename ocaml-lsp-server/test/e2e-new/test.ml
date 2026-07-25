@@ -1,6 +1,42 @@
 module Import = struct
   include struct
-    include Stdune
+    include Base
+
+    type nonrec ('a, 'b) result = ('a, 'b) Stdlib.result
+
+    let ( = ) = Stdlib.( = )
+    let ( <> ) = Stdlib.( <> )
+    let ( < ) = Stdlib.( < )
+    let ( <= ) = Stdlib.( <= )
+    let ( > ) = Stdlib.( > )
+    let ( >= ) = Stdlib.( >= )
+    let incr = Stdlib.incr
+    let decr = Stdlib.decr
+    let sprintf = Stdlib.Printf.sprintf
+    let print_endline = Stdlib.print_endline
+    let print_string = Stdlib.print_string
+    let print_int = Stdlib.print_int
+    let print_newline = Stdlib.print_newline
+    let output_string = Stdlib.output_string
+    let close_out = Stdlib.close_out
+    let stdout = Stdlib.stdout
+
+    module Buffer = Stdlib.Buffer
+    module Exn_with_backtrace = Stdune.Exn_with_backtrace
+    module Filename = Stdlib.Filename
+    module Format = Stdlib.Format
+    module Fun = Stdlib.Fun
+    module Printf = Stdlib.Printf
+    module Sys = Stdlib.Sys
+
+    module Option = struct
+      include Option
+
+      module O = struct
+        let ( let+ ) value f = map value ~f
+        let ( let* ) value f = bind value ~f
+      end
+    end
 
     module List = struct
       include List
@@ -11,6 +47,18 @@ module Import = struct
         else
           let open Base in
           List.take l n
+      ;;
+
+      let fold_left_map values ~init ~f =
+        let state, values =
+          Stdlib.List.fold_left
+            (fun (state, values) value ->
+               let state, value = f state value in
+               state, value :: values)
+            (init, [])
+            values
+        in
+        state, rev values
       ;;
     end
 
@@ -46,6 +94,7 @@ module Import = struct
   end
 
   include Fiber.O
+  module Bin = Ocaml_lsp_server.Testing.Bin
   module Client = Lsp_fiber.Client
   include Lsp.Types
   module Uri = Lsp.Uri
@@ -67,6 +116,8 @@ let exit_client client =
   let* () = Client.request client Shutdown in
   Client.notification client Exit
 ;;
+
+let bin = Bin.which "ocamllsp" |> Option.value_exn
 
 module T : sig
   val run_with_status
@@ -98,9 +149,6 @@ module T : sig
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 end = struct
-  let _PATH = Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
-  let bin = Bin.which "ocamllsp" ~path:_PATH |> Option.value_exn |> Path.to_string
-
   let run_with_status
         ?(extra_env = [])
         ?handler
@@ -202,19 +250,7 @@ end
 
 include T
 
-let write_file path content =
-  let oc = open_out path in
-  output_string oc content;
-  close_out oc
-;;
-
-let read_file path =
-  let ic = open_in path in
-  let len = in_channel_length ic in
-  let contents = really_input_string ic len in
-  close_in ic;
-  contents
-;;
+let write_file path data = Fs_io.write_file ~perm:0o666 ~path ~data |> Result.ok_exn
 
 let temp_dir ?temp_dir prefix =
   let dir = Stdlib.Filename.temp_file ?temp_dir prefix "" in
@@ -301,7 +337,7 @@ let offset_of_position src (pos : Position.t) =
 let apply_edits src edits =
   let edits =
     List.sort edits ~compare:(fun (e : TextEdit.t) (e' : TextEdit.t) ->
-      Lsp.Position.compare e.range.start e'.range.start |> Ordering.of_int)
+      Lsp.Position.compare e.range.start e'.range.start)
   in
   (* check that edits are non-overlapping *)
   let rec overlaps : TextEdit.t list -> _ = function
@@ -324,7 +360,7 @@ let apply_edits src edits =
   in
   (* apply edits *)
   List.fold_left edits ~init:src ~f:(fun src (new_text, start, end_) ->
-    String.take src start ^ new_text ^ String.drop src end_)
+    String.prefix src start ^ new_text ^ String.drop_prefix src end_)
 ;;
 
 let print_result result =

@@ -12,7 +12,7 @@ module Id = struct
 end
 
 module Dune = struct
-  module Id = Stdune.Id.Make ()
+  module Id = Import.Id.Make ()
 
   module T = struct
     type t =

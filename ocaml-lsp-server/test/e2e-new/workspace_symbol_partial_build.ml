@@ -8,7 +8,7 @@ let%expect_test "missing build directories return empty results without notifica
   let show_messages = Queue.create () in
   let on_notification _ = function
     | Lsp.Server_notification.ShowMessage message ->
-      Queue.push show_messages message;
+      Queue.enqueue show_messages message;
       Fiber.return ()
     | _ -> Fiber.return ()
   in
@@ -47,7 +47,7 @@ let%expect_test "mixed workspaces return symbols only from built workspaces" =
   let show_messages = Queue.create () in
   let on_notification _ = function
     | Lsp.Server_notification.ShowMessage message ->
-      Queue.push show_messages message;
+      Queue.enqueue show_messages message;
       Fiber.return ()
     | _ -> Fiber.return ()
   in
@@ -95,7 +95,7 @@ let setup_generated_workspace () =
 let relative_path ~root path =
   let prefix = root ^ Stdlib.Filename.dir_sep in
   if Stdlib.String.starts_with ~prefix path
-  then String.drop path (String.length prefix)
+  then String.drop_prefix path (String.length prefix)
   else path
 ;;
 
@@ -114,7 +114,7 @@ let%expect_test "generated source has an existing workspace-symbol location" =
      | Some symbol ->
        let path = DocumentUri.to_path symbol.location.uri in
        Printf.printf "path: %s\n" (relative_path ~root:workspace.path path);
-       let contents = Io.String_path.read_file path in
+       let contents = Fs_io.read_file path |> Result.ok_exn in
        Printf.printf "contents: %s\n" (Yojson.Safe.to_string (`String contents)));
     Fiber.return ());
   [%expect

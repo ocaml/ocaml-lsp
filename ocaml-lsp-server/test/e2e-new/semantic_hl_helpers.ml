@@ -22,14 +22,14 @@ let tokens encoded_tokens =
 ;;
 
 let single_line_non_overlapping_violations ~source ~encoded_tokens =
-  if Array.length encoded_tokens mod 5 <> 0
+  if Int.rem (Array.length encoded_tokens) 5 <> 0
   then [ "encoded token array length is not divisible by five" ]
   else (
     let line_lengths =
       String.split_lines source |> List.map ~f:String.length |> Array.of_list
     in
     let _, _, _, violations =
-      Array.fold_left
+      Array.fold
         (tokens encoded_tokens)
         ~init:(0, 0, None, [])
         ~f:(fun (previous_line, previous_character, previous_token, violations) token ->

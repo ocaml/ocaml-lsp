@@ -992,7 +992,7 @@ let%expect_test "completion for holes" =
   let position = Position.create ~line:0 ~character:15 in
   let filter =
     List.filter ~f:(fun (item : CompletionItem.t) ->
-      not (String.starts_with ~prefix:"__" item.label))
+      not (String.is_prefix item.label ~prefix:"__"))
   in
   print_completions ~pre_print:filter source position;
   [%expect

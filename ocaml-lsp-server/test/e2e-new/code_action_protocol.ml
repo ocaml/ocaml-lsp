@@ -27,7 +27,7 @@ let metrics_handler contents =
     =
     match request with
     | ShowDocumentRequest params ->
-      let metrics = Stdune.Io.String_path.read_file (Uri.to_path params.uri) in
+      let metrics = Fs_io.read_file (Uri.to_path params.uri) |> Result.ok_exn in
       let* () = Fiber.Ivar.fill contents metrics in
       let result = ShowDocumentResult.create ~success:true in
       Fiber.return (Lsp_fiber.Rpc.Reply.now result, ())

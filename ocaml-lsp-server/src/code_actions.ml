@@ -22,7 +22,7 @@ end
 module Code_action_error_monoid = struct
   type t = Code_action_error.t
 
-  include Stdune.Monoid.Make (Code_action_error)
+  include Monoid.Make (Code_action_error)
 end
 
 let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =

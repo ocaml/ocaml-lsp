@@ -1,5 +1,6 @@
 (**WARNING: This is for internal use in testing only *)
 
+module Bin = Bin
 module Compl = Compl
 module Document_symbol = Document_symbol
 module Merlin_kernel = Merlin_kernel
