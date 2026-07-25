@@ -2,6 +2,144 @@ open Test.Import
 
 let semantic_tokens_full_debug = "ocamllsp/textDocument/semanticTokens/full"
 
+let test_initialize ~capabilities f =
+  Test.run (fun client ->
+    let run_client () = Test.start_client ~capabilities client in
+    let run () =
+      let* initialized = Client.initialized client in
+      f initialized;
+      Client.request client Shutdown
+    in
+    Fiber.fork_and_join_unit run_client (fun () -> run () >>> Client.stop client))
+;;
+
+let semantic_tokens_provider_json (initialized : InitializeResult.t) =
+  InitializeResult.yojson_of_t initialized
+  |> Yojson.Safe.Util.member "capabilities"
+  |> Yojson.Safe.Util.member "semanticTokensProvider"
+;;
+
+let print_semantic_tokens_provider initialized =
+  print_endline "semanticTokensProvider:";
+  semantic_tokens_provider_json initialized |> Test.print_result
+;;
+
+let%expect_test "does not advertise semantic tokens without client support" =
+  test_initialize
+    ~capabilities:(ClientCapabilities.create ())
+    print_semantic_tokens_provider;
+  [%expect
+    {|
+    semanticTokensProvider:
+    {
+      "full": { "delta": true },
+      "legend": {
+        "tokenModifiers": [
+          "declaration", "definition", "readonly", "static", "deprecated",
+          "abstract", "async", "modification", "documentation", "defaultLibrary"
+        ],
+        "tokenTypes": [
+          "namespace", "type", "class", "enum", "interface", "struct",
+          "typeParameter", "parameter", "variable", "property", "enumMember",
+          "event", "function", "method", "macro", "keyword", "modifier",
+          "comment", "string", "number", "regexp", "operator", "decorator"
+        ]
+      }
+    }
+    |}]
+;;
+
+let semantic_tokens_client_capabilities
+      ?full
+      ?(formats = [ TokenFormat.Relative ])
+      ?(token_types = [])
+      ?(token_modifiers = [])
+      ()
+  =
+  let requests = ClientSemanticTokensRequestOptions.create ?full () in
+  let semanticTokens =
+    SemanticTokensClientCapabilities.create
+      ~formats
+      ~requests
+      ~tokenTypes:token_types
+      ~tokenModifiers:token_modifiers
+      ()
+  in
+  let textDocument = TextDocumentClientCapabilities.create ~semanticTokens () in
+  ClientCapabilities.create ~textDocument ()
+;;
+
+let%expect_test "does not advertise an unsupported semantic token format" =
+  let capabilities =
+    semantic_tokens_client_capabilities ~full:(`Bool true) ~formats:[] ()
+  in
+  test_initialize ~capabilities print_semantic_tokens_provider;
+  [%expect
+    {|
+    semanticTokensProvider:
+    {
+      "full": { "delta": true },
+      "legend": {
+        "tokenModifiers": [
+          "declaration", "definition", "readonly", "static", "deprecated",
+          "abstract", "async", "modification", "documentation", "defaultLibrary"
+        ],
+        "tokenTypes": [
+          "namespace", "type", "class", "enum", "interface", "struct",
+          "typeParameter", "parameter", "variable", "property", "enumMember",
+          "event", "function", "method", "macro", "keyword", "modifier",
+          "comment", "string", "number", "regexp", "operator", "decorator"
+        ]
+      }
+    }
+    |}]
+;;
+
+let%expect_test "does not advertise unsupported full semantic token requests" =
+  let capabilities = semantic_tokens_client_capabilities () in
+  test_initialize ~capabilities print_semantic_tokens_provider;
+  [%expect
+    {|
+    semanticTokensProvider:
+    {
+      "full": { "delta": true },
+      "legend": {
+        "tokenModifiers": [
+          "declaration", "definition", "readonly", "static", "deprecated",
+          "abstract", "async", "modification", "documentation", "defaultLibrary"
+        ],
+        "tokenTypes": [
+          "namespace", "type", "class", "enum", "interface", "struct",
+          "typeParameter", "parameter", "variable", "property", "enumMember",
+          "event", "function", "method", "macro", "keyword", "modifier",
+          "comment", "string", "number", "regexp", "operator", "decorator"
+        ]
+      }
+    }
+    |}]
+;;
+
+let print_semantic_tokens_full_provider initialized =
+  print_endline "semanticTokensProvider.full:";
+  semantic_tokens_provider_json initialized
+  |> Yojson.Safe.Util.member "full"
+  |> Test.print_result
+;;
+
+let%expect_test "does not advertise unsupported semantic token deltas" =
+  let full =
+    `ClientSemanticTokensRequestFullDelta
+      (ClientSemanticTokensRequestFullDelta.create ~delta:false ())
+  in
+  let capabilities = semantic_tokens_client_capabilities ~full () in
+  test_initialize ~capabilities print_semantic_tokens_full_provider;
+  [%expect
+    {|
+    semanticTokensProvider.full:
+    { "delta": true }
+    |}]
+;;
+
 let client_capabilities =
   let textDocument =
     let semanticTokens =
@@ -77,12 +215,13 @@ type 'resp req_ctx =
 
 let test
   : type resp.
-    src:string
+    ?capabilities:ClientCapabilities.t
+    -> src:string
     -> (SemanticTokensParams.t -> resp Client.out_request)
     -> (resp req_ctx -> unit Fiber.t)
     -> unit
   =
-  fun ~src req consume_resp ->
+  fun ?(capabilities = client_capabilities) ~src req consume_resp ->
   let wait_for_diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
@@ -98,7 +237,7 @@ let test
       ()
   in
   Test.run ~handler (fun client ->
-    let run_client () = Test.start_client ~capabilities:client_capabilities client in
+    let run_client () = Test.start_client ~capabilities client in
     let run () =
       let* (initializeResult : InitializeResult.t) = Client.initialized client in
       let textDocument =
@@ -129,6 +268,20 @@ let test
     Fiber.fork_and_join_unit run_client run)
 ;;
 
+let semantic_tokens_legend (initialize_result : InitializeResult.t) =
+  match initialize_result.capabilities.semanticTokensProvider with
+  | None -> failwith "no server capabilities for semantic tokens"
+  | Some (`SemanticTokensOptions { legend; _ }) -> legend
+  | Some (`SemanticTokensRegistrationOptions { legend; _ }) -> legend
+;;
+
+let print_semantic_tokens_legend_field field legend =
+  Printf.printf "semanticTokensProvider.legend.%s:\n" field;
+  SemanticTokensLegend.yojson_of_t legend
+  |> Yojson.Safe.Util.member field
+  |> Test.print_result
+;;
+
 let test_semantic_tokens_full src =
   let print_resp { initializeResult; resp } =
     Fiber.return
@@ -136,15 +289,7 @@ let test_semantic_tokens_full src =
     match resp with
     | None -> print_endline "empty response"
     | Some { SemanticTokens.data; _ } ->
-      let legend =
-        match
-          initializeResult.InitializeResult.capabilities
-            .ServerCapabilities.semanticTokensProvider
-        with
-        | None -> failwith "no server capabilities for semantic tokens"
-        | Some (`SemanticTokensOptions { legend; _ }) -> legend
-        | Some (`SemanticTokensRegistrationOptions { legend; _ }) -> legend
-      in
+      let legend = semantic_tokens_legend initializeResult in
       print_endline
       @@ Semantic_hl_helpers.annotate_src_with_tokens
            ~legend
@@ -153,6 +298,77 @@ let test_semantic_tokens_full src =
            src
   in
   test ~src (fun p -> SemanticTokensFull p) print_resp
+;;
+
+let%expect_test "does not advertise or send unsupported semantic token types" =
+  let src = "let x = 1\n" in
+  let capabilities =
+    semantic_tokens_client_capabilities ~full:(`Bool true) ~token_types:[ "variable" ] ()
+  in
+  test
+    ~capabilities
+    ~src
+    (fun params -> SemanticTokensFull params)
+    (fun { initializeResult; resp } ->
+       let legend = semantic_tokens_legend initializeResult in
+       print_semantic_tokens_legend_field "tokenTypes" legend;
+       (match resp with
+        | None -> print_endline "empty response"
+        | Some { SemanticTokens.data; _ } ->
+          Semantic_hl_helpers.annotate_src_with_tokens
+            ~legend
+            ~encoded_tokens:data
+            ~annot_mods:false
+            src
+          |> print_string);
+       Fiber.return ());
+  [%expect
+    {|
+    semanticTokensProvider.legend.tokenTypes:
+    [
+      "namespace", "type", "class", "enum", "interface", "struct",
+      "typeParameter", "parameter", "variable", "property", "enumMember",
+      "event", "function", "method", "macro", "keyword", "modifier", "comment",
+      "string", "number", "regexp", "operator", "decorator"
+    ]
+    let <variable-0>x</0> = <number-1>1</1>
+    |}]
+;;
+
+let%expect_test "does not advertise or send unsupported semantic token modifiers" =
+  let src = "let f () = 0\n" in
+  let capabilities =
+    semantic_tokens_client_capabilities
+      ~full:(`Bool true)
+      ~token_types:[ "function"; "number" ]
+      ()
+  in
+  test
+    ~capabilities
+    ~src
+    (fun params -> SemanticTokensFull params)
+    (fun { initializeResult; resp } ->
+       let legend = semantic_tokens_legend initializeResult in
+       print_semantic_tokens_legend_field "tokenModifiers" legend;
+       (match resp with
+        | None -> print_endline "empty response"
+        | Some { SemanticTokens.data; _ } ->
+          Semantic_hl_helpers.annotate_src_with_tokens
+            ~legend
+            ~encoded_tokens:data
+            ~annot_mods:true
+            src
+          |> print_string);
+       Fiber.return ());
+  [%expect
+    {|
+    semanticTokensProvider.legend.tokenModifiers:
+    [
+      "declaration", "definition", "readonly", "static", "deprecated",
+      "abstract", "async", "modification", "documentation", "defaultLibrary"
+    ]
+    let <function|definition-0>f</0> () = <number|-1>0</1>
+    |}]
 ;;
 
 let%expect_test "semantic tokens use UTF-16 positions" =
