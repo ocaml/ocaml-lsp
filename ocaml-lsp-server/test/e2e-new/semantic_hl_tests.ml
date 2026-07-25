@@ -756,6 +756,70 @@ let z = 0 >>= 1
     let <variable|-8>z</8> = <number|-9>0</9> <function|-10>>>=</10> <number|-11>1</11> |}]
 ;;
 
+let%expect_test "operator syntax variants" =
+  test_semantic_tokens_full
+  @@ String.trim
+       {|
+module type Operators = sig
+  val ( ++ ) : int -> int -> int
+end
+
+let ( ++ ) : int -> int -> int = fun left right -> left + right
+
+let modulo = (mod)
+
+let ( let* ) option continuation =
+  match option with
+  | None -> None
+  | Some value -> continuation value
+
+let ( and* ) left right =
+  match left, right with
+  | Some left, Some right -> Some (left, right)
+  | _ -> None
+
+let binding =
+  let* left = Some 1
+  and* right = Some 2 in
+  Some (left + right)
+
+let dereference reference = !reference
+
+let ( ~! ) value = value
+let prefixed = ~!1
+      |};
+  [%expect
+    {|
+    module type <interface|-0>Operators</0> = sig
+      val <function|definition-1>( ++ )</1> : <type|-2>int</2> -> <type|-3>int</3> -> <type|-4>int</4>
+    end
+
+    let <function|definition-5>( ++ )</5> : int -> int -> int = fun <variable|-6>left</6> <variable|-7>right</7> -> <variable|-8>left</8> <function|-9>+</9> <variable|-10>right</10>
+
+    let <variable|-11>modulo</11> = <variable|-12>(mod)</12>
+
+    let <function|definition-13>( let* )</13> <variable|-14>option</14> <variable|-15>continuation</15> =
+      match <variable|-16>option</16> with
+      | <enumMember|-17>None</17> -> <enumMember|-18>None</18>
+      | <enumMember|-19>Some</19> <variable|-20>value</20> -> <function|-21>continuation</21> <variable|-22>value</22>
+
+    let <function|definition-23>( and* )</23> <variable|-24>left</24> <variable|-25>right</25> =
+      match <variable|-26>left</26>, <variable|-27>right</27> with
+      | <enumMember|-28>Some</28> <variable|-29>left</29>, <enumMember|-30>Some</30> <variable|-31>right</31> -> <enumMember|-32>Some</32> (<variable|-33>left</33>, <variable|-34>right</34>)
+      | _ -> <enumMember|-35>None</35>
+
+    let <variable|-36>binding</36> =
+      let* <variable|-37>left</37> = <enumMember|-38>Some</38> <number|-39>1</39>
+      and* <variable|-40>right</40> = <enumMember|-41>Some</41> <number|-42>2</42> in
+      <enumMember|-43>Some</43> (<variable|-44>left</44> <function|-45>+</45> <variable|-46>right</46>)
+
+    let <function|definition-47>dereference</47> <variable|-48>reference</48> = <function|-49>!</49><variable|-50>reference</50>
+
+    let <function|definition-51>( ~! )</51> <variable|-52>value</52> = <variable|-53>value</53>
+    let <variable|-54>prefixed</54> = <function|-55>~!</55><number|-56>1</56>
+    |}]
+;;
+
 let%expect_test "comment in unit" =
   test_semantic_tokens_full
   @@ String.trim
