@@ -5,13 +5,7 @@ let%expect_test "returns type inferred under cursor" =
     {ocaml|let x = 1
 |ocaml}
   in
-  let position = Position.create ~line:0 ~character:4 in
-  let req client =
-    let* resp = Hover_helpers.hover client position in
-    let () = Hover_helpers.print_hover resp in
-    Fiber.return ()
-  in
-  Helpers.test source req;
+  Hover_helpers.test_hover source [ Position.create ~line:0 ~character:4 ];
   [%expect
     {|
     {
@@ -27,13 +21,7 @@ let%expect_test "returns type inferred under cursor" =
 let%expect_test "uses UTF-16 positions around astral Unicode characters" =
   let source = "let s = \"😀\";; let x = 1;; x\n" in
   (* The final [x] starts at UTF-16 code unit 27. Its UTF-8 byte offset is 29. *)
-  let position = Position.create ~line:0 ~character:27 in
-  let req client =
-    let* resp = Hover_helpers.hover client position in
-    let () = Hover_helpers.print_hover resp in
-    Fiber.return ()
-  in
-  Helpers.test source req;
+  Hover_helpers.test_hover source [ Position.create ~line:0 ~character:27 ];
   [%expect {| no hover response |}]
 ;;
 
@@ -42,13 +30,10 @@ let%expect_test "returns type inferred under cursor (markdown formatting)" =
     {ocaml|let x = 1
 |ocaml}
   in
-  let position = Position.create ~line:0 ~character:4 in
-  let req client =
-    let* resp = Hover_helpers.hover client position in
-    let () = Hover_helpers.print_hover resp in
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  Hover_helpers.test_hover
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:0 ~character:4 ];
   [%expect
     {|
     {
@@ -68,13 +53,10 @@ let id x = x
 
 |ocaml}
   in
-  let position = Position.create ~line:1 ~character:4 in
-  let req client =
-    let* resp = Hover_helpers.hover client position in
-    let () = Hover_helpers.print_hover resp in
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  Hover_helpers.test_hover
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:1 ~character:4 ];
   [%expect
     {|
     {
@@ -92,13 +74,10 @@ let id x = x
 
 let%expect_test "returns type inferred under cursor with documentation" =
   let source = Hover_helpers.documented_id_use_source in
-  let position = Position.create ~line:3 ~character:9 in
-  let req client =
-    let* resp = Hover_helpers.hover client position in
-    let () = Hover_helpers.print_hover resp in
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  Hover_helpers.test_hover
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:3 ~character:9 ];
   [%expect
     {|
     {
@@ -119,13 +98,10 @@ let%expect_test
      formatting)"
   =
   let source = Hover_helpers.documented_div_use_source in
-  let position = Position.create ~line:23 ~character:9 in
-  let req client =
-    let* resp = Hover_helpers.hover client position in
-    let () = Hover_helpers.print_hover resp in
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  Hover_helpers.test_hover
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:23 ~character:9 ];
   [%expect
     {|
     {
@@ -149,13 +125,10 @@ let f = 10.
 let sum = f i f
 |ocaml}
   in
-  let position = Position.create ~line:3 ~character:13 in
-  let req client =
-    let* resp = Hover_helpers.hover client position in
-    let () = Hover_helpers.print_hover resp in
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  Hover_helpers.test_hover
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:3 ~character:13 ];
   [%expect
     {|
     {
@@ -175,14 +148,10 @@ and s = string
 type 'a fib = ('a -> unit) -> unit
 |ocaml}
   in
-  let req client =
-    let* hover1 = Hover_helpers.hover client (Position.create ~line:1 ~character:4) in
-    Hover_helpers.print_hover hover1;
-    let* hover2 = Hover_helpers.hover client (Position.create ~line:2 ~character:9) in
-    Hover_helpers.print_hover hover2;
-    Fiber.return ()
-  in
-  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source req;
+  Hover_helpers.test_hover
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:1 ~character:4; Position.create ~line:2 ~character:9 ];
   [%expect
     {|
     {
@@ -215,13 +184,7 @@ let%expect_test "regression test for #403" =
 let x : foo = 1
 |ocaml}
   in
-  let position = Position.create ~line:2 ~character:4 in
-  let req client =
-    let* resp = Hover_helpers.hover client position in
-    let () = Hover_helpers.print_hover resp in
-    Fiber.return ()
-  in
-  Helpers.test source req;
+  Hover_helpers.test_hover source [ Position.create ~line:2 ~character:4 ];
   [%expect
     {|
     {
@@ -275,13 +238,7 @@ let%expect_test "object method call" =
 let f (o : <  g : int -> unit >) = o#g 4
 |ocaml}
   in
-  let position = Position.create ~line:1 ~character:38 in
-  let req client =
-    let* resp = Hover_helpers.hover client position in
-    let () = Hover_helpers.print_hover resp in
-    Fiber.return ()
-  in
-  Helpers.test source req;
+  Hover_helpers.test_hover source [ Position.create ~line:1 ~character:38 ];
   [%expect
     {|
     {
