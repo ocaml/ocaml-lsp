@@ -20,7 +20,101 @@ end
 module Jrpc = Jsonrpc_fiber.Make (Stream_chan)
 module Context = Jrpc.Context
 
+module Response_before_send_chan = struct
+  type t =
+    { input : Jsonrpc.Packet.t In.t
+    ; output : Jsonrpc.Packet.t Out.t
+    ; response_read : unit Fiber.Ivar.t option
+    ; send_returned : unit Fiber.Ivar.t option
+    ; mutable closed : bool
+    }
+
+  let close t _ =
+    if t.closed
+    then Fiber.return ()
+    else (
+      t.closed <- true;
+      Out.write t.output None)
+  ;;
+
+  let send t packets =
+    let* () =
+      Fiber.sequential_iter packets ~f:(fun packet -> Out.write t.output (Some packet))
+    in
+    match t.response_read, packets with
+    | Some response_read, (Request _ :: _ | Batch_call _ :: _) ->
+      let* () = Fiber.Ivar.read response_read in
+      (match t.send_returned with
+       | Some send_returned -> Fiber.Ivar.fill send_returned ()
+       | None -> Fiber.return ())
+    | Some _, (Notification _ :: _ | Response _ :: _ | Batch_response _ :: _ | [])
+    | None, _ -> Fiber.return ()
+  ;;
+
+  let recv t =
+    let* packet = In.read t.input in
+    match packet, t.response_read with
+    | Some (Response _ | Batch_response _), Some response_read ->
+      let+ () = Fiber.Ivar.fill response_read () in
+      packet
+    | Some (Notification _ | Request _ | Batch_call _), Some _ | Some _, None | None, _ ->
+      Fiber.return packet
+  ;;
+end
+
+module Response_before_send_jrpc = Jsonrpc_fiber.Make (Response_before_send_chan)
+
+module Recording_chan = struct
+  type t =
+    { input : Jsonrpc.Packet.t In.t
+    ; sent : Jsonrpc.Packet.t list list ref
+    }
+
+  let close _ _ = Fiber.return ()
+
+  let send t packets =
+    t.sent := packets :: !(t.sent);
+    Fiber.return ()
+  ;;
+
+  let recv t = In.read t.input
+end
+
+module Recording_jrpc = Jsonrpc_fiber.Make (Recording_chan)
+
+module Failing_send_chan = struct
+  type t =
+    { input : Jsonrpc.Packet.t In.t
+    ; attempts : Jsonrpc.Packet.t list list ref
+    }
+
+  let close _ _ = Fiber.return ()
+
+  let send t packets =
+    Fiber.of_thunk (fun () ->
+      t.attempts := packets :: !(t.attempts);
+      failwith "send failed")
+  ;;
+
+  let recv t = In.read t.input
+end
+
+module Failing_send_jrpc = Jsonrpc_fiber.Make (Failing_send_chan)
+
 let print_json json = print_endline (Yojson.Safe.pretty_to_string ~std:false json)
+
+let print_packets label packets =
+  Printf.printf "%s:\n" label;
+  print_json (`List (List.map packets ~f:Jsonrpc.Packet.yojson_of_t))
+;;
+
+let print_packet_groups label groups =
+  Printf.printf "%s:\n" label;
+  print_json
+    (`List
+        (List.map groups ~f:(fun packets ->
+           `List (List.map packets ~f:Jsonrpc.Packet.yojson_of_t))))
+;;
 
 let no_output () =
   let received_none = ref false in
@@ -167,9 +261,8 @@ let%expect_test "serving requests" =
     <opaque> |}]
 ;;
 
-(* The current client/server implement has no concurrent handling of requests.
-   We can show this when we try to send a request when handling a response. *)
-let%expect_test "concurrent requests" =
+let%expect_test "delayed replies may issue concurrent requests" =
+  let finished = Fiber.Ivar.create () in
   let print packet =
     print_endline
       (Yojson.Safe.pretty_to_string ~std:false (Jsonrpc.Packet.yojson_of_t packet))
@@ -191,9 +284,9 @@ let%expect_test "concurrent requests" =
           in
           print_endline "waiter: received response:";
           print (Response response);
-          let* () = send (Jsonrpc.Response.ok request.id `Null) in
           print_endline "waiter: stopping";
-          let+ () = Jrpc.stop self in
+          let* () = Jrpc.stop self in
+          let+ () = Fiber.Ivar.fill finished () in
           print_endline "waiter: stopped")
       in
       Fiber.return (response, ())
@@ -233,7 +326,14 @@ let%expect_test "concurrent requests" =
       print_endline "initial request response:";
       print (Response resp)
     in
-    Fiber.all_concurrently_unit [ Jrpc.run waitee; initial_request (); Jrpc.run waiter ]
+    let close_streams =
+      let* () = Fiber.Ivar.read finished in
+      Fiber.fork_and_join_unit
+        (fun () -> Out.write waiter_out None)
+        (fun () -> Out.write waitee_out None)
+    in
+    Fiber.all_concurrently_unit
+      [ Jrpc.run waitee; initial_request (); Jrpc.run waiter; close_streams ]
   in
   Fiber_test.test Dyn.opaque run;
   [%expect
@@ -251,7 +351,48 @@ let%expect_test "concurrent requests" =
     { "id": "initial", "jsonrpc": "2.0", "result": null }
     waiter: received response:
     { "id": 100, "jsonrpc": "2.0", "result": 42 }
-    [FAIL] unexpected Never raised |}]
+    waiter: stopping
+    waiter: stopped
+    <opaque> |}]
+;;
+
+let%expect_test "request exceptions become JSON-RPC errors" =
+  Printexc.record_backtrace false;
+  let requests =
+    [ Jsonrpc.Request.create ~id:(`Int 1) ~method_:"invalid-params" ()
+    ; Jsonrpc.Request.create ~id:(`Int 2) ~method_:"crash" ()
+    ]
+  in
+  let responses = ref [] in
+  let on_request context =
+    let request : Jsonrpc.Request.t = Context.message context in
+    match request.method_ with
+    | "invalid-params" ->
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make ~code:InvalidParams ~message:"invalid parameters" ())
+    | "crash" -> failwith "handler crashed"
+    | _ -> assert false
+  in
+  let input = List.map requests ~f:(fun request -> Jsonrpc.Packet.Request request) in
+  let session =
+    Jrpc.create ~name:"server" ~on_request (In.of_list input, of_ref responses) ()
+  in
+  Fiber_test.test Dyn.opaque (fun () -> Jrpc.run session);
+  List.rev !responses
+  |> List.iter ~f:(function
+    | Jsonrpc.Packet.Response { id; result = Error error } ->
+      Printf.printf
+        "%s: %s: %s\n"
+        (Yojson.Safe.to_string (Jsonrpc.Id.yojson_of_t id))
+        (Jsonrpc.Response.Error.Code.to_string error.code)
+        error.message
+    | Notification _ | Request _ | Response _ | Batch_call _ | Batch_response _ ->
+      print_endline "unexpected packet");
+  [%expect
+    {|
+    <opaque>
+    1: InvalidParams: invalid parameters
+    2: InternalError: uncaught exception |}]
 ;;
 
 let%expect_test "test from jsonrpc_test.ml" =
@@ -321,6 +462,319 @@ let%expect_test "test from jsonrpc_test.ml" =
     <opaque>
     { "id": 10, "jsonrpc": "2.0", "result": 1 }
     { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
+;;
+
+let%expect_test "a response received before send returns races with cancellation" =
+  let response_read = Fiber.Ivar.create () in
+  let send_returned = Fiber.Ivar.create () in
+  let client_input, server_output = pipe () in
+  let server_input, client_output = pipe () in
+  let client_channel : Response_before_send_chan.t =
+    { input = client_input
+    ; output = client_output
+    ; response_read = Some response_read
+    ; send_returned = Some send_returned
+    ; closed = false
+    }
+  in
+  let server_channel : Response_before_send_chan.t =
+    { input = server_input
+    ; output = server_output
+    ; response_read = None
+    ; send_returned = None
+    ; closed = false
+    }
+  in
+  let client = Response_before_send_jrpc.create ~name:"client" client_channel () in
+  let server =
+    let on_request context =
+      let request : Jsonrpc.Request.t =
+        Response_before_send_jrpc.Context.message context
+      in
+      let state = Response_before_send_jrpc.Context.state context in
+      Fiber.return
+        (Reply.now (Jsonrpc.Response.ok request.id (`String "immediate")), state)
+    in
+    Response_before_send_jrpc.create ~name:"server" ~on_request server_channel ()
+  in
+  let run () =
+    let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"immediate" () in
+    let request () =
+      let cancel, response =
+        Response_before_send_jrpc.request_with_cancel client request
+      in
+      let cancel_after_send () =
+        let* () = Fiber.Ivar.read send_returned in
+        Response_before_send_jrpc.fire cancel
+      in
+      let* (), response = Fiber.fork_and_join cancel_after_send (fun () -> response) in
+      (match response with
+       | `Cancelled -> print_endline "response: dropped"
+       | `Ok { result = Ok (`String value); _ } -> Printf.printf "response: %s\n" value
+       | `Ok _ -> print_endline "unexpected response");
+      Fiber.fork_and_join_unit
+        (fun () -> Response_before_send_jrpc.stop client)
+        (fun () -> Response_before_send_jrpc.stop server)
+    in
+    Fiber.all_concurrently_unit
+      [ Response_before_send_jrpc.run client
+      ; Response_before_send_jrpc.run server
+      ; request ()
+      ]
+  in
+  Fiber_test.test Dyn.opaque run;
+  [%expect.unreachable]
+[@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
+;;
+
+let%expect_test "request IDs may be retried after send errors" =
+  let incoming, incoming_writer = pipe () in
+  let attempts = ref [] in
+  let channel : Failing_send_chan.t = { input = incoming; attempts } in
+  let session = Failing_send_jrpc.create ~name:"client" channel () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"retry" () in
+  let operations () =
+    let send () =
+      Fiber.collect_errors (fun () -> Failing_send_jrpc.request session request)
+    in
+    let* first = send () in
+    let* second = send () in
+    let classify = function
+      | Error [ _ ] -> "error"
+      | Ok _ | Error _ -> "unexpected"
+    in
+    Printf.printf "first: %s\n" (classify first);
+    Printf.printf "retry: %s\n" (classify second);
+    print_packet_groups "wire attempts" (List.rev !attempts);
+    Out.write incoming_writer None
+  in
+  Fiber_test.test Dyn.opaque (fun () ->
+    Fiber.fork_and_join_unit (fun () -> Failing_send_jrpc.run session) operations);
+  [%expect
+    {|
+    first: error
+    retry: error
+    wire attempts:
+    [
+      [ { "id": 1, "method": "retry", "jsonrpc": "2.0" } ],
+      [ { "id": 1, "method": "retry", "jsonrpc": "2.0" } ]
+    ]
+    <opaque> |}]
+;;
+
+let%expect_test "duplicate request IDs are sent before rejection" =
+  let first_sent = Fiber.Ivar.create () in
+  let sent = ref [] in
+  let incoming, incoming_writer = pipe () in
+  let output : Jsonrpc.Packet.t Out.t =
+    Out.create (function
+      | Some packet ->
+        sent := packet :: !sent;
+        (match packet with
+         | Jsonrpc.Packet.Request _ ->
+           let* first = Fiber.Ivar.peek first_sent in
+           (match first with
+            | Some () -> Fiber.return ()
+            | None -> Fiber.Ivar.fill first_sent ())
+         | Notification _ | Response _ | Batch_call _ | Batch_response _ ->
+           Fiber.return ())
+      | None -> Fiber.return ())
+  in
+  let session = Jrpc.create ~name:"client" (incoming, output) () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"duplicate" () in
+  let classify = function
+    | Ok _ -> "answered"
+    | Error [ _ ] -> "rejected"
+    | Error _ -> "unexpected errors"
+  in
+  let operations () =
+    let first () = Fiber.collect_errors (fun () -> Jrpc.request session request) in
+    let duplicate () =
+      let* () = Fiber.Ivar.read first_sent in
+      let* result = Fiber.collect_errors (fun () -> Jrpc.request session request) in
+      let packets = List.rev !sent in
+      let* () = Jrpc.stop session in
+      let+ () = Out.write incoming_writer None in
+      result, packets
+    in
+    let+ first, (duplicate, packets) = Fiber.fork_and_join first duplicate in
+    Printf.printf "first: %s\n" (classify first);
+    Printf.printf "duplicate: %s\n" (classify duplicate);
+    print_packets "wire packets" packets
+  in
+  Fiber_test.test Dyn.opaque (fun () ->
+    Fiber.fork_and_join_unit (fun () -> Jrpc.run session) operations);
+  [%expect
+    {|
+    first: rejected
+    duplicate: rejected
+    wire packets:
+    [
+      { "id": 1, "method": "duplicate", "jsonrpc": "2.0" },
+      { "id": 1, "method": "duplicate", "jsonrpc": "2.0" }
+    ]
+    <opaque> |}]
+;;
+
+let%expect_test "submitting a batch sends one ordered packet group" =
+  let incoming, incoming_writer = pipe () in
+  let sent = ref [] in
+  let channel : Recording_chan.t = { input = incoming; sent } in
+  let session = Recording_jrpc.create ~name:"client" channel () in
+  let batch = Recording_jrpc.Batch.create () in
+  let notification = Jsonrpc.Notification.create ~method_:"first" () in
+  Recording_jrpc.Batch.notification batch notification;
+  let request id method_ = Jsonrpc.Request.create ~id:(`Int id) ~method_ () in
+  let first = Recording_jrpc.Batch.request batch (request 1 "second") in
+  let second = Recording_jrpc.Batch.request batch (request 2 "third") in
+  let run_batch () =
+    let* () = Recording_jrpc.submit session batch in
+    let methods =
+      match !sent with
+      | [ packets ] ->
+        List.map packets ~f:(function
+          | Jsonrpc.Packet.Notification notification -> notification.method_
+          | Request request -> request.method_
+          | Response _ | Batch_call _ | Batch_response _ -> "unexpected")
+      | _ -> [ "unexpected send count" ]
+    in
+    Printf.printf "sent: %s\n" (String.concat ~sep:", " methods);
+    let* () =
+      Out.write
+        incoming_writer
+        (Some (Jsonrpc.Packet.Response (Jsonrpc.Response.ok (`Int 1) (`String "one"))))
+    in
+    let* () =
+      Out.write
+        incoming_writer
+        (Some (Jsonrpc.Packet.Response (Jsonrpc.Response.ok (`Int 2) (`String "two"))))
+    in
+    let* first, second =
+      Fiber.fork_and_join
+        (fun () -> Recording_jrpc.Batch.await first)
+        (fun () -> Recording_jrpc.Batch.await second)
+    in
+    let result response =
+      match response.Jsonrpc.Response.result with
+      | Ok (`String value) -> value
+      | Ok _ | Error _ -> "unexpected"
+    in
+    Printf.printf "responses: %s, %s\n" (result first) (result second);
+    Out.write incoming_writer None
+  in
+  Fiber_test.test Dyn.opaque (fun () ->
+    Fiber.fork_and_join_unit (fun () -> Recording_jrpc.run session) run_batch);
+  [%expect
+    {|
+    sent: first, second, third
+    responses: one, two
+    <opaque> |}]
+;;
+
+let%expect_test "stopping a session wakes pending requests" =
+  let request_sent = Fiber.Ivar.create () in
+  let incoming, incoming_writer = pipe () in
+  let output : Jsonrpc.Packet.t Out.t =
+    Out.create (function
+      | Some (Jsonrpc.Packet.Request _) -> Fiber.Ivar.fill request_sent ()
+      | Some (Jsonrpc.Packet.Notification _ | Response _ | Batch_call _ | Batch_response _)
+      | None -> Fiber.return ())
+  in
+  let session = Jrpc.create ~name:"client" (incoming, output) () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"pending" () in
+  let pending_request () =
+    let+ result = Fiber.collect_errors (fun () -> Jrpc.request session request) in
+    match result with
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc_fiber.Stopped stopped; _ } ]
+      when stopped = request -> print_endline "request stopped"
+    | Ok _ | Error _ -> print_endline "unexpected result"
+  in
+  let stop () =
+    let* () = Fiber.Ivar.read request_sent in
+    Jrpc.stop session
+  in
+  let run () =
+    Fiber.fork_and_join_unit
+      (fun () -> Jrpc.run session)
+      (fun () ->
+         let* (), () = Fiber.fork_and_join pending_request stop in
+         Out.write incoming_writer None)
+  in
+  Fiber_test.test Dyn.opaque run;
+  [%expect
+    {|
+    request stopped
+    <opaque> |}]
+;;
+
+let%expect_test "cancelling before a request starts still sends it" =
+  let incoming, incoming_writer = pipe () in
+  let sent = ref [] in
+  let session = Jrpc.create ~name:"client" (incoming, of_ref sent) () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"cancel" () in
+  let cancel, response = Jrpc.request_with_cancel session request in
+  let run () =
+    Fiber.fork_and_join_unit
+      (fun () -> Jrpc.run session)
+      (fun () ->
+         let* () = Jrpc.fire cancel in
+         let* response = response in
+         (match response with
+          | `Cancelled -> print_endline "cancelled"
+          | `Ok _ -> print_endline "unexpected response");
+         print_packets "wire packets" (List.rev !sent);
+         Out.write incoming_writer None)
+  in
+  Fiber_test.test Dyn.opaque run;
+  [%expect
+    {|
+    cancelled
+    wire packets:
+    [ { "id": 1, "method": "cancel", "jsonrpc": "2.0" } ]
+    <opaque> |}]
+;;
+
+let%expect_test "cancelled request IDs remain registered" =
+  let request_sent = Fiber.Mvar.create () in
+  let incoming, incoming_writer = pipe () in
+  let output : Jsonrpc.Packet.t Out.t =
+    Out.create (function
+      | Some (Jsonrpc.Packet.Request _) -> Fiber.Mvar.write request_sent ()
+      | Some (Jsonrpc.Packet.Notification _ | Response _ | Batch_call _ | Batch_response _)
+        -> Fiber.return ()
+      | None -> Fiber.return ())
+  in
+  let session = Jrpc.create ~name:"client" (incoming, output) () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"cancel" () in
+  let run_request () =
+    let cancel, response = Jrpc.request_with_cancel session request in
+    let fire_cancel () =
+      let* () = Fiber.Mvar.read request_sent in
+      Jrpc.fire cancel
+    in
+    Fiber.collect_errors (fun () -> Fiber.fork_and_join fire_cancel (fun () -> response))
+  in
+  let classify = function
+    | Ok ((), `Cancelled) -> "cancelled"
+    | Error [ _ ] -> "duplicate ID retained"
+    | Ok ((), `Ok _) | Error _ -> "unexpected"
+  in
+  let run () =
+    Fiber.fork_and_join_unit
+      (fun () -> Jrpc.run session)
+      (fun () ->
+         let* first = run_request () in
+         Printf.printf "first: %s\n" (classify first);
+         let* second = run_request () in
+         Printf.printf "second: %s\n" (classify second);
+         Out.write incoming_writer None)
+  in
+  Fiber_test.test Dyn.opaque run;
+  [%expect
+    {|
+    first: cancelled
+    second: duplicate ID retained
+    <opaque> |}]
 ;;
 
 let%expect_test "cancellation" =
