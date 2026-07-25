@@ -107,7 +107,7 @@ let%expect_test "does not advertise unsupported semantic token deltas" =
   [%expect
     {|
     semanticTokensProvider.full:
-    { "delta": true }
+    true
     |}]
 ;;
 
@@ -130,10 +130,10 @@ let%expect_test "advertises supported semantic token request variants" =
     {|
     full = true:
     semanticTokensProvider.full:
-    { "delta": true }
+    true
     full object without delta support:
     semanticTokensProvider.full:
-    { "delta": true }
+    true
     full object with delta support:
     semanticTokensProvider.full:
     { "delta": true }
