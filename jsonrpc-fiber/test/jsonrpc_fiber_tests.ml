@@ -81,6 +81,25 @@ end
 
 module Recording_jrpc = Jsonrpc_fiber.Make (Recording_chan)
 
+module Failing_send_chan = struct
+  type t =
+    { input : Jsonrpc.Packet.t In.t
+    ; attempts : int ref
+    }
+
+  let close _ _ = Fiber.return ()
+
+  let send t _ =
+    Fiber.of_thunk (fun () ->
+      incr t.attempts;
+      failwith "send failed")
+  ;;
+
+  let recv t = In.read t.input
+end
+
+module Failing_send_jrpc = Jsonrpc_fiber.Make (Failing_send_chan)
+
 let print_json json = print_endline (Yojson.Safe.pretty_to_string ~std:false json)
 
 let no_output () =
@@ -452,6 +471,38 @@ let%expect_test "a response received before send returns races with cancellation
   Fiber_test.test Dyn.opaque run;
   [%expect.unreachable]
   [@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
+;;
+
+let%expect_test "request IDs may be retried after send errors" =
+  let incoming, incoming_writer = pipe () in
+  let attempts = ref 0 in
+  let channel : Failing_send_chan.t = { input = incoming; attempts } in
+  let session = Failing_send_jrpc.create ~name:"client" channel () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"retry" () in
+  let operations () =
+    let send () =
+      Fiber.collect_errors (fun () -> Failing_send_jrpc.request session request)
+    in
+    let* first = send () in
+    let* second = send () in
+    let classify = function
+      | Error [ _ ] -> "error"
+      | Ok _ | Error _ -> "unexpected"
+    in
+    Printf.printf "first: %s\n" (classify first);
+    Printf.printf "retry: %s\n" (classify second);
+    Printf.printf "send attempts: %d\n" !attempts;
+    Out.write incoming_writer None
+  in
+  Fiber_test.test
+    Dyn.opaque
+    (fun () -> Fiber.fork_and_join_unit (fun () -> Failing_send_jrpc.run session) operations);
+  [%expect
+    {|
+    first: error
+    retry: error
+    send attempts: 2
+    <opaque> |}]
 ;;
 
 let%expect_test "duplicate request IDs are sent before rejection" =
