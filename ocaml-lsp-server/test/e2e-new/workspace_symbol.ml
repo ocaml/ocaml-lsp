@@ -394,22 +394,30 @@ let%expect_test "missing build directories return empty results without notifica
     | _ -> Fiber.return ()
   in
   let workspaces = [ workspace_a; workspace_b ] in
+  let print_response label = function
+    | None -> Printf.printf "%s: null\n" label
+    | Some symbols ->
+      Printf.printf "%s: " label;
+      symbols
+      |> List.map ~f:(fun symbol -> `String (to_test_result workspaces symbol))
+      |> fun symbols -> Test.print_result (`List symbols)
+  in
   run ~on_notification workspaces (fun client ->
     let* first = workspace_symbol client "" in
     let* second = workspace_symbol client "changed query" in
-    Printf.printf
-      "first result: %d symbols\n"
-      (Option.value first ~default:[] |> List.length);
-    Printf.printf
-      "second result: %d symbols\n"
-      (Option.value second ~default:[] |> List.length);
+    print_response "first result" first;
+    print_response "second result" second;
     Fiber.return ());
-  Printf.printf "show messages: %d\n" (Queue.length show_messages);
+  Printf.printf "show messages: ";
+  let messages =
+    show_messages |> Queue.to_list |> List.map ~f:ShowMessageParams.yojson_of_t
+  in
+  Test.print_result (`List messages);
   [%expect
     {|
-    first result: 0 symbols
-    second result: 0 symbols
-    show messages: 0
+    first result: []
+    second result: []
+    show messages: []
     |}]
 ;;
 
