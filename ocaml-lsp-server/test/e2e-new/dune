@@ -93,6 +93,7 @@
     phrase
     type_expression
     typed_holes
+    unsupported_requests
     locate
     locate_types
     type_search
