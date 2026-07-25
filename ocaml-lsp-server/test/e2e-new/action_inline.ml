@@ -62,6 +62,7 @@ let _ =
 
 let%expect_test "shadow-4" =
   inline_test
+    ~print_none:true
     {|
 module M = struct
   let y = 1
@@ -73,7 +74,7 @@ let _ =
   end in
   x
 |};
-  [%expect {| |}]
+  [%expect {| None |}]
 ;;
 
 let%expect_test "shadow-5" =
@@ -146,12 +147,13 @@ let _ =
 
 let%expect_test "" =
   inline_test
+    ~print_none:true
     {|
 let _ =
   let $x = Some 0 in
   (fun ?(x = 2) -> x) ?x
 |};
-  [%expect {| |}]
+  [%expect {| None |}]
 ;;
 
 let%expect_test "" =
