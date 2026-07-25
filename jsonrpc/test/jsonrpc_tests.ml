@@ -17,11 +17,7 @@ let check_rejected label json =
 
 let%expect_test "JSON-RPC packets round trip through JSON" =
   let request id method_ =
-    Jsonrpc.Request.create
-      ~id
-      ~method_
-      ~params:(`Assoc [ "argument", `String "😀" ])
-      ()
+    Jsonrpc.Request.create ~id ~method_ ~params:(`Assoc [ "argument", `String "😀" ]) ()
   in
   let notification =
     Jsonrpc.Notification.create
@@ -42,23 +38,36 @@ let%expect_test "JSON-RPC packets round trip through JSON" =
   ; Notification notification
   ; Response response
   ; Response (Jsonrpc.Response.error (`String "error") error)
-  ; Batch_call
-      [ `Request (request (`Int 3) "batch/request"); `Notification notification ]
-  ; Batch_response
-      [ response; Jsonrpc.Response.error (`String "batch-error") error ]
+  ; Batch_call [ `Request (request (`Int 3) "batch/request"); `Notification notification ]
+  ; Batch_response [ response; Jsonrpc.Response.error (`String "batch-error") error ]
   ]
   |> List.iter check_round_trip;
   [%expect {| |}]
 ;;
 
+let%expect_test "JSON-RPC response decoding accepts ambiguous results" =
+  check_rejected
+    "both result and error"
+    (`Assoc
+        [ "jsonrpc", `String "2.0"
+        ; "id", `Int 1
+        ; "result", `Null
+        ; "error", `Assoc [ "code", `Int (-32603); "message", `String "failed" ]
+        ]);
+  check_rejected
+    "neither result nor error"
+    (`Assoc [ "jsonrpc", `String "2.0"; "id", `Int 1 ]);
+  [%expect
+    {|
+    both result and error: accepted
+    neither result nor error: rejected |}]
+;;
+
 let%expect_test "malformed JSON-RPC packets are rejected" =
   let request =
-    `Assoc
-      [ "jsonrpc", `String "2.0"; "id", `Int 1; "method", `String "request" ]
+    `Assoc [ "jsonrpc", `String "2.0"; "id", `Int 1; "method", `String "request" ]
   in
-  let response =
-    `Assoc [ "jsonrpc", `String "2.0"; "id", `Int 1; "result", `Null ]
-  in
+  let response = `Assoc [ "jsonrpc", `String "2.0"; "id", `Int 1; "result", `Null ] in
   check_rejected "empty batch" (`List []);
   check_rejected "mixed batch" (`List [ request; response ]);
   check_rejected
@@ -67,10 +76,10 @@ let%expect_test "malformed JSON-RPC packets are rejected" =
   check_rejected
     "scalar params"
     (`Assoc
-       [ "jsonrpc", `String "2.0"
-       ; "method", `String "notify"
-       ; "params", `String "not structured"
-       ]);
+        [ "jsonrpc", `String "2.0"
+        ; "method", `String "notify"
+        ; "params", `String "not structured"
+        ]);
   [%expect
     {|
     empty batch: rejected
