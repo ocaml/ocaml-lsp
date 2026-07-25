@@ -61,6 +61,16 @@ let find_open_dune_action actions =
     | `CodeAction _ | `Command _ -> None)
 ;;
 
+let print_action ~root label action =
+  Printf.printf "%s:\n" label;
+  (match action with
+   | None -> `Null
+   | Some action -> CodeAction.yojson_of_t action)
+  |> Yojson.Safe.pretty_to_string ~std:false
+  |> String.replace_all ~sub:root ~by:"<workspace>"
+  |> print_endline
+;;
+
 let%expect_test "open the closest dune file without crossing a project boundary" =
   let root = Test.temp_dir "ocamllsp-open-dune" in
   let lib = Filename.concat root "lib" in
@@ -86,44 +96,51 @@ let%expect_test "open the closest dune file without crossing a project boundary"
    @@ fun client ->
    let* actions = request_actions client source in
    let action = find_open_dune_action actions in
+   print_action ~root "closest action" action;
    let* () =
      match action with
-     | None ->
-       print_endline "closest action: missing";
+     | None -> Fiber.return ()
+     | Some { command = None; _ } ->
+       print_endline "command: null";
        Fiber.return ()
-     | Some { title; command = None; _ } ->
-       Printf.printf "%s: missing command\n" title;
-       Fiber.return ()
-     | Some { title; command = Some command; _ } ->
+     | Some { command = Some command; _ } ->
        let params =
          let arguments = command.arguments in
          ExecuteCommandParams.create ~command:command.command ?arguments ()
        in
        let* _ = Client.request client (ExecuteCommand params) in
        let+ opened = Fiber.Ivar.read opened in
-       Printf.printf "%s: %b\n" title (String.equal (Uri.to_path opened) closest_dune)
+       Printf.printf
+         "show document: %s\n"
+         (Uri.to_string opened |> String.replace_all ~sub:root ~by:"<workspace>")
    in
    let* actions = request_actions ~language_id:"dune" client closest_dune in
-   Printf.printf
-     "dune file action: %s\n"
-     (match find_open_dune_action actions with
-      | None -> "none"
-      | Some _ -> "unexpected");
+   print_action ~root "dune file action" (find_open_dune_action actions);
    let* actions =
      let nested_source = Filename.concat nested_src "source.ml" in
      request_actions client nested_source
    in
-   Printf.printf
-     "nested project action: %s\n"
-     (match find_open_dune_action actions with
-      | None -> "none"
-      | Some _ -> "unexpected");
+   print_action ~root "nested project action" (find_open_dune_action actions);
    Test.exit_client client);
   Unix.close stderr;
   [%expect
     {|
-    Open dune file: true
-    dune file action: none
-    nested project action: none
+    closest action:
+    {
+      "command": {
+        "arguments": [
+          "file://<workspace>/lib/dune"
+        ],
+        "command": "ocamllsp/open-dune-file",
+        "title": "Open dune file"
+      },
+      "kind": "open-dune",
+      "title": "Open dune file"
+    }
+    show document: file://<workspace>/lib/dune
+    dune file action:
+    null
+    nested project action:
+    null
     |}]
 ;;
