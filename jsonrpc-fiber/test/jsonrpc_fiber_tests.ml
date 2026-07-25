@@ -20,6 +20,49 @@ end
 module Jrpc = Jsonrpc_fiber.Make (Stream_chan)
 module Context = Jrpc.Context
 
+module Response_before_send_chan = struct
+  type t =
+    { input : Jsonrpc.Packet.t In.t
+    ; output : Jsonrpc.Packet.t Out.t
+    ; response_read : unit Fiber.Ivar.t option
+    ; send_returned : unit Fiber.Ivar.t option
+    ; mutable closed : bool
+    }
+
+  let close t _ =
+    if t.closed
+    then Fiber.return ()
+    else (
+      t.closed <- true;
+      Out.write t.output None)
+  ;;
+
+  let send t packets =
+    let* () = Fiber.sequential_iter packets ~f:(fun packet -> Out.write t.output (Some packet)) in
+    match t.response_read, packets with
+    | Some response_read, (Request _ :: _ | Batch_call _ :: _) ->
+      let* () = Fiber.Ivar.read response_read in
+      (match t.send_returned with
+       | Some send_returned -> Fiber.Ivar.fill send_returned ()
+       | None -> Fiber.return ())
+    | Some _, (Notification _ :: _ | Response _ :: _ | Batch_response _ :: _ | [])
+    | None, _ -> Fiber.return ()
+  ;;
+
+  let recv t =
+    let* packet = In.read t.input in
+    match packet, t.response_read with
+    | Some (Response _ | Batch_response _), Some response_read ->
+      let+ () = Fiber.Ivar.fill response_read () in
+      packet
+    | Some (Notification _ | Request _ | Batch_call _), Some _
+    | Some _, None
+    | None, _ -> Fiber.return packet
+  ;;
+end
+
+module Response_before_send_jrpc = Jsonrpc_fiber.Make (Response_before_send_chan)
+
 let print_json json = print_endline (Yojson.Safe.pretty_to_string ~std:false json)
 
 let no_output () =
@@ -321,6 +364,68 @@ let%expect_test "test from jsonrpc_test.ml" =
     <opaque>
     { "id": 10, "jsonrpc": "2.0", "result": 1 }
     { "id": "testing", "jsonrpc": "2.0", "result": 2 } |}]
+;;
+
+let%expect_test "a response received before send returns races with cancellation" =
+  let response_read = Fiber.Ivar.create () in
+  let send_returned = Fiber.Ivar.create () in
+  let client_input, server_output = pipe () in
+  let server_input, client_output = pipe () in
+  let client_channel : Response_before_send_chan.t =
+    { input = client_input
+    ; output = client_output
+    ; response_read = Some response_read
+    ; send_returned = Some send_returned
+    ; closed = false
+    }
+  in
+  let server_channel : Response_before_send_chan.t =
+    { input = server_input
+    ; output = server_output
+    ; response_read = None
+    ; send_returned = None
+    ; closed = false
+    }
+  in
+  let client = Response_before_send_jrpc.create ~name:"client" client_channel () in
+  let server =
+    let on_request context =
+      let request : Jsonrpc.Request.t =
+        Response_before_send_jrpc.Context.message context
+      in
+      let state = Response_before_send_jrpc.Context.state context in
+      Fiber.return
+        ( Reply.now (Jsonrpc.Response.ok request.id (`String "immediate"))
+        , state )
+    in
+    Response_before_send_jrpc.create ~name:"server" ~on_request server_channel ()
+  in
+  let run () =
+    let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"immediate" () in
+    let request () =
+      let cancel, response = Response_before_send_jrpc.request_with_cancel client request in
+      let cancel_after_send () =
+        let* () = Fiber.Ivar.read send_returned in
+        Response_before_send_jrpc.fire cancel
+      in
+      let* (), response = Fiber.fork_and_join cancel_after_send (fun () -> response) in
+      (match response with
+       | `Cancelled -> print_endline "response: dropped"
+       | `Ok { result = Ok (`String value); _ } -> Printf.printf "response: %s\n" value
+       | `Ok _ -> print_endline "unexpected response");
+      Fiber.fork_and_join_unit
+        (fun () -> Response_before_send_jrpc.stop client)
+        (fun () -> Response_before_send_jrpc.stop server)
+    in
+    Fiber.all_concurrently_unit
+      [ Response_before_send_jrpc.run client
+      ; Response_before_send_jrpc.run server
+      ; request ()
+      ]
+  in
+  Fiber_test.test Dyn.opaque run;
+  [%expect.unreachable]
+  [@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
 ;;
 
 let%expect_test "cancellation" =
