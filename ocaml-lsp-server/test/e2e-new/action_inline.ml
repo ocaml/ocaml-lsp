@@ -147,12 +147,13 @@ let _ =
 
 let%expect_test "" =
   inline_test
+    ~print_none:true
     {|
 let _ =
   let $x = Some 0 in
   (fun ?(x = 2) -> x) ?x
 |};
-  [%expect {| |}]
+  [%expect {| None |}]
 ;;
 
 let%expect_test "" =
