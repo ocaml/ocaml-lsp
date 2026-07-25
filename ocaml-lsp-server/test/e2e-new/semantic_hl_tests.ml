@@ -54,6 +54,8 @@ let semantic_tokens_client_capabilities
       ?(formats = [ TokenFormat.Relative ])
       ?(token_types = [])
       ?(token_modifiers = [])
+      ?multiline_token_support
+      ?overlapping_token_support
       ()
   =
   let requests = ClientSemanticTokensRequestOptions.create ?full () in
@@ -63,6 +65,8 @@ let semantic_tokens_client_capabilities
       ~requests
       ~tokenTypes:token_types
       ~tokenModifiers:token_modifiers
+      ?multilineTokenSupport:multiline_token_support
+      ?overlappingTokenSupport:overlapping_token_support
       ()
   in
   let textDocument = TextDocumentClientCapabilities.create ~semanticTokens () in
@@ -96,10 +100,32 @@ let%expect_test "does not advertise an unsupported semantic token format" =
 ;;
 
 let%expect_test "does not advertise unsupported full semantic token requests" =
+  print_endline "omitted full support:";
   let capabilities = semantic_tokens_client_capabilities () in
+  test_initialize ~capabilities print_semantic_tokens_provider;
+  print_endline "full = false:";
+  let capabilities = semantic_tokens_client_capabilities ~full:(`Bool false) () in
   test_initialize ~capabilities print_semantic_tokens_provider;
   [%expect
     {|
+    omitted full support:
+    semanticTokensProvider:
+    {
+      "full": { "delta": true },
+      "legend": {
+        "tokenModifiers": [
+          "declaration", "definition", "readonly", "static", "deprecated",
+          "abstract", "async", "modification", "documentation", "defaultLibrary"
+        ],
+        "tokenTypes": [
+          "namespace", "type", "class", "enum", "interface", "struct",
+          "typeParameter", "parameter", "variable", "property", "enumMember",
+          "event", "function", "method", "macro", "keyword", "modifier",
+          "comment", "string", "number", "regexp", "operator", "decorator"
+        ]
+      }
+    }
+    full = false:
     semanticTokensProvider:
     {
       "full": { "delta": true },
@@ -135,6 +161,35 @@ let%expect_test "does not advertise unsupported semantic token deltas" =
   test_initialize ~capabilities print_semantic_tokens_full_provider;
   [%expect
     {|
+    semanticTokensProvider.full:
+    { "delta": true }
+    |}]
+;;
+
+let%expect_test "advertises supported semantic token request variants" =
+  let test label full =
+    print_endline label;
+    let capabilities = semantic_tokens_client_capabilities ~full () in
+    test_initialize ~capabilities print_semantic_tokens_full_provider
+  in
+  test "full = true:" (`Bool true);
+  test
+    "full object without delta support:"
+    (`ClientSemanticTokensRequestFullDelta
+        (ClientSemanticTokensRequestFullDelta.create ()));
+  test
+    "full object with delta support:"
+    (`ClientSemanticTokensRequestFullDelta
+        (ClientSemanticTokensRequestFullDelta.create ~delta:true ()));
+  [%expect
+    {|
+    full = true:
+    semanticTokensProvider.full:
+    { "delta": true }
+    full object without delta support:
+    semanticTokensProvider.full:
+    { "delta": true }
+    full object with delta support:
     semanticTokensProvider.full:
     { "delta": true }
     |}]
@@ -266,6 +321,58 @@ let test
       Client.stop client
     in
     Fiber.fork_and_join_unit run_client run)
+;;
+
+let print_semantic_tokens_response = function
+  | None -> Test.print_result `Null
+  | Some tokens ->
+    SemanticTokens.yojson_of_t tokens
+    |> Yojson.Safe.Util.member "data"
+    |> Test.print_result
+;;
+
+let%expect_test "direct requests with unsupported client capabilities" =
+  let test_request label capabilities =
+    print_endline label;
+    test
+      ~capabilities
+      ~src:"let x = 1\n"
+      (fun params -> SemanticTokensFull params)
+      (fun { initializeResult; resp } ->
+         print_semantic_tokens_full_provider initializeResult;
+         print_endline "semantic token response data:";
+         print_semantic_tokens_response resp;
+         Fiber.return ())
+  in
+  test_request "missing semantic token capability:" (ClientCapabilities.create ());
+  test_request
+    "unsupported token format:"
+    (semantic_tokens_client_capabilities
+       ~full:(`Bool true)
+       ~formats:[]
+       ~token_types:[ "variable"; "number" ]
+       ());
+  test_request
+    "unsupported full requests:"
+    (semantic_tokens_client_capabilities ~token_types:[ "variable"; "number" ] ());
+  [%expect
+    {|
+    missing semantic token capability:
+    semanticTokensProvider.full:
+    { "delta": true }
+    semantic token response data:
+    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    unsupported token format:
+    semanticTokensProvider.full:
+    { "delta": true }
+    semantic token response data:
+    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    unsupported full requests:
+    semanticTokensProvider.full:
+    { "delta": true }
+    semantic token response data:
+    [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0 ]
+    |}]
 ;;
 
 let semantic_tokens_legend (initialize_result : InitializeResult.t) =
