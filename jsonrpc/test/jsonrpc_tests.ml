@@ -9,6 +9,12 @@ let check_round_trip packet =
          (Yojson.Safe.pretty_to_string ~std:false json))
 ;;
 
+let check_rejected label json =
+  match Jsonrpc.Packet.t_of_yojson json with
+  | _ -> Printf.printf "%s: accepted\n" label
+  | exception Jsonrpc.Json.Of_json _ -> Printf.printf "%s: rejected\n" label
+;;
+
 let%expect_test "JSON-RPC packets round trip through JSON" =
   let request id method_ =
     Jsonrpc.Request.create
@@ -43,4 +49,32 @@ let%expect_test "JSON-RPC packets round trip through JSON" =
   ]
   |> List.iter check_round_trip;
   [%expect {| |}]
+;;
+
+let%expect_test "malformed JSON-RPC packets are rejected" =
+  let request =
+    `Assoc
+      [ "jsonrpc", `String "2.0"; "id", `Int 1; "method", `String "request" ]
+  in
+  let response =
+    `Assoc [ "jsonrpc", `String "2.0"; "id", `Int 1; "result", `Null ]
+  in
+  check_rejected "empty batch" (`List []);
+  check_rejected "mixed batch" (`List [ request; response ]);
+  check_rejected
+    "invalid version"
+    (`Assoc [ "jsonrpc", `String "1.0"; "method", `String "notify" ]);
+  check_rejected
+    "scalar params"
+    (`Assoc
+       [ "jsonrpc", `String "2.0"
+       ; "method", `String "notify"
+       ; "params", `String "not structured"
+       ]);
+  [%expect
+    {|
+    empty batch: rejected
+    mixed batch: rejected
+    invalid version: rejected
+    scalar params: rejected |}]
 ;;
