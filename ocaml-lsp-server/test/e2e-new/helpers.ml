@@ -29,5 +29,5 @@ let test
     let* () = req client in
     let* () = Client.request client Shutdown in
     let* () = Fiber.Ivar.read diagnostics in
-    Client.stop client)
+    Client.notification client Exit)
 ;;
