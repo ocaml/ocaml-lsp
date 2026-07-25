@@ -210,9 +210,8 @@ let%expect_test "serving requests" =
     <opaque> |}]
 ;;
 
-(* The current client/server implement has no concurrent handling of requests.
-   We can show this when we try to send a request when handling a response. *)
-let%expect_test "concurrent requests" =
+let%expect_test "delayed replies may issue concurrent requests" =
+  let finished = Fiber.Ivar.create () in
   let print packet =
     print_endline
       (Yojson.Safe.pretty_to_string ~std:false (Jsonrpc.Packet.yojson_of_t packet))
@@ -234,9 +233,9 @@ let%expect_test "concurrent requests" =
           in
           print_endline "waiter: received response:";
           print (Response response);
-          let* () = send (Jsonrpc.Response.ok request.id `Null) in
           print_endline "waiter: stopping";
-          let+ () = Jrpc.stop self in
+          let* () = Jrpc.stop self in
+          let+ () = Fiber.Ivar.fill finished () in
           print_endline "waiter: stopped")
       in
       Fiber.return (response, ())
@@ -276,7 +275,14 @@ let%expect_test "concurrent requests" =
       print_endline "initial request response:";
       print (Response resp)
     in
-    Fiber.all_concurrently_unit [ Jrpc.run waitee; initial_request (); Jrpc.run waiter ]
+    let close_streams =
+      let* () = Fiber.Ivar.read finished in
+      Fiber.fork_and_join_unit
+        (fun () -> Out.write waiter_out None)
+        (fun () -> Out.write waitee_out None)
+    in
+    Fiber.all_concurrently_unit
+      [ Jrpc.run waitee; initial_request (); Jrpc.run waiter; close_streams ]
   in
   Fiber_test.test Dyn.opaque run;
   [%expect
@@ -294,7 +300,9 @@ let%expect_test "concurrent requests" =
     { "id": "initial", "jsonrpc": "2.0", "result": null }
     waiter: received response:
     { "id": 100, "jsonrpc": "2.0", "result": 42 }
-    [FAIL] unexpected Never raised |}]
+    waiter: stopping
+    waiter: stopped
+    <opaque> |}]
 ;;
 
 let%expect_test "test from jsonrpc_test.ml" =
