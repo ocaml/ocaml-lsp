@@ -118,7 +118,7 @@ let%expect_test "LSP framing rejects invalid lengths and truncated bodies" =
     {|
     missing: content length absent
     nonnumeric: Content-Length is invalid
-    negative: content length absent
+    negative: Content-Length is invalid
     negative body reads: []
     truncated: unable to read json |}]
 ;;
