@@ -428,6 +428,54 @@ let%expect_test "a response received before send returns races with cancellation
   [@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
 ;;
 
+let%expect_test "cancelled request IDs remain registered" =
+  let request_sent = Fiber.Mvar.create () in
+  let incoming, incoming_writer = pipe () in
+  let output : Jsonrpc.Packet.t Out.t =
+    Out.create (function
+      | Some (Jsonrpc.Packet.Request _) -> Fiber.Mvar.write request_sent ()
+      | Some
+          (Jsonrpc.Packet.Notification _
+          | Response _
+          | Batch_call _
+          | Batch_response _) ->
+        Fiber.return ()
+      | None -> Fiber.return ())
+  in
+  let session = Jrpc.create ~name:"client" (incoming, output) () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"cancel" () in
+  let run_request () =
+    let cancel, response = Jrpc.request_with_cancel session request in
+    let fire_cancel () =
+      let* () = Fiber.Mvar.read request_sent in
+      Jrpc.fire cancel
+    in
+    Fiber.collect_errors (fun () ->
+      Fiber.fork_and_join fire_cancel (fun () -> response))
+  in
+  let classify = function
+    | Ok ((), `Cancelled) -> "cancelled"
+    | Error [ _ ] -> "duplicate ID retained"
+    | Ok ((), `Ok _) | Error _ -> "unexpected"
+  in
+  let run () =
+    Fiber.fork_and_join_unit
+      (fun () -> Jrpc.run session)
+      (fun () ->
+         let* first = run_request () in
+         Printf.printf "first: %s\n" (classify first);
+         let* second = run_request () in
+         Printf.printf "second: %s\n" (classify second);
+         Out.write incoming_writer None)
+  in
+  Fiber_test.test Dyn.opaque run;
+  [%expect
+    {|
+    first: cancelled
+    second: duplicate ID retained
+    <opaque> |}]
+;;
+
 let%expect_test "cancellation" =
   let () = Printexc.record_backtrace true in
   let print packet =
