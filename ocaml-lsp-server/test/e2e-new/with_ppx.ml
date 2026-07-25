@@ -22,11 +22,7 @@ let%expect_test "with-ppx" =
     let on_notification (_ : _ Client.t) (n : Client.in_notification) =
       match n with
       | PublishDiagnostics diag ->
-        printfn "Received %i diagnostics" (List.length diag.diagnostics);
-        List.iter diag.diagnostics ~f:(fun (d : Diagnostic.t) ->
-          match d.message with
-          | `String m -> print_endline m
-          | `MarkupContent _ -> assert false);
+        Test.print_result (`List (List.map diag.diagnostics ~f:Diagnostic.yojson_of_t));
         Fiber.Ivar.fill diagnostics ()
       | _ -> Fiber.return ()
     in
@@ -45,7 +41,7 @@ let%expect_test "with-ppx" =
   print_endline output;
   [%expect
     {xxx|
-    Received 0 diagnostics
+    []
     {
       "contents": {
         "value": "(* ppx expect expansion *)\nPpx_expect_runtime.Current_file.unset ()",
