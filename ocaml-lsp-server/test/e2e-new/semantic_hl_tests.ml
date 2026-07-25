@@ -1359,6 +1359,46 @@ let f ~labeled ?optional () = ()
     |}]
 ;;
 
+let%expect_test "ill-typed buffers retain semantic tokens" =
+  test_semantic_tokens_full
+  @@ String.trim
+       {|
+type builtin_before_error = int
+
+let mismatched parameter = parameter + "not an int"
+
+let unbound_callee parameter = missing_function parameter
+
+let annotated (parameter : int) : missing_type = parameter
+
+let later parameter = parameter
+
+type int = Shadowed
+
+type shadowed_after_error = int
+
+type builtin_after_error = string
+      |};
+  [%expect
+    {|
+    type <type|definition-0>builtin_before_error</0> = <type|-1>int</1>
+
+    let <function|definition-2>mismatched</2> <variable|-3>parameter</3> = <variable|-4>parameter</4> <operator|-5>+</5> <string|-6>"not an int"</6>
+
+    let <function|definition-7>unbound_callee</7> <variable|-8>parameter</8> = <function|-9>missing_function</9> <variable|-10>parameter</10>
+
+    let <function|definition-11>annotated</11> (<variable|-12>parameter</12> : <type|-13>int</13>) : <type|-14>missing_type</14> = <variable|-15>parameter</15>
+
+    let <function|definition-16>later</16> <variable|-17>parameter</17> = <variable|-18>parameter</18>
+
+    type <enum|definition-19>int</19> = <enumMember|definition-20>Shadowed</20>
+
+    type <type|definition-21>shadowed_after_error</21> = <type|-22>int</22>
+
+    type <type|definition-23>builtin_after_error</23> = <type|-24>string</24>
+    |}]
+;;
+
 let%expect_test "comment in unit" =
   test_semantic_tokens_full
   @@ String.trim
