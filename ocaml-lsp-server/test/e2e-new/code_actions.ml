@@ -1854,9 +1854,11 @@ let apply_code_action ?diagnostics title source range =
   |> Test.apply_edits source
 ;;
 
-let code_action_test ~title source =
+let code_action_test ?(print_none = false) ~title source =
   let src, range = parse_selection source in
-  Option.iter (apply_code_action title src range) ~f:print_string
+  match apply_code_action title src range with
+  | None -> if print_none then print_endline "None"
+  | Some result -> print_string result
 ;;
 
 let setup_inferred_intf_workspace () =

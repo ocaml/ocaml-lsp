@@ -27,5 +27,6 @@ val apply_code_action
   -> string option
 
 (** [code_action_test title source] runs the code action with title [title] and
-    prints the resulting source. *)
-val code_action_test : title:string -> string -> unit
+    prints the resulting source. When [print_none] is set, it explicitly prints
+    when the action is unavailable. *)
+val code_action_test : ?print_none:bool -> title:string -> string -> unit
