@@ -428,6 +428,46 @@ let%expect_test "a response received before send returns races with cancellation
   [@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
 ;;
 
+let%expect_test "stopping a session wakes pending requests" =
+  let request_sent = Fiber.Ivar.create () in
+  let incoming, incoming_writer = pipe () in
+  let output : Jsonrpc.Packet.t Out.t =
+    Out.create (function
+      | Some (Jsonrpc.Packet.Request _) -> Fiber.Ivar.fill request_sent ()
+      | Some
+          (Jsonrpc.Packet.Notification _
+          | Response _
+          | Batch_call _
+          | Batch_response _)
+      | None -> Fiber.return ())
+  in
+  let session = Jrpc.create ~name:"client" (incoming, output) () in
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"pending" () in
+  let pending_request () =
+    let+ result = Fiber.collect_errors (fun () -> Jrpc.request session request) in
+    match result with
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc_fiber.Stopped stopped; _ } ]
+      when stopped = request -> print_endline "request stopped"
+    | Ok _ | Error _ -> print_endline "unexpected result"
+  in
+  let stop () =
+    let* () = Fiber.Ivar.read request_sent in
+    Jrpc.stop session
+  in
+  let run () =
+    Fiber.fork_and_join_unit
+      (fun () -> Jrpc.run session)
+      (fun () ->
+         let* (), () = Fiber.fork_and_join pending_request stop in
+         Out.write incoming_writer None)
+  in
+  Fiber_test.test Dyn.opaque run;
+  [%expect
+    {|
+    request stopped
+    <opaque> |}]
+;;
+
 let%expect_test "cancelling before a request starts still sends it" =
   let incoming, incoming_writer = pipe () in
   let sent = ref [] in
