@@ -35,7 +35,7 @@ let run_test text req =
         (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
     in
     let* () = req client in
-    Test.shutdown_client client)
+    Test.exit_client client)
 ;;
 
 let%expect_test "syntax doc should display" =
