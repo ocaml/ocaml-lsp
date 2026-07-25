@@ -16,6 +16,7 @@ type _ t =
   | WorkspaceFoldingRangeRefresh : unit t
   | WorkspaceInlayHintRefresh : unit t
   | WorkspaceInlineValueRefresh : unit t
+  | WorkspaceTextDocumentContentRefresh : TextDocumentContentRefreshParams.t -> unit t
   | UnknownRequest : string * Jsonrpc.Structured.t option -> Json.t t
 
 type packed = E : 'r t -> packed
@@ -36,6 +37,7 @@ let method_ (type a) (t : a t) =
   | WorkspaceFoldingRangeRefresh -> "workspace/foldingRange/refresh"
   | WorkspaceInlayHintRefresh -> "workspace/inlayHint/refresh"
   | WorkspaceInlineValueRefresh -> "workspace/inlineValue/refresh"
+  | WorkspaceTextDocumentContentRefresh _ -> "workspace/textDocumentContent/refresh"
   | UnknownRequest (r, _) -> r
 ;;
 
@@ -58,6 +60,8 @@ let params =
     | WorkspaceInlayHintRefresh
     | WorkspaceInlineValueRefresh
     | WorkspaceDiagnosticRefresh -> None
+    | WorkspaceTextDocumentContentRefresh params ->
+      ret (TextDocumentContentRefreshParams.yojson_of_t params)
     | UnknownRequest (_, params) -> params
 ;;
 
@@ -99,6 +103,9 @@ let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
   | "workspace/foldingRange/refresh" -> Ok (E WorkspaceFoldingRangeRefresh)
   | "workspace/inlayHint/refresh" -> Ok (E WorkspaceInlayHintRefresh)
   | "workspace/inlineValue/refresh" -> Ok (E WorkspaceInlineValueRefresh)
+  | "workspace/textDocumentContent/refresh" ->
+    let+ params = parse TextDocumentContentRefreshParams.t_of_yojson in
+    E (WorkspaceTextDocumentContentRefresh params)
   | m -> Ok (E (UnknownRequest (m, r.params)))
 ;;
 
@@ -118,6 +125,7 @@ let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
   | WorkspaceFoldingRangeRefresh, _ -> `Null
   | WorkspaceInlayHintRefresh, _ -> `Null
   | WorkspaceInlineValueRefresh, _ -> `Null
+  | WorkspaceTextDocumentContentRefresh _, () -> `Null
   | UnknownRequest (_, _), json -> json
 ;;
 
@@ -138,5 +146,6 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | WorkspaceFoldingRangeRefresh -> unit_of_yojson json
   | WorkspaceInlayHintRefresh -> unit_of_yojson json
   | WorkspaceInlineValueRefresh -> unit_of_yojson json
+  | WorkspaceTextDocumentContentRefresh _ -> unit_of_yojson json
   | UnknownRequest (_, _) -> json
 ;;

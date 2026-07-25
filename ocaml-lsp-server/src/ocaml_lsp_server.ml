@@ -788,6 +788,7 @@ let on_request
   | TextDocumentPrepareTypeHierarchy _ -> not_supported ()
   | TypeHierarchySupertypes _ -> not_supported ()
   | TypeHierarchySubtypes _ -> not_supported ()
+  | WorkspaceTextDocumentContent _ -> not_supported ()
 ;;
 
 let on_notification server (notification : Client_notification.t) : State.t Fiber.t =

@@ -102,6 +102,9 @@ type _ t =
   | TypeHierarchySupertypes :
       TypeHierarchySupertypesParams.t
       -> TypeHierarchyItem.t list option t
+  | WorkspaceTextDocumentContent :
+      TextDocumentContentParams.t
+      -> TextDocumentContentResult.t t
   | UnknownRequest :
       { meth : string
       ; params : Jsonrpc.Structured.t option
@@ -226,6 +229,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Json.Option.yojson_of_t (Json.To.list TypeHierarchyItem.yojson_of_t) result
   | TypeHierarchySupertypes _, result ->
     Json.Option.yojson_of_t (Json.To.list TypeHierarchyItem.yojson_of_t) result
+  | WorkspaceTextDocumentContent _, result -> TextDocumentContentResult.yojson_of_t result
   | UnknownRequest _, resp -> resp
 ;;
 
@@ -395,6 +399,9 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
   | "typeHierarchy/subtypes" ->
     let+ params = parse TypeHierarchySubtypesParams.t_of_yojson in
     E (TypeHierarchySubtypes params)
+  | "workspace/textDocumentContent" ->
+    let+ params = parse TextDocumentContentParams.t_of_yojson in
+    E (WorkspaceTextDocumentContent params)
   | meth -> Ok (E (UnknownRequest { meth; params = r.params }))
 ;;
 
@@ -455,6 +462,7 @@ let method_ (type a) (t : a t) =
   | WorkspaceSymbolResolve _ -> "workspaceSymbol/resolve"
   | TypeHierarchySupertypes _ -> "typeHierarchy/supertypes"
   | TypeHierarchySubtypes _ -> "typeHierarchy/subtypes"
+  | WorkspaceTextDocumentContent _ -> "workspace/textDocumentContent"
   | UnknownRequest { meth; _ } -> meth
 ;;
 
@@ -529,6 +537,8 @@ let params =
     | TypeHierarchySubtypes params -> ret (TypeHierarchySubtypesParams.yojson_of_t params)
     | TypeHierarchySupertypes params ->
       ret (TypeHierarchySupertypesParams.yojson_of_t params)
+    | WorkspaceTextDocumentContent params ->
+      ret (TextDocumentContentParams.yojson_of_t params)
     | UnknownRequest { params; _ } -> params
 ;;
 
@@ -642,6 +652,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
     option_of_yojson (Json.Of.list InlineValue.t_of_yojson) json
   | TextDocumentPrepareTypeHierarchy _ ->
     option_of_yojson (Json.Of.list TypeHierarchyItem.t_of_yojson) json
+  | WorkspaceTextDocumentContent _ -> TextDocumentContentResult.t_of_yojson json
   | UnknownRequest _ -> json
 ;;
 
@@ -702,5 +713,6 @@ let text_document (type a) (t : a t) f : TextDocumentIdentifier.t option =
   | WillCreateFiles _ -> None
   | WillDeleteFiles _ -> None
   | WillRenameFiles _ -> None
+  | WorkspaceTextDocumentContent _ -> None
   | UnknownRequest { meth; params } -> f ~meth ~params
 ;;
