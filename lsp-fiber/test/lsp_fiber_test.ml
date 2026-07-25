@@ -243,6 +243,10 @@ let%expect_test "server enforces initialization ordering" =
           (Jsonrpc.Response.Error.Code.to_string error.code)
     in
     let exchange () =
+      let* response =
+        request ~id:0 ~method_:"initialize" (`List []) |> Raw_jsonrpc.request client
+      in
+      print_response "malformed initialize" response;
       let command = ExecuteCommandParams.create ~command:"before-init" () in
       let* response =
         request
@@ -262,8 +266,13 @@ let%expect_test "server enforces initialization ordering" =
       in
       print_response "initialize" response;
       let* response =
+        request ~id:3 ~method_:"workspace/executeCommand" (`List [])
+        |> Raw_jsonrpc.request client
+      in
+      print_response "malformed request" response;
+      let* response =
         request
-          ~id:3
+          ~id:4
           ~method_:"initialize"
           (InitializeParams.yojson_of_t initialize)
         |> Raw_jsonrpc.request client
@@ -278,8 +287,10 @@ let%expect_test "server enforces initialization ordering" =
   Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
   [%expect
     {|
+    malformed initialize: InvalidParams
     before initialize: ServerNotInitialized
     initialize: ok
+    malformed request: InvalidParams
     initialize again: InvalidRequest |}]
 ;;
 
