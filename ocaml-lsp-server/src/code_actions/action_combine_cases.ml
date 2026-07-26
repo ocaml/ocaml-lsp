@@ -56,7 +56,7 @@ let code_action doc params =
        let result =
          let open Option.O in
          let* range = select_complete_lines params.CodeActionParams.range in
-         let* code = Document.substring doc range in
+         let* code = Text_document.substring (Document.text_document doc) range in
          let code = String.strip ~drop:(fun c -> Char.equal c '\n') code in
          let* lhs_patterns, rhs_expressions = split_cases code in
          let+ i = Base.String.index code '|' in

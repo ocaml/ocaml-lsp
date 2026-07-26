@@ -130,9 +130,3 @@ val get_impl_intf_counterparts : Merlin.t option -> Uri.t -> Uri.t list
 (** [edits t edits] creates a [WorkspaceEdit.t] that applies edits [edits] to
     the document [t]. *)
 val edit : t -> TextEdit.t list -> WorkspaceEdit.t
-
-(** [substring t range] returns the substring of the document [t] that
-    corresponds to the range [range].
-
-    Returns [None] when there is no corresponding substring. *)
-val substring : t -> Range.t -> string option

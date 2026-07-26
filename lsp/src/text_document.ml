@@ -131,3 +131,11 @@ let absolute_range t (range : Range.t) =
   let stop = String_zipper.offset zipper in
   start, stop
 ;;
+
+let substring t range =
+  let start, end_ = absolute_range t range in
+  let text = text t in
+  if start < 0 || start > end_ || end_ > String.length text
+  then None
+  else Some (String.sub text ~pos:start ~len:(end_ - start))
+;;

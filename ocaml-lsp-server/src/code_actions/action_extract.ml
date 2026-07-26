@@ -143,7 +143,7 @@ let extract_local doc typedtree range =
   let* extract_range = Range.of_loc_opt to_extract.exp_loc in
   let* edit_pos = tightest_enclosing_binder_position typedtree range in
   let new_name = "var_name" in
-  let* local_text = Document.substring doc extract_range in
+  let* local_text = Text_document.substring (Document.text_document doc) extract_range in
   let newText = sprintf "let %s = %s in\n" new_name local_text in
   let insert_range = { Range.start = edit_pos; end_ = edit_pos } in
   Some
@@ -169,7 +169,7 @@ let extract_function doc typedtree range =
     let s = String.concat ~sep:" " args in
     if String.is_empty s then "()" else s
   in
-  let* func_text = Document.substring doc extract_range in
+  let* func_text = Text_document.substring (Document.text_document doc) extract_range in
   let new_function = sprintf "let %s %s = %s\n\n" new_name args_str func_text in
   let new_call = sprintf "%s %s" new_name args_str in
   let insert_range = { Range.start = edit_pos; end_ = edit_pos } in

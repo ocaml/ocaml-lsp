@@ -42,3 +42,8 @@ val absolute_position : t -> Position.t -> int
 (* [absolute_range t range] same as [(absolute_position t range.start ,
    absolute_position t range.end_)] but possibly faster *)
 val absolute_range : t -> Range.t -> int * int
+
+(** [substring t range] returns the text within [range], interpreted using the
+    document's position encoding. Returns [None] when the range's start follows
+    its end. *)
+val substring : t -> Range.t -> string option
