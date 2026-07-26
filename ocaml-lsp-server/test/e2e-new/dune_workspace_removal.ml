@@ -28,13 +28,17 @@ let%expect_test "connected Dune does not process workspace removal" =
            project
            "client workspace/didChangeWorkspaceFolders:"
            (DidChangeWorkspaceFoldersParams.yojson_of_t params);
+         let diagnostics_after_removal =
+           Events.wait_for_diagnostics events.dune ~f:(fun params ->
+             for_uri initial.uri params && no_dune_diagnostic params)
+         in
          let* () = Client.notification client (ChangeWorkspaceFolders params) in
-         let* () = Lev_fiber.Timer.sleepf 0.1 in
+         let* cleared = diagnostics_after_removal in
          print_payloads
            project
            "textDocument/publishDiagnostics after workspace removal:"
            PublishDiagnosticsParams.yojson_of_t
-           (Events.take_pending events.dune);
+           (cleared :: Events.take_pending events.dune);
          print_payloads
            project
            "client/unregisterCapability after workspace removal:"
@@ -81,7 +85,7 @@ let%expect_test "connected Dune does not process workspace removal" =
       }
     }
     textDocument/publishDiagnostics after workspace removal:
-    []
+    [ { "diagnostics": [], "uri": "<document-uri>" } ]
     client/unregisterCapability after workspace removal:
     []
     |}]
