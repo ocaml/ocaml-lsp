@@ -52,9 +52,7 @@ let string_of_error (ident, reason) =
 ;;
 
 let contains loc pos =
-  match Position.compare_inclusion pos (Range.of_loc loc) with
-  | `Outside _ -> false
-  | `Inside -> true
+  Lsp.Range.contains_position (Range.of_loc loc) pos ~inclusive_end:true
 ;;
 
 let find_inline_task typedtree pos =

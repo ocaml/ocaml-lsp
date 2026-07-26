@@ -30,20 +30,6 @@ let of_lexical_position (lex_position : Lexing.position) : t option =
     Some { line; character })
 ;;
 
-let ( - ) ({ line; character } : t) (t : t) : t =
-  { line = line - t.line; character = character - t.character }
-;;
-
-let abs ({ line; character } : t) : t = { line = abs line; character = abs character }
-
-let compare_inclusion (t : t) (r : Lsp.Types.Range.t) =
-  if Lsp.Position.compare t r.start < 0
-  then `Outside (abs (r.start - t))
-  else if Lsp.Position.compare t r.end_ > 0
-  then `Outside (abs (r.end_ - t))
-  else `Inside
-;;
-
 let logical position =
   let line = position.line + 1 in
   let col = position.character in

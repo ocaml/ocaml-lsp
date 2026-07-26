@@ -10,7 +10,7 @@ let%expect_test "replacement ranges preserve trailing newlines" =
   let range = Range.create ~start ~end_:start in
   let edit = TextEdit.create ~range ~newText:"x\n" in
   let range = Ocaml_lsp_server.Testing.Range.resize_for_edit edit in
-  print_endline (Ocaml_lsp_server.Testing.Range.to_string range);
+  print_endline (Lsp.Range.to_string range);
   [%expect {| ((2, 5), (2, 6)) |}]
 ;;
 
@@ -19,7 +19,7 @@ let%expect_test "replacement ranges use UTF-16 character units" =
   let range = Range.create ~start ~end_:start in
   let edit = TextEdit.create ~range ~newText:"😀" in
   let range = Ocaml_lsp_server.Testing.Range.resize_for_edit edit in
-  print_endline (Ocaml_lsp_server.Testing.Range.to_string range);
+  print_endline (Lsp.Range.to_string range);
   [%expect {| ((2, 5), (2, 9)) |}]
 ;;
 
@@ -38,7 +38,7 @@ let%expect_test "document-symbol selection range relationships" =
     | Some (selection_range : Range.t) ->
       if compare_position selection_range.start selection_range.end_ > 0
       then "invalid"
-      else if Ocaml_lsp_server.Testing.Range.contains full_range selection_range
+      else if Lsp.Range.contains full_range selection_range
       then "contained"
       else (
         let start =
@@ -99,7 +99,7 @@ let%expect_test "normalize document-symbol selection ranges" =
         ~range:full_range
         selection_range
     in
-    Printf.printf "%s: %s\n" label (Ocaml_lsp_server.Testing.Range.to_string normalized)
+    Printf.printf "%s: %s\n" label (Lsp.Range.to_string normalized)
   in
   print "contained" (Some (range 1 4 2 6));
   print "contained empty" (Some (range 2 4 2 4));

@@ -784,8 +784,8 @@ let%expect_test "normalizes document-symbol selection ranges from Merlin" =
            Printf.printf
              "%s: range=%s selection=%s\n"
              label
-             (Ocaml_lsp_server.Testing.Range.to_string symbol.range)
-             (Ocaml_lsp_server.Testing.Range.to_string symbol.selectionRange))
+             (Lsp.Range.to_string symbol.range)
+             (Lsp.Range.to_string symbol.selectionRange))
       | Some (`SymbolInformation _) | None ->
         Printf.printf "%s: unexpected response\n" label
     in

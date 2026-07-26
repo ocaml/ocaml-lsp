@@ -32,9 +32,7 @@ let diagnostic_regex, diagnostic_regex_marks =
 let find_unused_diagnostic pos ds =
   let open Option.O in
   List.filter ds ~f:(fun (d : Diagnostic.t) ->
-    match Position.compare_inclusion pos d.range with
-    | `Outside _ -> false
-    | `Inside -> true)
+    Lsp.Range.contains_position d.range pos ~inclusive_end:true)
   |> List.find_map ~f:(fun (d : Diagnostic.t) ->
     let* group =
       let message =
@@ -200,9 +198,7 @@ let action_mark_type pipeline doc pos (d : Diagnostic.t) =
 ;;
 
 let contains loc pos =
-  match Position.compare_inclusion pos (Range.of_loc loc) with
-  | `Outside _ -> false
-  | `Inside -> true
+  Lsp.Range.contains_position (Range.of_loc loc) pos ~inclusive_end:true
 ;;
 
 let action_mark_for_loop_index pipeline doc pos (d : Diagnostic.t) =

@@ -1,5 +1,6 @@
 module Progress = Progress
 module Position = Position
+module Range = Range
 module Client_notification = Client_notification
 module Client_request = Client_request
 module Extension = Extension
