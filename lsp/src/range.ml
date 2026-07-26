@@ -7,6 +7,8 @@ let compare x y =
   | ordering -> ordering
 ;;
 
+let is_single_line t = t.start.line = t.end_.line
+
 let contains outer inner =
   Position.compare outer.start inner.start <= 0
   && Position.compare inner.end_ outer.end_ <= 0

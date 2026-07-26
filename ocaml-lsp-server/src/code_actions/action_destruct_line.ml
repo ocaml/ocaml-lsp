@@ -170,7 +170,7 @@ let adjust_reply_location ~(statement : destructable_statement) (loc : Loc.t) : 
 let extract_statement (doc : Document.t) (ca_range : Range.t)
   : destructable_statement option
   =
-  if ca_range.start.line <> ca_range.end_.line
+  if not (Lsp.Range.is_single_line ca_range)
   then None
   else (
     let code = get_line doc ca_range in

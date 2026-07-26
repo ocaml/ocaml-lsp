@@ -14,7 +14,7 @@ let folding_range { Range.start; end_ } =
 let fold_over_parsetree (parsetree : Mreader.parsetree) =
   let ranges = ref [] in
   let push (range : Range.t) =
-    if range.start.line < range.end_.line (* don't fold a single line *)
+    if not (Lsp.Range.is_single_line range) (* don't fold a single line *)
     then ranges := range :: !ranges
   in
   let iterator =
