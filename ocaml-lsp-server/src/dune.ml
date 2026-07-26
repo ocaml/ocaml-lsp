@@ -159,7 +159,7 @@ end = struct
     | Idle
     | Connected of Lev_fiber_csexp.Session.t * Drpc.Where.t
     | Running of running
-    | Finished
+    | Finished of Drpc.Diagnostic.Promotion.t Map.M(String).t
 
   type t =
     { config : config
@@ -169,13 +169,14 @@ end = struct
 
   let client t =
     match t.state with
-    | Connected _ | Idle | Finished -> None
+    | Connected _ | Idle | Finished _ -> None
     | Running r -> r.client
   ;;
 
   let promotions t =
     match t.state with
-    | Connected _ | Idle | Finished -> Map.empty (module String)
+    | Connected _ | Idle -> Map.empty (module String)
+    | Finished promotions -> promotions
     | Running r -> r.promotions
   ;;
 
@@ -448,7 +449,7 @@ end = struct
           in
           t.config.log ~type_:Error ~message
       in
-      t.state <- Finished;
+      t.state <- Finished (Map.empty (module String));
       Error ()
     | Ok session ->
       let message =
@@ -494,7 +495,6 @@ end = struct
     let* () =
       Fiber.all_concurrently_unit
         [ (let* () = Chan.run chan in
-           t.state <- Finished;
            Diagnostics.disconnect diagnostics running.diagnostics_id;
            let* () = Diagnostics.send diagnostics `All in
            Fiber.Ivar.fill finish ())
@@ -540,6 +540,8 @@ end = struct
              Fiber.all_concurrently_unit [ progress; diagnostics; Fiber.Ivar.read finish ]))
         ]
     in
+    (* Snapshot after both fibers finish so finalization sees the last promotion set. *)
+    t.state <- Finished running.promotions;
     Progress.end_build_if_running progress
   ;;
 
@@ -561,7 +563,7 @@ end = struct
        | Error _ ->
          Jsonrpc.Response.Error.(
            raise (make ~message:"dune failed to format" ~code:InternalError ())))
-    | Connected _ | Idle | Finished | Running _ -> assert false
+    | Connected _ | Idle | Finished _ | Running _ -> assert false
   ;;
 end
 

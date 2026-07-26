@@ -32,8 +32,10 @@ let%expect_test "connected Dune does not process workspace removal" =
            Events.wait_for_diagnostics events.dune ~f:(fun params ->
              for_uri initial.uri params && no_dune_diagnostic params)
          in
+         let promotion_cleanup = Mailbox.wait events.unregistrations in
          let* () = Client.notification client (ChangeWorkspaceFolders params) in
          let* cleared = diagnostics_after_removal in
+         let* unregistration = promotion_cleanup in
          print_payloads
            project
            "textDocument/publishDiagnostics after workspace removal:"
@@ -43,7 +45,7 @@ let%expect_test "connected Dune does not process workspace removal" =
            project
            "client/unregisterCapability after workspace removal:"
            UnregistrationParams.yojson_of_t
-           (Mailbox.take_pending events.unregistrations);
+           (unregistration :: Mailbox.take_pending events.unregistrations);
          Fiber.return ()));
   [%expect
     {|
@@ -87,6 +89,15 @@ let%expect_test "connected Dune does not process workspace removal" =
     textDocument/publishDiagnostics after workspace removal:
     [ { "diagnostics": [], "uri": "<document-uri>" } ]
     client/unregisterCapability after workspace removal:
-    []
+    [
+      {
+        "unregisterations": [
+          {
+            "id": "ocamllsp-promote/<document-uri>",
+            "method": "textDocument/codeAction"
+          }
+        ]
+      }
+    ]
     |}]
 ;;

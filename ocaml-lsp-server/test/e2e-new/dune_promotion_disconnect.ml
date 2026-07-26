@@ -12,12 +12,13 @@ let%expect_test "promotion registrations when Dune disconnects" =
          Test.write_file project.gate "";
          let* initial = Events.wait_for_diagnostics events.dune ~f:has_dune_diagnostic in
          let* registration = Mailbox.wait events.registrations in
+         let promotion_cleanup = Mailbox.wait events.unregistrations in
          stop_dune project;
          let* cleared =
            Events.wait_for_diagnostics events.dune ~f:(fun params ->
              for_uri initial.uri params && no_dune_diagnostic params)
          in
-         let* () = Lev_fiber.Timer.sleepf 0.02 in
+         let* unregistration = promotion_cleanup in
          print_payload
            project
            "initial textDocument/publishDiagnostics:"
@@ -34,7 +35,7 @@ let%expect_test "promotion registrations when Dune disconnects" =
            project
            "client/unregisterCapability after Dune disconnects:"
            UnregistrationParams.yojson_of_t
-           (Mailbox.take_pending events.unregistrations);
+           (unregistration :: Mailbox.take_pending events.unregistrations);
          Fiber.return ()));
   [%expect
     {|
@@ -71,6 +72,15 @@ let%expect_test "promotion registrations when Dune disconnects" =
     textDocument/publishDiagnostics after Dune disconnects:
     { "diagnostics": [], "uri": "<document-uri>" }
     client/unregisterCapability after Dune disconnects:
-    []
+    [
+      {
+        "unregisterations": [
+          {
+            "id": "ocamllsp-promote/<document-uri>",
+            "method": "textDocument/codeAction"
+          }
+        ]
+      }
+    ]
     |}]
 ;;
