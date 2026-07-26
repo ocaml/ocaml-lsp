@@ -28,10 +28,9 @@ type semantic_tokens_cache =
     to O and to register while transitioning from X to O. *)
 
 type doc =
-  { (* invariant: if [document <> None], then no promotions are active *)
-    document : Document.t option
-  ; (* the number of associated promotions. when this is 0, we may unsubscribe
-       from code actions *)
+  { document : Document.t option
+  ; (* promotion refcount. dynamic registration is needed only while the
+       document is closed and this count is positive *)
     promotions : int
   ; mutable semantic_tokens_cache : semantic_tokens_cache option
   }
@@ -163,8 +162,8 @@ let unregister_promotions t uris =
     | None -> false
     | Some doc ->
       doc := { !doc with promotions = !doc.promotions - 1 };
-      let unsubscribe = !doc.promotions = 0 in
-      if unsubscribe && !doc.document = None then Hashtbl.remove t.db uri;
+      let unsubscribe = !doc.promotions = 0 && !doc.document = None in
+      if unsubscribe then Hashtbl.remove t.db uri;
       unsubscribe)
   |> unregister_request t
 ;;
