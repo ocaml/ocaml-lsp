@@ -2,10 +2,13 @@
  (name jsonrpc_tests)
  (inline_tests)
  (libraries
+  base
+  base_quickcheck
   jsonrpc
   yojson
   ppx_expect.config
   ppx_expect.config_types
-  ppx_inline_test.config)
+  ppx_inline_test.config
+  ppx_sexp_conv.runtime-lib)
  (preprocess
-  (pps ppx_expect)))
+  (pps ppx_expect base_quickcheck.ppx_quickcheck ppx_sexp_conv)))
