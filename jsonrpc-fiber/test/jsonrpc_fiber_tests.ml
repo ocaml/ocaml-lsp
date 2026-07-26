@@ -707,6 +707,68 @@ let%expect_test "stopping a session wakes pending requests" =
     <opaque> |}]
 ;;
 
+let%expect_test "cancellation and response ordering follows the request model" =
+  let run_order ~label ~respond_first =
+    let request_sent = Fiber.Ivar.create () in
+    let outcome = Fiber.Ivar.create () in
+    let incoming, incoming_writer = pipe () in
+    let output : Jsonrpc.Packet.t Out.t =
+      Out.create (function
+        | Some (Jsonrpc.Packet.Request _) -> Fiber.Ivar.fill request_sent ()
+        | Some
+            (Jsonrpc.Packet.Notification _ | Response _ | Batch_call _ | Batch_response _)
+        | None -> Fiber.return ())
+    in
+    let session = Jrpc.create ~name:"client" (incoming, output) () in
+    let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"ordered" () in
+    let cancel, response = Jrpc.request_with_cancel session request in
+    let receive_response () =
+      let* response = response in
+      Fiber.Ivar.fill outcome response
+    in
+    let response =
+      Jsonrpc.Packet.Response (Jsonrpc.Response.ok (`Int 1) (`String "server response"))
+    in
+    let print_outcome (outcome : [ `Cancelled | `Ok of Jsonrpc.Response.t ]) =
+      match outcome with
+      | `Cancelled -> Printf.printf "%s outcome: cancelled\n" label
+      | `Ok { result = Ok (`String value); _ } ->
+        Printf.printf "%s outcome: %s\n" label value
+      | `Ok _ -> Printf.printf "%s outcome: unexpected response\n" label
+    in
+    let control () =
+      let* () = Fiber.Ivar.read request_sent in
+      if respond_first
+      then (
+        print_endline "events: response -> cancellation";
+        let* () = Out.write incoming_writer (Some response) in
+        let* result = Fiber.Ivar.read outcome in
+        let* () = Jrpc.fire cancel in
+        print_outcome result;
+        Out.write incoming_writer None)
+      else (
+        print_endline "events: cancellation -> response";
+        let* () = Jrpc.fire cancel in
+        let* result = Fiber.Ivar.read outcome in
+        print_outcome result;
+        let* () = Out.write incoming_writer (Some response) in
+        Out.write incoming_writer None)
+    in
+    Fiber_test.test Dyn.opaque (fun () ->
+      Fiber.all_concurrently_unit [ Jrpc.run session; receive_response (); control () ])
+  in
+  run_order ~label:"response first" ~respond_first:true;
+  run_order ~label:"cancellation first" ~respond_first:false;
+  [%expect.unreachable]
+[@@expect.uncaught_exn
+  {|
+  (Failure Fiber.Ivar.fill)
+  Trailing output
+  ---------------
+  events: response -> cancellation
+  |}]
+;;
+
 let%expect_test "cancelling before a request starts still sends it" =
   let incoming, incoming_writer = pipe () in
   let sent = ref [] in
