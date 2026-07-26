@@ -106,7 +106,7 @@ let rec mark_value_unused_edit name contexts =
 
 let code_action_mark_value_unused pipeline doc (diagnostic : Diagnostic.t) =
   let open Option.O in
-  let* var_name = Document.substring doc diagnostic.range in
+  let* var_name = Text_document.substring (Document.text_document doc) diagnostic.range in
   let pos = diagnostic.range.start in
   let+ text_edit =
     enclosing_pos pipeline pos |> List.rev_map ~f:snd |> mark_value_unused_edit var_name
@@ -160,7 +160,7 @@ let code_action_remove_range
 
 (* Create a code action that removes the value mentioned in [diagnostic]. *)
 let code_action_remove_value pipeline doc pos (diagnostic : Diagnostic.t) =
-  let* var_name = Document.substring doc diagnostic.range in
+  let* var_name = Text_document.substring (Document.text_document doc) diagnostic.range in
   enclosing_pos pipeline pos
   |> List.map ~f:snd
   |> enclosing_value_binding_range var_name

@@ -297,6 +297,25 @@ let%expect_test "absolute_position" =
   [%expect {| position: 13/13 |}]
 ;;
 
+let%expect_test "substring uses the document's position encoding" =
+  let text = "zero\n😀abc\nlast" in
+  let test position_encoding range =
+    let doc = make_document ~position_encoding (Uri.of_path "foo.ml") ~text in
+    match Text_document.substring doc range with
+    | None -> print_endline "<none>"
+    | Some substring -> print_endline substring
+  in
+  test `UTF8 (tuple_range (1, 0) (1, 5));
+  test `UTF16 (tuple_range (1, 0) (1, 3));
+  test `UTF8 (tuple_range (1, 5) (1, 0));
+  [%expect
+    {|
+    😀a
+    😀a
+    <none>
+    |}]
+;;
+
 let%expect_test "replace second line first line is \\n" =
   let range = tuple_range (1, 2) (1, 2) in
   let doc = make_document (Uri.of_path "foo.ml") ~text:"\nfoo\nbar\nbaz\n" in

@@ -485,11 +485,3 @@ let get_impl_intf_counterparts m uri =
   in
   List.map ~f:Uri.of_path files_to_switch_to
 ;;
-
-let substring doc range =
-  let start, end_ = Text_document.absolute_range (text_document doc) range in
-  let text = text doc in
-  if start < 0 || start > end_ || end_ > String.length text
-  then None
-  else Some (String.sub text ~pos:start ~len:(end_ - start))
-;;
