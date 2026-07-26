@@ -74,6 +74,7 @@ module T : sig
     -> ?handler:unit Client.Handler.t
     -> ?stderr:Unix.file_descr
     -> ?timeout:float
+    -> ?on_spawn:(int -> unit)
     -> (unit Client.t -> 'a Fiber.t)
     -> Unix.process_status * 'a
 
@@ -105,6 +106,7 @@ end = struct
         ?handler
         ?(stderr = Unix.stderr)
         ?(timeout = 3.0)
+        ?on_spawn
         f
     =
     let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
@@ -113,6 +115,7 @@ end = struct
       let env = extra_env @ Array.to_list (Unix.environment ()) |> Spawn.Env.of_list in
       Spawn.spawn ~env ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ~stderr ()
     in
+    Option.iter on_spawn ~f:(fun on_spawn -> on_spawn pid);
     Unix.close stdin_i;
     Unix.close stdout_o;
     let handler =
