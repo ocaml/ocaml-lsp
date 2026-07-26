@@ -734,6 +734,67 @@ let%expect_test "cancelling before a request starts still sends it" =
     <opaque> |}]
 ;;
 
+let%expect_test "late responses can reach a reused cancelled request ID" =
+  let request_sent = Fiber.Mvar.create () in
+  let incoming, incoming_writer = pipe () in
+  let output : Jsonrpc.Packet.t Out.t =
+    Out.create (function
+      | Some (Jsonrpc.Packet.Request request) ->
+        Printf.printf "wire request: %s\n" request.method_;
+        Fiber.Mvar.write request_sent ()
+      | Some (Jsonrpc.Packet.Notification _ | Response _ | Batch_call _ | Batch_response _)
+      | None -> Fiber.return ())
+  in
+  let session = Jrpc.create ~name:"client" (incoming, output) () in
+  let operations () =
+    let cancelled_request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"cancelled" () in
+    let cancel, response = Jrpc.request_with_cancel session cancelled_request in
+    let fire_cancel () =
+      let* () = Fiber.Mvar.read request_sent in
+      Jrpc.fire cancel
+    in
+    let* (), first = Fiber.fork_and_join fire_cancel (fun () -> response) in
+    (match first with
+     | `Cancelled -> print_endline "cancelled request outcome: cancelled"
+     | `Ok _ -> print_endline "cancelled request outcome: response");
+    let replacement = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"replacement" () in
+    let late_response =
+      Jsonrpc.Response.ok (`Int 1) (`String "late response for cancelled request")
+    in
+    let deliver_late_response () =
+      let* () = Fiber.Mvar.read request_sent in
+      print_endline "wire response: late response for cancelled request";
+      Out.write incoming_writer (Some (Jsonrpc.Packet.Response late_response))
+    in
+    let* replacement_response, () =
+      Fiber.fork_and_join
+        (fun () -> Jrpc.request session replacement)
+        deliver_late_response
+    in
+    (match replacement_response.result with
+     | Ok (`String value) -> Printf.printf "replacement outcome: %s\n" value
+     | Ok _ | Error _ -> print_endline "replacement outcome: unexpected");
+    Out.write incoming_writer None
+  in
+  Fiber_test.test Dyn.opaque (fun () ->
+    Fiber.fork_and_join_unit (fun () -> Jrpc.run session) operations);
+  [%expect.unreachable]
+[@@expect.uncaught_exn
+  {|
+  ("(\"duplicate request id\", {})")
+  Trailing output
+  ---------------
+  wire request: cancelled
+  cancelled request outcome: cancelled
+  /-----------------------------------------------------------------------
+  | Internal error: Uncaught exception.
+  | ("duplicate request id", {})
+  \-----------------------------------------------------------------------
+
+  wire request: replacement
+  |}]
+;;
+
 let%expect_test "cancelled request IDs remain registered" =
   let request_sent = Fiber.Mvar.create () in
   let incoming, incoming_writer = pipe () in
