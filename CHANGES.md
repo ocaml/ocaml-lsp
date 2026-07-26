@@ -32,6 +32,7 @@
 - Preserve URI paths whose first segment resembles a non-letter Windows drive. (#1800, @rgrinberg)
 - Preserve unescaped Unicode in URI query components. (#1799, @rgrinberg)
 - Preserve document offsets across incremental text edits. (#1777, @rgrinberg)
+- Respect the client's preferred completion documentation format. (#1885, @rgrinberg)
 - Correct code-action ranges after multiline text insertions. (#1748, @rgrinberg)
 - Allow clients to add their first workspace folder dynamically. (#1747, @rgrinberg)
 - Unregister Dune promotion commands after their diagnostics are cleared. (#1746, @rgrinberg)

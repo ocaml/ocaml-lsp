@@ -319,10 +319,8 @@ include struct
       | None -> false
       | Some td ->
         (match field td with
-         | None -> false
-         | Some format ->
-           let set = Option.value format ~default:[ MarkupKind.Markdown ] in
-           List.mem set MarkupKind.Markdown ~equal:Poly.equal)
+         | Some (Some (MarkupKind.Markdown :: _)) -> true
+         | None | Some None | Some (Some _) -> false)
     ;;
   end
 

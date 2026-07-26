@@ -114,7 +114,7 @@ let%expect_test "completion resolve after its document changes" =
     Same item resolved after document update to version 1:
     {
       "detail": "int",
-      "documentation": { "kind": "markdown", "value": "new docs" },
+      "documentation": "new docs",
       "kind": 12,
       "label": "old_value",
       "sortText": "0000",
@@ -151,10 +151,7 @@ let%expect_test "completion documentation when no format is advertised" =
   [%expect
     {|
     {
-      "documentation": {
-        "kind": "markdown",
-        "value": "`map2 f [a1; ...; an] [b1; ...; bn]` is `[f a1 b1; ...; f an bn]`.\n\n***@raise*** `Invalid_argument`\nif the two lists are determined to have different lengths."
-      },
+      "documentation": "[map2 f [a1; ...; an] [b1; ...; bn]] is\n   [[f a1 b1; ...; f an bn]].\n   @raise Invalid_argument if the two lists are determined\n   to have different lengths.",
       "label": "map2"
     }
     |}]
@@ -187,10 +184,7 @@ let%expect_test "completion documentation respects the client's preferred format
   [%expect
     {|
     {
-      "documentation": {
-        "kind": "markdown",
-        "value": "`map2 f [a1; ...; an] [b1; ...; bn]` is `[f a1 b1; ...; f an bn]`.\n\n***@raise*** `Invalid_argument`\nif the two lists are determined to have different lengths."
-      },
+      "documentation": "[map2 f [a1; ...; an] [b1; ...; bn]] is\n   [[f a1 b1; ...; f an bn]].\n   @raise Invalid_argument if the two lists are determined\n   to have different lengths.",
       "label": "map2"
     }
     |}]
