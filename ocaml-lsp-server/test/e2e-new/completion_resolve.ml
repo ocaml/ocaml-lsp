@@ -129,6 +129,37 @@ let%expect_test "completion resolve after its document changes" =
     |}]
 ;;
 
+let%expect_test "completion documentation when no format is advertised" =
+  let capabilities =
+    let resolveSupport =
+      ClientCompletionItemResolveOptions.create ~properties:[ "documentation" ]
+    in
+    let completionItem = ClientCompletionItemOptions.create ~resolveSupport () in
+    let completion = CompletionClientCapabilities.create ~completionItem () in
+    let textDocument = TextDocumentClientCapabilities.create ~completion () in
+    ClientCapabilities.create ~textDocument ()
+  in
+  let source = "List.ma" in
+  let req client =
+    let* response =
+      completion_item_resolve client "map2" (Position.create ~line:0 ~character:7)
+    in
+    print_completion_item response;
+    Fiber.return ()
+  in
+  Helpers.test ~capabilities source req;
+  [%expect
+    {|
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "`map2 f [a1; ...; an] [b1; ...; bn]` is `[f a1 b1; ...; f an bn]`.\n\n***@raise*** `Invalid_argument`\nif the two lists are determined to have different lengths."
+      },
+      "label": "map2"
+    }
+    |}]
+;;
+
 let%expect_test "completion documentation respects the client's preferred format" =
   let capabilities =
     let resolveSupport =
