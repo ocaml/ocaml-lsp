@@ -17,6 +17,32 @@ val iter_code_actions
   -> (CodeActionResult.t -> unit)
   -> unit
 
+val print_code_action_result
+  :  ?filter:([ `Command of Command.t | `CodeAction of CodeAction.t ] -> bool)
+  -> CodeActionResult.t
+  -> unit
+
+val print_code_actions
+  :  ?prep:(unit Test.Import.Client.t -> unit Fiber.t)
+  -> ?path:string
+  -> ?diagnostics:Diagnostic.t list
+  -> ?only:CodeActionKind.t list
+  -> ?filter:([ `Command of Command.t | `CodeAction of CodeAction.t ] -> bool)
+  -> string
+  -> Range.t
+  -> unit
+
+val find_action
+  :  string
+  -> [ `Command of Command.t | `CodeAction of CodeAction.t ]
+  -> bool
+
+val find_annotate_action : [ `Command of Command.t | `CodeAction of CodeAction.t ] -> bool
+
+val find_remove_annotation_action
+  :  [ `Command of Command.t | `CodeAction of CodeAction.t ]
+  -> bool
+
 val parse_selection : string -> string * Range.t
 
 val apply_code_action
