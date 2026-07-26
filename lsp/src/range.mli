@@ -4,6 +4,9 @@ include module type of Types.Range with type t = Types.Range.t
 (** Compare ranges by start position, then by end position. *)
 val compare : t -> t -> int
 
+(** Whether the range starts and ends on the same line. *)
+val is_single_line : t -> bool
+
 (** [contains outer inner] is true when both boundaries of [inner] are within
     [outer]. *)
 val contains : t -> t -> bool

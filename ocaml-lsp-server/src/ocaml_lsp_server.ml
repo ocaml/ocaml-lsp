@@ -541,7 +541,7 @@ let highlight
         let range = Range.of_loc loc in
         (* filter out multi-line ranges, since those are very noisy and happen
            a lot with certain PPXs *)
-        match range.start.line = range.end_.line with
+        match Lsp.Range.is_single_line range with
         | true ->
           (* using the default kind as we are lacking info to make a
              difference between assignment and usage. *)

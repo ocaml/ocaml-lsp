@@ -66,6 +66,11 @@ let check_case { Case.point; first_start; first_end; second_start; second_end } 
   in
   check "range comparison" (Int.equal (Range.compare first second) expected_range_order);
   check
+    "single-line range"
+    (Bool.equal
+       (Range.is_single_line first)
+       (first_start / line_width = first_end / line_width));
+  check
     "range containment"
     (Bool.equal
        (Range.contains first second)
