@@ -224,7 +224,7 @@ let set_diagnostics detached diagnostics doc =
          in
          Diagnostic.create
            ~source:Diagnostics.ocamllsp_source
-           ~range:Range.first_line
+           ~range:Lsp.Range.first_line
            ~message
            ()
        in
@@ -736,9 +736,10 @@ let on_request
              List.find_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
                let loc = occurrence.loc in
                let range = Range.of_loc loc in
-               match occurrence.is_stale, Position.compare_inclusion position range with
-               | false, `Inside -> Some loc
-               | true, _ | _, `Outside _ -> None)
+               match occurrence.is_stale with
+               | false when Lsp.Range.contains_position range position ~inclusive_end:true
+                 -> Some loc
+               | _ -> None)
            in
            Option.map loc ~f:Range.of_loc)
       ()

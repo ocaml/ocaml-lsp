@@ -5,13 +5,13 @@ module Typedtree_utils = Merlin_analysis.Typedtree_utils
 
 let range_contains_loc range loc =
   match Range.of_loc_opt loc with
-  | Some range' -> Range.contains range range'
+  | Some range' -> Lsp.Range.contains range range'
   | None -> false
 ;;
 
 let range_contained_by_loc range loc =
   match Range.of_loc_opt loc with
-  | Some range' -> Range.contains range' range
+  | Some range' -> Lsp.Range.contains range' range
   | None -> false
 ;;
 

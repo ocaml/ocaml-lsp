@@ -18,9 +18,9 @@ let normalize_selection_range ~(range : Range.t) = function
     let selection_is_valid =
       Lsp.Position.compare selection_range.start selection_range.end_ <= 0
     in
-    if selection_is_valid && Range.contains range selection_range
+    if selection_is_valid && Lsp.Range.contains range selection_range
     then selection_range
-    else Option.value (Range.intersection range selection_range) ~default:range
+    else Option.value (Lsp.Range.intersection range selection_range) ~default:range
 ;;
 
 let rec items_to_symbols items =

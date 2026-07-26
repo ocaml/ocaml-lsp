@@ -7,9 +7,7 @@ let position_in_comment ~position ~merlin =
     match Option.both start end_ with
     | Some (start, end_) ->
       let range = Range.create ~start ~end_ in
-      (match Position.compare_inclusion position range with
-       | `Inside -> true
-       | `Outside _ -> false)
+      Lsp.Range.contains_position range position ~inclusive_end:true
     | None -> false
   in
   Document.Merlin.with_pipeline_exn ~name:"get-comments" merlin (fun pipeline ->

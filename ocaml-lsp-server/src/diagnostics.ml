@@ -115,7 +115,7 @@ let send =
   let module Range_map = Map.Make (struct
       include Range
 
-      let compare x y = Ordering.to_int (compare x y)
+      let compare = Lsp.Range.compare
     end)
   in
   (* TODO deduplicate related errors as well *)
@@ -382,7 +382,7 @@ let merlin_diagnostics diagnostics merlin =
                "%s.\nHint: install the following packages: merlin-extend, reason"
                error)
         in
-        [ create_diagnostic ~range:Range.first_line ~message () ]
+        [ create_diagnostic ~range:Lsp.Range.first_line ~message () ]
       | errors ->
         let merlin_diagnostics =
           List.rev_map errors ~f:(error_to_diagnostics ~diagnostics ~merlin)
@@ -407,7 +407,7 @@ let merlin_diagnostics diagnostics merlin =
         (* Can we use [List.merge] instead? *)
         List.rev_append holes_as_err_diags merlin_diagnostics
         |> List.sort ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
-          Range.compare d1.range d2.range))
+          Lsp.Range.compare d1.range d2.range |> Ordering.of_int))
   in
   set diagnostics (`Merlin (uri, all_diagnostics))
 ;;
