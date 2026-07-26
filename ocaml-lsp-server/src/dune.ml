@@ -127,6 +127,7 @@ type config =
   ; include_promotions : bool
   ; progress : Progress.t
   ; log : type_:MessageType.t -> message:string -> unit Fiber.t
+  ; trace : message:(unit -> string) -> verbose:(unit -> string) -> unit Fiber.t
   }
 
 module Instance : sig
@@ -243,7 +244,26 @@ end = struct
       ()
   ;;
 
-  let progress_loop client diagnostics document_store progress =
+  let trace_progress trace source (progress : Drpc.Progress.t) =
+    let message () =
+      match progress with
+      | Success -> "Dune build finished"
+      | Failed -> "Dune build failed"
+      | Interrupted -> "Dune build interrupted"
+      | Waiting -> "Dune build waiting for changes"
+      | In_progress { complete; remaining } ->
+        sprintf "Dune build progress: %d/%d" complete (complete + remaining)
+    in
+    let verbose () =
+      sprintf
+        "Dune root: %s; pid: %d"
+        (Registry.Dune.root source)
+        (Registry.Dune.pid source)
+    in
+    trace ~message ~verbose
+  ;;
+
+  let progress_loop client diagnostics document_store progress trace source =
     (* We get all the progress updates even if the user can't see them to
        refresh the merlin config at the end of every build. Not very clean, but
        the assumption is that most good lsp clients will have progress reporting
@@ -257,6 +277,7 @@ end = struct
         match res with
         | None -> Fiber.return None
         | Some p ->
+          let* () = trace_progress trace source p in
           let+ () =
             Fiber.fork_and_join_unit
               (fun () -> Progress.build_progress progress p)
@@ -430,17 +451,20 @@ end = struct
       t.state <- Finished;
       Error ()
     | Ok session ->
-      let* () =
-        let message =
-          sprintf
-            "Connected to dune %s (%s)"
-            (Registry.Dune.root source)
-            (match Registry.Dune.where source with
-             | `Unix s -> s
-             | `Ip (`Host h, `Port p) -> sprintf "%s:%d" h p)
-        in
-        config.log ~type_:Info ~message
+      let message =
+        sprintf
+          "Connected to dune %s (%s)"
+          (Registry.Dune.root source)
+          (match Registry.Dune.where source with
+           | `Unix s -> s
+           | `Ip (`Host h, `Port p) -> sprintf "%s:%d" h p)
       in
+      let* () =
+        config.trace
+          ~message:(fun () -> "Connected to Dune RPC")
+          ~verbose:(fun () -> message)
+      in
+      let* () = config.log ~type_:Info ~message in
       t.state <- Connected (session, where);
       Fiber.return (Ok ())
   ;;
@@ -500,7 +524,15 @@ end = struct
                in
                config.log ~type_:Info ~message
              in
-             let progress = progress_loop client diagnostics document_store progress in
+             let progress =
+               progress_loop
+                 client
+                 diagnostics
+                 document_store
+                 progress
+                 config.trace
+                 source
+             in
              let diagnostics =
                let dune_root = DocumentUri.of_path (Registry.Dune.root source) in
                diagnostic_loop ~dune_root client config running diagnostics
@@ -766,6 +798,7 @@ let create
       progress
       document_store
       ~log
+      ~trace
   =
   let config =
     let include_promotions =
@@ -782,7 +815,7 @@ let create
          | _ -> false)
       | _ -> false
     in
-    { document_store; diagnostics; progress; include_promotions; log }
+    { document_store; diagnostics; progress; include_promotions; log; trace }
   in
   let registry = Registry.create (Registry.Config.create (Xdg.create ~env ())) in
   ref
@@ -802,10 +835,12 @@ let create
       progress
       document_store
       ~log
+      ~trace
   =
   if inside_test
   then ref Closed
-  else create workspaces client_capabilities diagnostics progress document_store ~log
+  else
+    create workspaces client_capabilities diagnostics progress document_store ~log ~trace
 ;;
 
 let run_loop t =

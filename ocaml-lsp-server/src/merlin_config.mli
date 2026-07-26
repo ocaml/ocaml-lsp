@@ -12,7 +12,10 @@ module DB : sig
   type config := t
   type t
 
-  val create : unit -> t
+  val create
+    :  trace:(message:(unit -> string) -> verbose:(unit -> string) -> unit Fiber.t)
+    -> t
+
   val stop : t -> unit Fiber.t
   val run : t -> unit Fiber.t
   val get : t -> Uri.t -> config

@@ -32,11 +32,15 @@ module Misc = Ocaml_utils.Misc
 
 let empty = Mconfig_dot.empty_config
 
+type trace = message:(unit -> string) -> verbose:(unit -> string) -> unit Fiber.t
+
 module Process = struct
   type nonrec t =
     { pid : Pid.t
     ; prog : string
+    ; command : string
     ; initial_cwd : string
+    ; trace : trace
     ; stdin : Lev_fiber.Io.output Lev_fiber.Io.t
     ; stdout : Lev_fiber.Io.input Lev_fiber.Io.t
     ; session : Lev_fiber_csexp.Session.t
@@ -63,7 +67,21 @@ module Process = struct
      | WSTOPPED _ -> ());
     Lev_fiber.Io.close t.stdin;
     Lev_fiber.Io.close t.stdout;
-    Fiber.return ()
+    t.trace
+      ~message:(fun () -> "Merlin configuration process exited")
+      ~verbose:(fun () ->
+        let status =
+          match status with
+          | Unix.WEXITED code -> sprintf "exited with code %d" code
+          | WSIGNALED signal -> sprintf "terminated by signal %d" signal
+          | WSTOPPED signal -> sprintf "stopped by signal %d" signal
+        in
+        sprintf
+          "Command: %s; pid: %d; cwd: %s; status: %s"
+          t.command
+          (Pid.to_int t.pid)
+          t.initial_cwd
+          status)
   ;;
 
   let await_exit t wheel =
@@ -83,13 +101,19 @@ module Process = struct
   ;;
 
   let send_signal t signal =
-    if not t.exited
-    then (
-      try Unix.kill (Pid.to_int t.pid) signal with
-      | Unix.Unix_error (Unix.ESRCH, _, _) -> ())
+    if t.exited
+    then Fiber.return ()
+    else (
+      match Unix.kill (Pid.to_int t.pid) signal with
+      | exception Unix.Unix_error (Unix.ESRCH, _, _) -> Fiber.return ()
+      | () ->
+        t.trace
+          ~message:(fun () -> "Signal sent to Merlin configuration process")
+          ~verbose:(fun () ->
+            sprintf "Command: %s; pid: %d; signal: %d" t.command (Pid.to_int t.pid) signal))
   ;;
 
-  let start ~dir =
+  let start ~trace ~dir =
     let bin, args =
       (* the convention is that $OCAMLLSP_PROJECT_BUILD_SYSTEM executable has
          `ocaml-merlin` subcommand to start a merlin configuration server *)
@@ -105,6 +129,7 @@ module Process = struct
            ~message:(Printf.sprintf "%s binary not found" bin)
            ())
     | Some prog ->
+      let command = String.concat ~sep:" " (prog :: args) in
       let stdin_r, stdin_w = Unix.pipe () in
       let stdout_r, stdout_w = Unix.pipe () in
       Unix.set_close_on_exec stdin_w;
@@ -133,17 +158,28 @@ module Process = struct
         Lev_fiber.Io.create fd what
       in
       let* stdin = make stdin_w Output in
-      let+ stdout = make stdout_r Input in
+      let* stdout = make stdout_r Input in
       let session = Lev_fiber_csexp.Session.create ~socket:false stdout stdin in
-      { prog
-      ; pid
-      ; initial_cwd = dir
-      ; stdin
-      ; stdout
-      ; session
-      ; exited = false
-      ; shutdown_timer = None
-      }
+      let process =
+        { prog
+        ; command
+        ; pid
+        ; initial_cwd = dir
+        ; trace
+        ; stdin
+        ; stdout
+        ; session
+        ; exited = false
+        ; shutdown_timer = None
+        }
+      in
+      let+ () =
+        trace
+          ~message:(fun () -> "Merlin configuration process started")
+          ~verbose:(fun () ->
+            sprintf "Command: %s; pid: %d; cwd: %s" command (Pid.to_int pid) dir)
+      in
+      process
   ;;
 end
 
@@ -172,6 +208,7 @@ let prefer_dot_merlin = ref false
 type db =
   { running : (string, entry) Table.t
   ; pool : Fiber.Pool.t
+  ; trace : trace
   }
 
 and entry =
@@ -194,6 +231,16 @@ module Entry = struct
     else (
       t.stopping <- true;
       Table.remove t.db.running t.process.initial_cwd;
+      let* () =
+        t.process.trace
+          ~message:(fun () -> "Stopping Merlin configuration process")
+          ~verbose:(fun () ->
+            sprintf
+              "Command: %s; pid: %d; cwd: %s"
+              t.process.command
+              (Pid.to_int t.process.pid)
+              t.process.initial_cwd)
+      in
       Dot_protocol_io.Commands.halt t.process.session)
   ;;
 
@@ -208,7 +255,7 @@ let get_process t ~dir =
   match Table.find t.running dir with
   | Some p -> Fiber.return p
   | None ->
-    let* process = Process.start ~dir in
+    let* process = Process.start ~trace:t.trace ~dir in
     let entry = Entry.create t process in
     Table.add_exn t.running ~key:dir ~data:entry;
     let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
@@ -222,8 +269,31 @@ type context =
 
 let get_config (p : Process.t) ~workdir path_abs =
   let query path (p : Process.t) =
+    let* () =
+      p.trace
+        ~message:(fun () -> "Merlin configuration request sent")
+        ~verbose:(fun () ->
+          sprintf "Command: %s; pid: %d; file: %s" p.command (Pid.to_int p.pid) path)
+    in
     let* () = Dot_protocol_io.Commands.send_file p.session path in
-    Dot_protocol_io.read p.session
+    let* response = Dot_protocol_io.read p.session in
+    let+ () =
+      p.trace
+        ~message:(fun () -> "Merlin configuration response received")
+        ~verbose:(fun () ->
+          let status =
+            match response with
+            | Ok directives -> sprintf "success; directives: %d" (List.length directives)
+            | Error _ -> "error"
+          in
+          sprintf
+            "Command: %s; pid: %d; file: %s; status: %s"
+            p.command
+            (Pid.to_int p.pid)
+            path
+            status)
+    in
+    response
   in
   (* Both [p.initial_cwd] and [path_abs] have gone through
      [canonicalize_filename] *)
@@ -397,8 +467,8 @@ module DB = struct
 
   let get t uri = create t uri
 
-  let create () =
-    { running = Table.create (module Base.String); pool = Fiber.Pool.create () }
+  let create ~trace =
+    { running = Table.create (module Base.String); pool = Fiber.Pool.create (); trace }
   ;;
 
   let run t = Fiber.Pool.run t.pool
@@ -416,8 +486,8 @@ module DB = struct
       let* wheel = Lev_fiber.Timer.Wheel.create ~delay:0.5 in
       let signal_after_timeout signal =
         Fiber.parallel_iter running ~f:(fun entry ->
-          let+ exited = Process.await_exit entry.process wheel in
-          if not exited then Process.send_signal entry.process signal)
+          let* exited = Process.await_exit entry.process wheel in
+          if exited then Fiber.return () else Process.send_signal entry.process signal)
       in
       let shutdown () =
         let* () = Fiber.parallel_iter running ~f:Entry.stop in

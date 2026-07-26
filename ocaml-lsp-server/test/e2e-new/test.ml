@@ -54,8 +54,13 @@ end
 
 open Import
 
-let start_client ?(capabilities = ClientCapabilities.create ()) ?workspaceFolders client =
-  Client.start client (InitializeParams.create ~capabilities ?workspaceFolders ())
+let start_client
+      ?(capabilities = ClientCapabilities.create ())
+      ?workspaceFolders
+      ?trace
+      client
+  =
+  Client.start client (InitializeParams.create ~capabilities ?workspaceFolders ?trace ())
 ;;
 
 let shutdown_client client =
@@ -95,6 +100,7 @@ module T : sig
     -> ?timeout:float
     -> ?capabilities:ClientCapabilities.t
     -> ?workspaceFolders:WorkspaceFolder.t list option
+    -> ?trace:TraceValue.t
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 end = struct
@@ -186,11 +192,12 @@ end = struct
         ?timeout
         ?(capabilities = ClientCapabilities.create ())
         ?workspaceFolders
+        ?trace
         f
     =
     run ?extra_env ?handler ?stderr ?timeout
     @@ fun client ->
-    let run_client () = start_client ~capabilities ?workspaceFolders client in
+    let run_client () = start_client ~capabilities ?workspaceFolders ?trace client in
     let run_test () =
       let* (_ : InitializeResult.t) = Client.initialized client in
       f client

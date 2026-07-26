@@ -372,6 +372,7 @@ include struct
   module LanguageKind = LanguageKind
   module Location = Location
   module LogMessageParams = LogMessageParams
+  module LogTraceParams = LogTraceParams
   module MarkupContent = MarkupContent
   module MarkupKind = MarkupKind
   module MessageType = MessageType
