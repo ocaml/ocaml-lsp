@@ -1,5 +1,4 @@
 open Import
-open Fiber.O
 
 let action_kind = "destruct-line (enumerate cases, use existing match)"
 let kind = CodeActionKind.Other action_kind
@@ -243,39 +242,6 @@ let format_merlin_reply ~(statement : destructable_statement) (new_code : string
        String.concat ~sep:" -> _\n" (String.strip first_line :: other_lines))
 ;;
 
-let code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText) =
-  let range : Range.t = Range.of_loc loc in
-  let textedit : TextEdit.t = { range; newText } in
-  let edit = Code_action.workspace_edit doc [ textedit ] in
-  let title = String.capitalize action_kind in
-  let command =
-    if supportsJumpToNextHole
-    then
-      Some
-        (Client.Custom_commands.next_hole
-           ~in_range:(Range.resize_for_edit textedit)
-           ~notify_if_no_hole:false
-           ())
-    else None
-  in
-  CodeAction.create
-    ~title
-    ~kind:(CodeActionKind.Other action_kind)
-    ~edit
-    ?command
-    ~isPreferred:false
-    ()
-;;
-
-let dispatch_destruct (merlin : Document.Merlin.t) (range : Range.t) =
-  let command =
-    let start = Position.logical range.start in
-    let finish = Position.logical range.end_ in
-    Query_protocol.Case_analysis (start, finish)
-  in
-  Document.Merlin.dispatch ~name:"destruct" merlin command
-;;
-
 let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.t) =
   match Document.kind doc with
   | `Other -> Fiber.return None
@@ -283,27 +249,16 @@ let code_action (state : State.t) (doc : Document.t) (params : CodeActionParams.
     (match Document.Merlin.kind merlin, extract_statement doc params.range with
      | Intf, _ | _, None -> Fiber.return None
      | Impl, Some statement ->
-       let+ res = dispatch_destruct merlin statement.query_range in
-       (match res with
-        | Ok (loc, newText) ->
-          let loc = adjust_reply_location ~statement loc in
-          let newText = format_merlin_reply ~statement newText in
-          let supportsJumpToNextHole =
-            State.experimental_client_capabilities state
-            |> Client.Experimental_capabilities.supportsJumpToNextHole
-          in
-          Some (code_action_of_case_analysis ~supportsJumpToNextHole doc (loc, newText))
-        | Error
-            { exn =
-                ( Merlin_analysis.Destruct.Wrong_parent _
-                | Query_commands.No_nodes
-                | Merlin_analysis.Destruct.Not_allowed _
-                | Merlin_analysis.Destruct.Useless_refine
-                | Merlin_analysis.Destruct.Ill_typed
-                | Merlin_analysis.Destruct.Nothing_to_do )
-            ; backtrace = _
-            } -> None
-        | Error exn -> Exn_with_backtrace.reraise exn))
+       Action_destruct.run
+         state
+         doc
+         merlin
+         ~action_kind
+         ~range:statement.query_range
+         ~postprocess:(fun (loc, newText) ->
+           let loc = adjust_reply_location ~statement loc in
+           let newText = format_merlin_reply ~statement newText in
+           loc, newText))
 ;;
 
 let t state = { Code_action.kind; run = `Non_batchable (code_action state) }
