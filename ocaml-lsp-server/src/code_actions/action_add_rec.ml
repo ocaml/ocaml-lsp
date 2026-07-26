@@ -37,7 +37,7 @@ let has_missing_rec pipeline pos_start =
 
 let code_action_add_rec diagnostics doc loc =
   let textedit : TextEdit.t = { range = Range.of_loc loc; newText = "rec " } in
-  let edit = Code_action.workspace_edit doc [ textedit ] in
+  let edit = Text_document.workspace_edit (Document.text_document doc) [ textedit ] in
   CodeAction.create
     ~diagnostics
     ~title:action_title

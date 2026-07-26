@@ -24,4 +24,3 @@ val non_batchable
   -> t
 
 val source_text : Document.t -> Loc.t -> string option
-val workspace_edit : Document.t -> TextEdit.t list -> WorkspaceEdit.t

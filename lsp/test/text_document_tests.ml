@@ -297,6 +297,23 @@ let%expect_test "absolute_position" =
   [%expect {| position: 13/13 |}]
 ;;
 
+let%test_unit "workspace edits identify the document and its version" =
+  let uri = Uri.of_string "file:///foo.ml" in
+  let doc = make_document uri ~text:"old" in
+  let range = tuple_range (0, 0) (0, 3) in
+  let text_edit = TextEdit.create ~range ~newText:"new" in
+  match (Text_document.workspace_edit doc [ text_edit ]).documentChanges with
+  | Some
+      [ `TextDocumentEdit
+          { textDocument = { uri = actual_uri; version = Some 1 }
+          ; edits = [ `TextEdit actual_edit ]
+          }
+      ] ->
+    assert (Uri.equal uri actual_uri);
+    assert (text_edit = actual_edit)
+  | _ -> assert false
+;;
+
 let%expect_test "substring uses the document's position encoding" =
   let text = "zero\n😀abc\nlast" in
   let test position_encoding range =

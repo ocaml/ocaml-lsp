@@ -40,7 +40,7 @@ let code_action_of_type_enclosing doc (loc, constr_loc) =
   let textedit : TextEdit.t =
     { range = Range.of_loc (Loc.union loc constr_loc); newText = src_text }
   in
-  let edit = Code_action.workspace_edit doc [ textedit ] in
+  let edit = Text_document.workspace_edit (Document.text_document doc) [ textedit ] in
   let title = String.capitalize_ascii action_kind in
   CodeAction.create
     ~title

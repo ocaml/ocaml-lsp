@@ -111,7 +111,7 @@ let code_action_mark_value_unused pipeline doc (diagnostic : Diagnostic.t) =
   let+ text_edit =
     enclosing_pos pipeline pos |> List.rev_map ~f:snd |> mark_value_unused_edit var_name
   in
-  let edit = Document.edit doc [ text_edit ] in
+  let edit = Text_document.workspace_edit (Document.text_document doc) [ text_edit ] in
   CodeAction.create
     ~diagnostics:[ diagnostic ]
     ~title:"Mark as unused"
@@ -148,7 +148,9 @@ let code_action_remove_range
       (diagnostic : Diagnostic.t)
       range
   =
-  let edit = Document.edit doc [ { range; newText = "" } ] in
+  let edit =
+    Text_document.workspace_edit (Document.text_document doc) [ { range; newText = "" } ]
+  in
   CodeAction.create
     ~diagnostics:[ diagnostic ]
     ~title
@@ -171,7 +173,9 @@ let code_action_remove_value pipeline doc pos (diagnostic : Diagnostic.t) =
     the diagnostic [d] by inserting an underscore at [pos] in [doc]. *)
 let create_mark_action ~title doc pos d =
   let edit =
-    Document.edit doc [ { range = Range.create ~start:pos ~end_:pos; newText = "_" } ]
+    Text_document.workspace_edit
+      (Document.text_document doc)
+      [ { range = Range.create ~start:pos ~end_:pos; newText = "_" } ]
   in
   CodeAction.create
     ~diagnostics:[ d ]
@@ -238,7 +242,7 @@ let action_mark_open doc (d : Diagnostic.t) =
   let edit =
     let pos = { d.range.start with character = d.range.start.character + 4 } in
     let range = Range.create ~start:pos ~end_:pos in
-    Document.edit doc [ { range; newText = "!" } ]
+    Text_document.workspace_edit (Document.text_document doc) [ { range; newText = "!" } ]
   in
   CodeAction.create
     ~diagnostics:[ d ]
@@ -301,8 +305,8 @@ let action_remove_case pipeline doc (d : Diagnostic.t) =
   let* end_ = Position.of_lexical_position case_end in
   let+ preceding_bar = find_preceding doc start bar_regex in
   let edit =
-    Document.edit
-      doc
+    Text_document.workspace_edit
+      (Document.text_document doc)
       [ { range = Range.create ~start:preceding_bar.start ~end_; newText = "" } ]
   in
   CodeAction.create
@@ -327,7 +331,11 @@ let action_remove_constructor pipeline doc (d : Diagnostic.t) =
   let* case_start, case_end = case_range in
   let* start = Position.of_lexical_position case_start in
   let+ end_ = Position.of_lexical_position case_end in
-  let edit = Document.edit doc [ { range = Range.create ~start ~end_; newText = "" } ] in
+  let edit =
+    Text_document.workspace_edit
+      (Document.text_document doc)
+      [ { range = Range.create ~start ~end_; newText = "" } ]
+  in
   CodeAction.create
     ~diagnostics:[ d ]
     ~title:"Remove unused constructor"

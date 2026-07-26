@@ -43,7 +43,7 @@ let pick_rhs rhs_expressions =
 
 let make_text_edit ~range ~newText ~doc =
   let text_edit = TextEdit.create ~range ~newText in
-  Code_action.workspace_edit doc [ text_edit ]
+  Text_document.workspace_edit (Document.text_document doc) [ text_edit ]
 ;;
 
 let code_action doc params =

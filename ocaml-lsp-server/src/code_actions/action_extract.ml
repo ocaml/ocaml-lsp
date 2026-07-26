@@ -190,7 +190,7 @@ let run_extract_local pipeline doc (params : CodeActionParams.t) =
   CodeAction.create
     ~title:"Extract local"
     ~kind:CodeActionKind.RefactorExtract
-    ~edit:(Document.edit doc edits)
+    ~edit:(Text_document.workspace_edit (Document.text_document doc) edits)
     ~isPreferred:false
     ()
 ;;
@@ -206,7 +206,7 @@ let run_extract_function pipeline doc (params : CodeActionParams.t) =
   CodeAction.create
     ~title:"Extract function"
     ~kind:CodeActionKind.RefactorExtract
-    ~edit:(Document.edit doc edits)
+    ~edit:(Text_document.workspace_edit (Document.text_document doc) edits)
     ~isPreferred:false
     ()
 ;;

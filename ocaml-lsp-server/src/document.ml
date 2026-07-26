@@ -403,19 +403,6 @@ module Merlin = struct
   ;;
 end
 
-let edit t text_edits =
-  let version = version t in
-  let textDocument =
-    OptionalVersionedTextDocumentIdentifier.create ~uri:(uri t) ~version ()
-  in
-  let edit =
-    TextDocumentEdit.create
-      ~textDocument
-      ~edits:(List.map text_edits ~f:(fun text_edit -> `TextEdit text_edit))
-  in
-  WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-;;
-
 let kind = function
   | Merlin merlin -> `Merlin merlin
   | Dune _ | Other _ -> `Other
