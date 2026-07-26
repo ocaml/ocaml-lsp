@@ -830,7 +830,7 @@ let u = f `Str
     Completions:
     {
       "detail": "`String",
-      "kind": 20,
+      "kind": 4,
       "label": "`String",
       "sortText": "0000",
       "textEdit": {
@@ -859,7 +859,7 @@ let u = f `In
     Completions:
     {
       "detail": "`Int of int",
-      "kind": 20,
+      "kind": 4,
       "label": "`Int",
       "sortText": "0000",
       "textEdit": {
@@ -888,7 +888,7 @@ let x : t = `I
     Completions:
     {
       "detail": "`Int",
-      "kind": 20,
+      "kind": 4,
       "label": "`Int",
       "sortText": "0000",
       "textEdit": {
@@ -960,7 +960,7 @@ let x : t = `|ocaml}
     Completions:
     {
       "detail": "`T1",
-      "kind": 20,
+      "kind": 4,
       "label": "`T1",
       "sortText": "0000",
       "textEdit": {
@@ -973,7 +973,7 @@ let x : t = `|ocaml}
     }
     {
       "detail": "`T2",
-      "kind": 20,
+      "kind": 4,
       "label": "`T2",
       "sortText": "0001",
       "textEdit": {

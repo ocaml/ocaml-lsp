@@ -10,10 +10,10 @@ module Resolve = struct
   let of_completion_item (ci : CompletionItem.t) = Option.map ci.data ~f:t_of_yojson
 end
 
-let completion_kind kind : CompletionItemKind.t option =
+let completion_kind ~supports_enum_member kind : CompletionItemKind.t option =
   match kind with
   | `Value -> Some Value
-  | `Variant -> Some EnumMember
+  | `Variant -> Some (if supports_enum_member then EnumMember else Constructor)
   | `Label -> Some Field
   | `Module -> Some Module
   | `Modtype -> Some Interface
@@ -106,8 +106,9 @@ module Complete_by_prefix = struct
         ~compl_params
         ~range
         ~deprecated
+        ~supports_enum_member
     =
-    let kind = completion_kind entry.kind in
+    let kind = completion_kind ~supports_enum_member entry.kind in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
     CompletionItem.create
       ~label:entry.name
@@ -129,6 +130,7 @@ module Complete_by_prefix = struct
 
   let process_dispatch_resp
         ~deprecated
+        ~supports_enum_member
         ~resolve
         ~prefix
         doc
@@ -176,7 +178,12 @@ module Complete_by_prefix = struct
     in
     List.mapi
       completion_entries
-      ~f:(completionItem_of_completion_entry ~deprecated ~range ~compl_params)
+      ~f:
+        (completionItem_of_completion_entry
+           ~deprecated
+           ~supports_enum_member
+           ~range
+           ~compl_params)
   ;;
 
   let complete_keywords completion_position prefix =
@@ -197,7 +204,7 @@ module Complete_by_prefix = struct
     | _ -> []
   ;;
 
-  let complete doc prefix pos ~deprecated ~resolve =
+  let complete doc prefix pos ~deprecated ~supports_enum_member ~resolve =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
       Document.Merlin.with_pipeline_exn
@@ -212,7 +219,14 @@ module Complete_by_prefix = struct
       | Impl -> complete_keywords pos prefix
     in
     keyword_completionItems
-    @ process_dispatch_resp ~deprecated ~resolve ~prefix doc pos completion
+    @ process_dispatch_resp
+        ~deprecated
+        ~supports_enum_member
+        ~resolve
+        ~prefix
+        doc
+        pos
+        completion
   ;;
 end
 
@@ -278,12 +292,16 @@ let complete
     match Document.kind doc with
     | `Other -> Fiber.return None
     | `Merlin merlin ->
-      let completion_item_capability =
+      let completion_capability =
         let open Option.O in
         let capabilities = State.client_capabilities state in
         let* td = capabilities.textDocument in
-        let* compl = td.completion in
-        compl.completionItem
+        td.completion
+      in
+      let completion_item_capability =
+        let open Option.O in
+        let* completion = completion_capability in
+        completion.completionItem
       in
       let resolve =
         match
@@ -293,6 +311,15 @@ let complete
         with
         | None -> false
         | Some { properties } -> List.mem properties ~equal:String.equal "documentation"
+      in
+      let supports_enum_member =
+        Option.value
+          ~default:false
+          (let open Option.O in
+           let* completion = completion_capability in
+           let* kinds = completion.completionItemKind in
+           let* valueSet = kinds.valueSet in
+           Some (List.mem valueSet CompletionItemKind.EnumMember ~equal:Poly.equal))
       in
       let* should_provide_completions =
         match context with
@@ -325,7 +352,14 @@ let complete
                 item.deprecatedSupport)
            in
            if not (Merlin_analysis.Typed_hole.can_be_hole prefix)
-           then Complete_by_prefix.complete merlin prefix pos ~resolve ~deprecated
+           then
+             Complete_by_prefix.complete
+               merlin
+               prefix
+               pos
+               ~deprecated
+               ~supports_enum_member
+               ~resolve
            else (
              let reindex_sortText completion_items =
                List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
@@ -371,6 +405,7 @@ let complete
                Complete_by_prefix.process_dispatch_resp
                  ~resolve
                  ~deprecated
+                 ~supports_enum_member
                  ~prefix
                  merlin
                  pos
