@@ -41,6 +41,7 @@ val create
   -> ocamlformat_rpc:Ocamlformat_rpc.t
   -> symbols_thread:Lev_fiber.Thread.t Lazy_fiber.t
   -> wheel:Lev_fiber.Timer.Wheel.t
+  -> trace:(message:(unit -> string) -> verbose:(unit -> string) -> unit Fiber.t)
   -> t
 
 val position_encoding : t -> [ `UTF16 | `UTF8 ]
@@ -72,3 +73,9 @@ val experimental_client_capabilities : t -> Client.Experimental_capabilities.t
 
 val diagnostics : t -> Diagnostics.t
 val log_msg : t Server.t -> type_:MessageType.t -> message:string -> unit Fiber.t
+
+val log_trace
+  :  t Server.t
+  -> message:(unit -> string)
+  -> verbose:(unit -> string)
+  -> unit Fiber.t

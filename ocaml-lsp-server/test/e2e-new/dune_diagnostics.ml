@@ -37,14 +37,28 @@ module Events = struct
 
   type t =
     { dune_connected : Signal.t
+    ; dune_connection_traced : Signal.t
     ; build_finished : Signal.t
+    ; build_finished_traced : Signal.t
+    ; merlin_config_started : Signal.t
+    ; merlin_config_request : Signal.t
+    ; merlin_config_response : Signal.t
+    ; merlin_config_stopping : Signal.t
+    ; merlin_config_exited : Signal.t
     ; mutable diagnostics : PublishDiagnosticsParams.t list
     ; mutable diagnostic_waiter : diagnostic_waiter option
     }
 
   let create () =
     { dune_connected = Signal.create ()
+    ; dune_connection_traced = Signal.create ()
     ; build_finished = Signal.create ()
+    ; build_finished_traced = Signal.create ()
+    ; merlin_config_started = Signal.create ()
+    ; merlin_config_request = Signal.create ()
+    ; merlin_config_response = Signal.create ()
+    ; merlin_config_stopping = Signal.create ()
+    ; merlin_config_exited = Signal.create ()
     ; diagnostics = []
     ; diagnostic_waiter = None
     }
@@ -86,6 +100,34 @@ module Events = struct
     | LogMessage { message; _ }
       when Stdlib.String.starts_with ~prefix:"Connected to dune " message ->
       Signal.notify t.dune_connected
+    | LogTrace { message = "Connected to Dune RPC"; verbose = None } ->
+      Signal.notify t.dune_connection_traced
+    | LogTrace { message = "Connected to Dune RPC"; verbose = Some _ } ->
+      failwith "messages-level Dune connection trace included verbose details"
+    | LogTrace { message = "Dune build finished"; verbose = Some verbose }
+      when Stdlib.String.starts_with ~prefix:"Dune root: " verbose ->
+      Signal.notify t.build_finished_traced
+    | LogTrace { message = "Dune build finished"; verbose = None } ->
+      failwith "verbose Dune build trace omitted details"
+    | LogTrace { message = "Merlin configuration process started"; verbose = Some _ } ->
+      Signal.notify t.merlin_config_started
+    | LogTrace { message = "Merlin configuration request sent"; verbose = Some _ } ->
+      Signal.notify t.merlin_config_request
+    | LogTrace { message = "Merlin configuration response received"; verbose = Some _ } ->
+      Signal.notify t.merlin_config_response
+    | LogTrace { message = "Stopping Merlin configuration process"; verbose = Some _ } ->
+      Signal.notify t.merlin_config_stopping
+    | LogTrace { message = "Merlin configuration process exited"; verbose = Some _ } ->
+      Signal.notify t.merlin_config_exited
+    | LogTrace
+        { message =
+            ( "Merlin configuration process started"
+            | "Merlin configuration request sent"
+            | "Merlin configuration response received"
+            | "Stopping Merlin configuration process"
+            | "Merlin configuration process exited" )
+        ; verbose = None
+        } -> failwith "verbose Merlin configuration process trace omitted details"
     | WorkDoneProgress { token = `String token; value = Lsp.Progress.End _ }
       when Stdlib.String.starts_with ~prefix:"dune-build-" token ->
       Signal.notify t.build_finished
@@ -100,6 +142,13 @@ let open_document client ~uri ~text =
   Client.notification
     client
     (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+;;
+
+let close_document client ~uri =
+  let textDocument = TextDocumentIdentifier.create ~uri in
+  Client.notification
+    client
+    (TextDocumentDidClose (DidCloseTextDocumentParams.create ~textDocument))
 ;;
 
 let change_document client ~uri ~text =
@@ -247,9 +296,19 @@ let%expect_test "Dune success refreshes load paths in every Merlin state" =
          ~stderr:ocamllsp_stderr
          ~capabilities
          ~workspaceFolders:(Some [ workspace ])
+         ~trace:Messages
        @@ fun client ->
+       let* () = Client.notification client Initialized in
        (* The blocked initial build makes Dune RPC connection deterministic. *)
        let* () = Signal.wait events.dune_connected in
+       let* () = Signal.wait events.dune_connection_traced in
+       print_endline "Dune trace: Connected to Dune RPC";
+       let* () =
+         Client.notification client (SetTrace (SetTraceParams.create ~value:Verbose))
+       in
+       let* (_ : Lsp.Extension.DebugEcho.Result.t) =
+         Client.request client (DebugEcho { message = "trace barrier" })
+       in
        let one_uri = Uri.of_path one in
        let two_uri = Uri.of_path two in
        let* () = open_document client ~uri:one_uri ~text:initial_source in
@@ -277,15 +336,35 @@ let%expect_test "Dune success refreshes load paths in every Merlin state" =
           states, then use its Success notification to refresh both documents. *)
        let two_after_build = Events.wait_for_diagnostics events ~f:(for_uri two_uri) in
        let build_finished = Signal.wait events.build_finished in
+       let build_finished_traced = Signal.wait events.build_finished_traced in
        Test.write_file gate "";
        let* two_after_build = two_after_build in
        let* () = build_finished in
+       let* () = build_finished_traced in
+       print_endline "Dune trace: Dune build finished (verbose details present)";
        List.iter two_after_build.diagnostics ~f:(fun diagnostic ->
          print_endline (diagnostic_message diagnostic));
+       let* () = Signal.wait events.merlin_config_started in
+       print_endline "Dune trace: Merlin configuration process started";
+       let* () = Signal.wait events.merlin_config_request in
+       let* () = Signal.wait events.merlin_config_response in
+       print_endline "Dune trace: Merlin configuration request completed";
+       let stopping = Signal.wait events.merlin_config_stopping in
+       let exited = Signal.wait events.merlin_config_exited in
+       let* () = close_document client ~uri:one_uri in
+       let* () = close_document client ~uri:two_uri in
+       let* () = stopping in
+       let* () = exited in
+       print_endline "Dune trace: Merlin configuration process stopped and exited";
        Test.shutdown_client client);
   [%expect
     {|
+    Dune trace: Connected to Dune RPC
+    Dune trace: Dune build finished (verbose details present)
     Unbound module Bar
     Unbound value x
+    Dune trace: Merlin configuration process started
+    Dune trace: Merlin configuration request completed
+    Dune trace: Merlin configuration process stopped and exited
     |}]
 ;;

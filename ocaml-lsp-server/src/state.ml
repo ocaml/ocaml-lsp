@@ -27,10 +27,18 @@ type t =
   ; hover_extended : hover_extended
   }
 
-let create ~store ~merlin ~detached ~configuration ~ocamlformat_rpc ~symbols_thread ~wheel
+let create
+      ~store
+      ~merlin
+      ~detached
+      ~configuration
+      ~ocamlformat_rpc
+      ~symbols_thread
+      ~wheel
+      ~trace
   =
   { init = Uninitialized
-  ; merlin_config = Merlin_config.DB.create ()
+  ; merlin_config = Merlin_config.DB.create ~trace
   ; store
   ; merlin = Document.Single_pipeline.create merlin
   ; detached
@@ -129,4 +137,19 @@ let log_msg server ~type_ ~message =
   task_if_running state.detached ~f:(fun () ->
     let log = LogMessageParams.create ~type_ ~message in
     Server.notification server (Server_notification.LogMessage log))
+;;
+
+let log_trace server ~message ~verbose =
+  let state = Server.state server in
+  let send verbose =
+    task_if_running state.detached ~f:(fun () ->
+      let message = message () in
+      let verbose = Option.map verbose ~f:(fun verbose -> verbose ()) in
+      let trace = LogTraceParams.create ~message ?verbose () in
+      Server.notification server (Server_notification.LogTrace trace))
+  in
+  match state.trace with
+  | Off -> Fiber.return ()
+  | Messages -> send None
+  | Compact | Verbose -> send (Some verbose)
 ;;

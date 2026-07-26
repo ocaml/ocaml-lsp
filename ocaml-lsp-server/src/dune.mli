@@ -18,6 +18,7 @@ val create
   -> Progress.t
   -> Document_store.t
   -> log:(type_:MessageType.t -> message:string -> unit Fiber.t)
+  -> trace:(message:(unit -> string) -> verbose:(unit -> string) -> unit Fiber.t)
   -> t
 
 val update_workspaces : t -> Workspaces.t -> unit
