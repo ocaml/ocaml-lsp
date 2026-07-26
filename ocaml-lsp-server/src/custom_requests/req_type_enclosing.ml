@@ -95,9 +95,7 @@ let make_enclosing_command position index =
 let get_first_enclosing_index range_end enclosings =
   List.find_mapi enclosings ~f:(fun i (loc, _, _) ->
     let range = Range.of_loc loc in
-    match Position.compare range_end range.end_ with
-    | Ordering.Lt | Ordering.Eq -> Some i
-    | Ordering.Gt -> None)
+    if Lsp.Position.compare range_end range.end_ <= 0 then Some i else None)
 ;;
 
 let dispatch_command pipeline command first_index index =

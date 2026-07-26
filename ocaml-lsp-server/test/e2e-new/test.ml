@@ -301,15 +301,15 @@ let offset_of_position src (pos : Position.t) =
 let apply_edits src edits =
   let edits =
     List.sort edits ~compare:(fun (e : TextEdit.t) (e' : TextEdit.t) ->
-      Position.compare e.range.start e'.range.start)
+      Lsp.Position.compare e.range.start e'.range.start |> Ordering.of_int)
   in
   (* check that edits are non-overlapping *)
   let rec overlaps : TextEdit.t list -> _ = function
     | [] | [ _ ] -> false
     | e :: e' :: es ->
-      (match Position.compare e.range.end_ e'.range.start with
-       | Gt -> true
-       | Lt | Eq -> overlaps (e' :: es))
+      if Lsp.Position.compare e.range.end_ e'.range.start > 0
+      then true
+      else overlaps (e' :: es)
   in
   if overlaps edits then failwith "overlapping edits";
   let _, edits =

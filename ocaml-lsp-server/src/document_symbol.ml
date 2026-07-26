@@ -16,9 +16,7 @@ let normalize_selection_range ~(range : Range.t) = function
   | None -> range
   | Some (selection_range : Range.t) ->
     let selection_is_valid =
-      match Position.compare selection_range.start selection_range.end_ with
-      | Lt | Eq -> true
-      | Gt -> false
+      Lsp.Position.compare selection_range.start selection_range.end_ <= 0
     in
     if selection_is_valid && Range.contains range selection_range
     then selection_range

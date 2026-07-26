@@ -49,7 +49,7 @@ let check_case { Case.point; first_start; first_end; second_start; second_end } 
   check
     "position comparison"
     (Poly.equal
-       (Position.compare point first.start)
+       (ordering (Lsp.Position.compare point first.start))
        (ordering (Int.compare point_offset first_start)));
   let expected_difference =
     Lsp.Types.Position.create

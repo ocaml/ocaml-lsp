@@ -5,8 +5,6 @@ let to_dyn { line; character } =
   Dyn.record [ "line", Dyn.int line; "character", Dyn.int character ]
 ;;
 
-let start = { line = 0; character = 0 }
-
 let is_dummy (lp : Lexing.position) =
   lp.pos_lnum = Lexing.dummy_pos.pos_lnum && lp.pos_cnum = Lexing.dummy_pos.pos_cnum
 ;;
@@ -38,30 +36,12 @@ let ( - ) ({ line; character } : t) (t : t) : t =
 
 let abs ({ line; character } : t) : t = { line = abs line; character = abs character }
 
-let compare ({ line; character } : t) (t : t) : Ordering.t =
-  match Int.compare line t.line with
-  | Eq -> Int.compare character t.character
-  | r -> r
-;;
-
-let max x y =
-  match compare x y with
-  | Lt -> y
-  | Eq | Gt -> x
-;;
-
-let min x y =
-  match compare x y with
-  | Lt | Eq -> x
-  | Gt -> y
-;;
-
 let compare_inclusion (t : t) (r : Lsp.Types.Range.t) =
-  match compare t r.start, compare t r.end_ with
-  | Lt, Lt -> `Outside (abs (r.start - t))
-  | Gt, Gt -> `Outside (abs (r.end_ - t))
-  | Eq, Lt | Gt, Eq | Eq, Eq | Gt, Lt -> `Inside
-  | Eq, Gt | Lt, Eq | Lt, Gt -> assert false
+  if Lsp.Position.compare t r.start < 0
+  then `Outside (abs (r.start - t))
+  else if Lsp.Position.compare t r.end_ > 0
+  then `Outside (abs (r.end_ - t))
+  else `Inside
 ;;
 
 let logical position =

@@ -2,9 +2,12 @@ open Import
 include Lsp.Types.Range
 
 let compare (x : t) (y : t) =
-  match Position.compare x.start y.start with
-  | (Lt | Gt) as r -> r
-  | Ordering.Eq -> Position.compare x.end_ y.end_
+  let result =
+    match Lsp.Position.compare x.start y.start with
+    | 0 -> Lsp.Position.compare x.end_ y.end_
+    | result -> result
+  in
+  Ordering.of_int result
 ;;
 
 let to_dyn { start; end_ } =
@@ -12,18 +15,13 @@ let to_dyn { start; end_ } =
 ;;
 
 let contains (x : t) (y : t) =
-  let open Ordering in
-  match Position.compare x.start y.start, Position.compare x.end_ y.end_ with
-  | (Lt | Eq), (Gt | Eq) -> true
-  | _ -> false
+  Lsp.Position.compare x.start y.start <= 0 && Lsp.Position.compare y.end_ x.end_ <= 0
 ;;
 
 let intersection (x : t) (y : t) =
-  let start = Position.max x.start y.start in
-  let end_ = Position.min x.end_ y.end_ in
-  match Position.compare start end_ with
-  | Lt -> Some { start; end_ }
-  | Eq | Gt -> None
+  let start = Lsp.Position.max x.start y.start in
+  let end_ = Lsp.Position.min x.end_ y.end_ in
+  if Lsp.Position.compare start end_ < 0 then Some { start; end_ } else None
 ;;
 
 (* Compares ranges by their lengths*)
@@ -34,8 +32,8 @@ let compare_size (x : t) (y : t) =
 ;;
 
 let first_line =
-  let start = { Position.line = 0; character = 0 } in
-  let end_ = { Position.line = 1; character = 0 } in
+  let start = Lsp.Position.zero in
+  let end_ = { Lsp.Types.Position.line = 1; character = 0 } in
   { start; end_ }
 ;;
 
@@ -68,10 +66,7 @@ let resize_for_edit { TextEdit.range; newText } =
 ;;
 
 let overlaps x y =
-  let open Ordering in
-  match Position.compare x.start y.end_, Position.compare x.end_ y.start with
-  | (Lt | Eq), (Gt | Eq) | (Gt | Eq), (Lt | Eq) -> true
-  | _ -> false
+  Lsp.Position.compare x.start y.end_ <= 0 && Lsp.Position.compare y.start x.end_ <= 0
 ;;
 
 let to_string t =
