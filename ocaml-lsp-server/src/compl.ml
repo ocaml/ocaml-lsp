@@ -105,16 +105,27 @@ module Complete_by_prefix = struct
         (entry : Query_protocol.Compl.entry)
         ~compl_params
         ~range
-        ~deprecated
+        ~supports_deprecated_field
+        ~supports_deprecated_tag
         ~supports_enum_member
     =
     let kind = completion_kind ~supports_enum_member entry.kind in
+    let deprecated, tags =
+      if not entry.deprecated
+      then None, None
+      else if supports_deprecated_tag
+      then None, Some [ CompletionItemTag.Deprecated ]
+      else if supports_deprecated_field
+      then Some true, None
+      else None, None
+    in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
     CompletionItem.create
       ~label:entry.name
       ?kind
       ~detail:entry.desc
-      ?deprecated:(Option.some_if deprecated entry.deprecated)
+      ?deprecated
+      ?tags
         (* Without this field the client is not forced to respect the order
            provided by merlin. *)
       ~sortText:(sortText_of_index idx)
@@ -129,7 +140,8 @@ module Complete_by_prefix = struct
   ;;
 
   let process_dispatch_resp
-        ~deprecated
+        ~supports_deprecated_field
+        ~supports_deprecated_tag
         ~supports_enum_member
         ~resolve
         ~prefix
@@ -180,7 +192,8 @@ module Complete_by_prefix = struct
       completion_entries
       ~f:
         (completionItem_of_completion_entry
-           ~deprecated
+           ~supports_deprecated_field
+           ~supports_deprecated_tag
            ~supports_enum_member
            ~range
            ~compl_params)
@@ -204,7 +217,15 @@ module Complete_by_prefix = struct
     | _ -> []
   ;;
 
-  let complete doc prefix pos ~deprecated ~supports_enum_member ~resolve =
+  let complete
+        doc
+        prefix
+        pos
+        ~supports_deprecated_field
+        ~supports_deprecated_tag
+        ~supports_enum_member
+        ~resolve
+    =
     let+ (completion : Query_protocol.completions) =
       let logical_pos = Position.logical pos in
       Document.Merlin.with_pipeline_exn
@@ -220,7 +241,8 @@ module Complete_by_prefix = struct
     in
     keyword_completionItems
     @ process_dispatch_resp
-        ~deprecated
+        ~supports_deprecated_field
+        ~supports_deprecated_tag
         ~supports_enum_member
         ~resolve
         ~prefix
@@ -312,6 +334,24 @@ let complete
         | None -> false
         | Some { properties } -> List.mem properties ~equal:String.equal "documentation"
       in
+      let supports_deprecated_tag =
+        match
+          let open Option.O in
+          let* item = completion_item_capability in
+          item.tagSupport
+        with
+        | None -> false
+        | Some { valueSet } ->
+          List.mem valueSet CompletionItemTag.Deprecated ~equal:Poly.equal
+      in
+      let supports_deprecated_field =
+        (not supports_deprecated_tag)
+        && Option.value
+             ~default:false
+             (let open Option.O in
+              let* item = completion_item_capability in
+              item.deprecatedSupport)
+      in
       let supports_enum_member =
         Option.value
           ~default:false
@@ -344,20 +384,14 @@ let complete
            let prefix =
              prefix_of_position ~short_path:false (Document.source doc) position
            in
-           let deprecated =
-             Option.value
-               ~default:false
-               (let open Option.O in
-                let* item = completion_item_capability in
-                item.deprecatedSupport)
-           in
            if not (Merlin_analysis.Typed_hole.can_be_hole prefix)
            then
              Complete_by_prefix.complete
                merlin
                prefix
                pos
-               ~deprecated
+               ~supports_deprecated_field
+               ~supports_deprecated_tag
                ~supports_enum_member
                ~resolve
            else (
@@ -404,7 +438,8 @@ let complete
              let compl_by_prefix_completionItems =
                Complete_by_prefix.process_dispatch_resp
                  ~resolve
-                 ~deprecated
+                 ~supports_deprecated_field
+                 ~supports_deprecated_tag
                  ~supports_enum_member
                  ~prefix
                  merlin
