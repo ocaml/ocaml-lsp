@@ -141,9 +141,11 @@
           };
         });
         ocamlVersionOverlay = ocaml: _final: prev: {
-          ocamlPackages = prev.ocaml-ng.${ocaml}.overrideScope (_: _: {
+          ocamlPackages = prev.ocaml-ng.${ocaml}.overrideScope (_: osuper: {
             dune = duneLatest;
             dune_3 = duneLatest;
+            # OUnit2's process signal test is flaky under GitHub Actions.
+            ounit2 = osuper.ounit2.overrideAttrs (_: { doCheck = false; });
           });
         };
         makeNixpkgs = ocaml: merlin:
