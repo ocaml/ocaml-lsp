@@ -79,8 +79,11 @@ let build_progress t (progress : Drpc.Progress.t) =
          (* The percentage is useless as it isn't monotinically increasing as
             the spec requires, but it's the best we can do. *)
          let percentage =
-           let fraction = float_of_int progress.complete /. float_of_int total in
-           int_of_float (fraction *. 100.)
+           if total = 0
+           then 0
+           else (
+             let fraction = float_of_int progress.complete /. float_of_int total in
+             int_of_float (fraction *. 100.))
          in
          report_progress
            (ProgressParams.create
