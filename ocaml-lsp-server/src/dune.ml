@@ -141,7 +141,7 @@ module Instance : sig
   val promotions : t -> Drpc.Diagnostic.Promotion.t String.Map.t
   val client : t -> Client.t option
 end = struct
-  module Id = Stdune.Id.Make ()
+  module Id = Id.Make ()
 
   type running =
     { chan : Chan.t

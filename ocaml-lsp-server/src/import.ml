@@ -9,12 +9,26 @@ end
 let sprintf = Printf.sprintf
 
 module Map = Stdlib.MoreLabels.Map
+module Exn_with_backtrace = Stdune.Exn_with_backtrace
 
-include struct
-  open Stdune
-  module Exn_with_backtrace = Exn_with_backtrace
-  module Monoid = Monoid
+module Id = struct
+  module Make () = struct
+    type t = int
+
+    let next = ref 0
+
+    let gen () =
+      let id = !next in
+      incr next;
+      id
+    ;;
+
+    let to_int t = t
+    let compare x y = Ordering.of_int (Stdlib.Int.compare x y)
+  end
 end
+
+module Monoid = Stdune.Monoid
 
 module Int = struct
   type t = int

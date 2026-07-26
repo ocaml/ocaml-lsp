@@ -132,7 +132,10 @@ let%expect_test "missing dune leaves an opened document unavailable (#1417)" =
            ; backtrace = _
            }
          ] ->
-       String.replace_all message ~sub:(DocumentUri.to_string uri) ~by:"<document-uri>"
+       String.substr_replace_all
+         message
+         ~pattern:(DocumentUri.to_string uri)
+         ~with_:"<document-uri>"
        |> print_endline;
        Fiber.return ()
      | Error errors -> Fiber.reraise_all errors

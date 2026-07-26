@@ -129,8 +129,7 @@ let has_unbound_bar (params : PublishDiagnosticsParams.t) =
 let for_uri uri (params : PublishDiagnosticsParams.t) = Uri.equal uri params.uri
 
 let start_dune root runtime_dir =
-  let path = Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH") in
-  let prog = Bin.which "dune" ~path |> Option.value_exn |> Path.to_string in
+  let prog = Bin.which "dune" |> Option.value_exn in
   let output = Unix.openfile Test.null_device [ Unix.O_WRONLY ] 0o666 in
   let env =
     let is_runtime_dir value =

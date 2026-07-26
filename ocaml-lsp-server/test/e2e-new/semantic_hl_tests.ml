@@ -1100,7 +1100,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
 
 let%expect_test "highlighting longidents with space between identifiers" =
   test_semantic_tokens_full
-  @@ String.trim
+  @@ String.strip
        {|
 let foo = Bar.jar
 
@@ -1116,7 +1116,7 @@ let joo = Bar.   jar
 
 let%expect_test "highlighting longidents with space between identifiers and infix fns" =
   test_semantic_tokens_full
-  @@ String.trim
+  @@ String.strip
        {|
 Bar.(+) ;;
 
@@ -1140,7 +1140,7 @@ Bar. ( + ) ;;
 
 let%expect_test "longidents in records" =
   test_semantic_tokens_full
-  @@ String.trim
+  @@ String.strip
        {|
 module M = struct type r = { foo : int ; bar : string } end
 
@@ -1156,7 +1156,7 @@ let x = { M . foo = 0 ; bar = "bar"}
 
 let%expect_test "operators" =
   test_semantic_tokens_full
-  @@ String.trim
+  @@ String.strip
        {|
 let x = 1.0 *. 2.0
 let y = 1 * 2
@@ -1178,7 +1178,7 @@ let sum = ( ++ ) 1 2
 
 let%expect_test "operator syntax variants" =
   test_semantic_tokens_full
-  @@ String.trim
+  @@ String.strip
        {|
 module type Operators = sig
   val ( ++ ) : int -> int -> int
@@ -1242,7 +1242,7 @@ let prefixed = ~!1
 
 let%expect_test "function parameters" =
   test_semantic_tokens_full
-  @@ String.trim
+  @@ String.strip
        {|
 let f ~labeled ?(optional = 1) unlabeled ~renamed:local (left, right) =
   labeled + optional + unlabeled + local + left + right
@@ -1306,7 +1306,7 @@ end
 
 let%expect_test "built-in types" =
   test_semantic_tokens_full
-  @@ String.trim
+  @@ String.strip
        {|
 type uses_builtin = int * string * bool
 
@@ -1330,7 +1330,7 @@ type uses_qualified_builtin = Stdlib.int
 
 let%expect_test "parameter modifiers in debug output" =
   test_semantic_tokens_full_debug
-  @@ String.trim
+  @@ String.strip
        {|
 let f ~labeled ?optional () = ()
       |};
@@ -1361,7 +1361,7 @@ let f ~labeled ?optional () = ()
 
 let%expect_test "ill-typed buffers retain semantic tokens" =
   test_semantic_tokens_full
-  @@ String.trim
+  @@ String.strip
        {|
 type builtin_before_error = int
 
@@ -1401,7 +1401,7 @@ type builtin_after_error = string
 
 let%expect_test "comment in unit" =
   test_semantic_tokens_full
-  @@ String.trim
+  @@ String.strip
        {|
 let y = (* comment *) 0
 let x = ((* comment *))

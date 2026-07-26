@@ -19,7 +19,7 @@ module Util = struct
              | `Assoc [ range; ("uri", `String value) ] ->
                let new_value =
                  value
-                 |> String.split_on_char ~sep:'/'
+                 |> String.split ~on:'/'
                  |> List.last
                  |> function
                  | None -> "unknown"

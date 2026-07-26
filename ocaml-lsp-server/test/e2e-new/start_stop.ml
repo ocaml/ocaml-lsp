@@ -59,7 +59,7 @@ let%expect_test "start/stop" =
   let notifs = Queue.create () in
   let handler_collecting_notifs =
     Client.Handler.make
-      ~on_notification:(fun _ notif -> Queue.push notifs notif |> Fiber.return)
+      ~on_notification:(fun _ notif -> Queue.enqueue notifs notif |> Fiber.return)
       ()
   in
   (Test.run ~handler:handler_collecting_notifs

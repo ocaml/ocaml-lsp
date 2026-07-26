@@ -228,7 +228,7 @@ let to_test_result workspaces (symbol : SymbolInformation.t) =
     | None -> path
     | Some workspace_path ->
       let parent = Stdlib.Filename.dirname workspace_path in
-      String.drop path (String.length parent)
+      String.drop_prefix path (String.length parent)
   in
   Printf.sprintf
     "%s %d %s %d:%d %d:%d"

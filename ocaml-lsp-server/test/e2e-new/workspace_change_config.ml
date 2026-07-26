@@ -22,7 +22,7 @@ let%expect_test "can add the first workspace folder after initialization" =
     let* () = Client.notification client (ChangeWorkspaceFolders change) in
     Test.exit_client client);
   Stdlib.close_out stderr_chan;
-  let stderr = Io.String_path.read_file stderr_path in
+  let stderr = Fs_io.read_file stderr_path |> Result.ok_exn in
   Stdlib.Sys.remove stderr_path;
   Printf.printf "stderr: %s\n" (Yojson.Safe.to_string (`String stderr));
   [%expect {| stderr: "" |}]

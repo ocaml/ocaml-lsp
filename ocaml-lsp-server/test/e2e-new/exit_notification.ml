@@ -20,12 +20,12 @@ end = struct
 end
 
 let send_exit_before_initialize () =
-  let path = Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH") in
-  let bin = Bin.which "ocamllsp" ~path |> Option.value_exn |> Path.to_string in
   let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
   let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
   let env = Unix.environment () |> Array.to_list |> Spawn.Env.of_list in
-  let pid = Spawn.spawn ~env ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o () in
+  let pid =
+    Spawn.spawn ~env ~prog:Test.bin ~argv:[ Test.bin ] ~stdin:stdin_i ~stdout:stdout_o ()
+  in
   Unix.close stdin_i;
   Unix.close stdout_o;
   let json = {|{"jsonrpc":"2.0","method":"exit"}|} in

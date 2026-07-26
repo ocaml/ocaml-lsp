@@ -1,5 +1,30 @@
 open Import
-module Bin = Stdune.Bin
 
-let _PATH = lazy (Bin.parse_path (Option.value ~default:"" (Sys.getenv_opt "PATH")))
-let which x = Bin.which ~path:(Lazy.force _PATH) x |> Option.map ~f:Stdune.Path.to_string
+let path_separator = if Sys.win32 then ';' else ':'
+
+let path =
+  lazy
+    (Option.value ~default:"" (Sys.getenv_opt "PATH")
+     |> String.split_on_char ~sep:path_separator
+     |> List.filter ~f:(fun path -> not (String.is_empty path)))
+;;
+
+let add_executable_suffix program =
+  if Sys.win32 && not (String.is_suffix (String.lowercase program) ~suffix:".exe")
+  then program ^ ".exe"
+  else program
+;;
+
+let exists path =
+  match Unix.stat path with
+  | { st_kind = S_DIR; _ } -> false
+  | exception Unix.Unix_error _ -> false
+  | _ -> true
+;;
+
+let which program =
+  let program = add_executable_suffix program in
+  List.find_map (Lazy.force path) ~f:(fun directory ->
+    let path = Filename.concat directory program in
+    Option.some_if (exists path) path)
+;;
