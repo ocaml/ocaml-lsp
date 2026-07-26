@@ -209,7 +209,7 @@ let stop_dune pid gate =
   (match Unix.kill pid Sys.sigterm with
    | () -> ()
    | exception Unix.Unix_error (Unix.ESRCH, _, _) -> ());
-  ignore (Unix.waitpid [] pid : int * Unix.process_status)
+  ignore (Test.waitpid pid : Unix.process_status)
 ;;
 
 let%expect_test "Dune success refreshes load paths in every Merlin state" =

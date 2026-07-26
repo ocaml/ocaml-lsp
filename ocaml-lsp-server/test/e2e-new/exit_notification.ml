@@ -33,7 +33,7 @@ let send_exit_before_initialize () =
   let oc = Unix.out_channel_of_descr stdin_o in
   output_string oc packet;
   close_out oc;
-  let _, status = Unix.waitpid [] pid in
+  let status = Test.waitpid pid in
   Unix.close stdout_i;
   status
 ;;

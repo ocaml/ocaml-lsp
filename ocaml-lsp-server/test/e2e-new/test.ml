@@ -124,6 +124,23 @@ let exit_client client =
 
 let bin = Bin.which "ocamllsp" |> Option.value_exn
 
+let waitpid ?(timeout = 5.0) pid =
+  let deadline = Unix.gettimeofday () +. timeout in
+  let rec wait () =
+    match Unix.waitpid [ Unix.WNOHANG ] pid with
+    | 0, _ when Unix.gettimeofday () < deadline ->
+      Unix.sleepf 0.01;
+      wait ()
+    | 0, _ ->
+      (match Unix.kill pid Sys.sigkill with
+       | () -> ()
+       | exception Unix.Unix_error (Unix.ESRCH, _, _) -> ());
+      Unix.waitpid [] pid |> snd
+    | _, status -> status
+  in
+  wait ()
+;;
+
 module T : sig
   val run_with_status
     :  ?extra_env:string list
