@@ -63,6 +63,20 @@ let%expect_test "JSON-RPC response decoding rejects ambiguous results" =
     neither result nor error: rejected |}]
 ;;
 
+let%expect_test "JSON-RPC packets reject unsupported ID shapes" =
+  [ `Bool true; `List [ `Int 1 ]; `Assoc [ "nested", `String "id" ] ]
+  |> List.iter (fun id ->
+    let packet =
+      `Assoc [ "jsonrpc", `String "2.0"; "id", id; "method", `String "request" ]
+    in
+    check_rejected ("id " ^ Yojson.Safe.to_string id) packet);
+  [%expect
+    {|
+    id true: rejected
+    id [1]: rejected
+    id {"nested":"id"}: rejected |}]
+;;
+
 let%expect_test "malformed JSON-RPC packets are rejected" =
   let request =
     `Assoc [ "jsonrpc", `String "2.0"; "id", `Int 1; "method", `String "request" ]
