@@ -42,6 +42,33 @@ end
 
 module Framing = Lsp.Io.Make (Immediate) (Channel)
 
+module Sequence_channel = struct
+  type input = [ `Line of string | `Body of string ] list ref
+  type output = unit
+
+  let read_line input =
+    match !input with
+    | [] -> None
+    | `Line line :: rest ->
+      input := rest;
+      Some line
+    | `Body _ :: _ -> failwith "expected a header line"
+  ;;
+
+  let read_exactly input length =
+    match !input with
+    | `Body body :: rest when String.length body = length ->
+      input := rest;
+      Some body
+    | `Body _ :: _ -> None
+    | [] | `Line _ :: _ -> failwith "expected a packet body"
+  ;;
+
+  let write () _ = ()
+end
+
+module Sequence_framing = Lsp.Io.Make (Immediate) (Sequence_channel)
+
 let print_packet label packet =
   Printf.printf
     "%s:\n%s\n"
@@ -151,6 +178,39 @@ let%expect_test "LSP framing defines duplicate and overflowing length behavior" 
     { "method": "duplicate-length", "jsonrpc": "2.0" }
     duplicate length body reads: [45]
     overflowing length: Content-Length is invalid
+    |}]
+;;
+
+let%expect_test "LSP framing reads back-to-back packets independently" =
+  let first =
+    Jsonrpc.Packet.Notification (Jsonrpc.Notification.create ~method_:"first" ())
+  in
+  let second =
+    Jsonrpc.Packet.Response
+      (Jsonrpc.Response.ok (`String "second") (`Assoc [ "value", `Int 2 ]))
+  in
+  let frame packet =
+    let body = Jsonrpc.Packet.yojson_of_t packet |> Yojson.Safe.to_string in
+    [ `Line (Printf.sprintf "Content-Length: %d" (String.length body))
+    ; `Line ""
+    ; `Body body
+    ]
+  in
+  let input = ref (frame first @ frame second) in
+  let first = Sequence_framing.read input |> Option.get in
+  let second = Sequence_framing.read input |> Option.get in
+  print_packet "first packet" first;
+  print_packet "second packet" second;
+  (match Sequence_framing.read input with
+   | None -> print_endline "stream: end of input"
+   | Some packet -> print_packet "unexpected trailing packet" packet);
+  [%expect
+    {|
+    first packet:
+    { "method": "first", "jsonrpc": "2.0" }
+    second packet:
+    { "id": "second", "jsonrpc": "2.0", "result": { "value": 2 } }
+    stream: end of input
     |}]
 ;;
 
