@@ -26,12 +26,3 @@ let source_text doc (loc : Loc.t) =
   let (`Offset end_) = Msource.get_offset source (Position.logical end_) in
   String.sub (Msource.text source) ~pos:start ~len:(end_ - start)
 ;;
-
-let workspace_edit doc text_edits =
-  let uri = Document.uri doc in
-  let version = Document.version doc in
-  let textDocument = OptionalVersionedTextDocumentIdentifier.create ~uri ~version () in
-  let edits = List.map text_edits ~f:(fun edit -> `TextEdit edit) in
-  let edit = TextDocumentEdit.create ~textDocument ~edits in
-  WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
-;;

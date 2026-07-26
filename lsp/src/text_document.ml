@@ -5,12 +5,15 @@ include struct
   module DidOpenTextDocumentParams = DidOpenTextDocumentParams
   module DocumentUri = DocumentUri
   module LanguageKind = LanguageKind
+  module OptionalVersionedTextDocumentIdentifier = OptionalVersionedTextDocumentIdentifier
   module Range = Range
+  module TextDocumentEdit = TextDocumentEdit
   module TextDocumentItem = TextDocumentItem
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
   module TextDocumentContentChangePartial = TextDocumentContentChangePartial
   module TextDocumentContentChangeWholeDocument = TextDocumentContentChangeWholeDocument
   module TextEdit = TextEdit
+  module WorkspaceEdit = WorkspaceEdit
 end
 
 type invalid_utf = String_zipper.invalid_utf =
@@ -118,6 +121,15 @@ let apply_text_document_edits t (edits : TextEdit.t list) =
   let text = apply_changes t.zipper t.position_encoding edits in
   let zipper = String_zipper.of_string text in
   { t with text = Some text; zipper }
+;;
+
+let workspace_edit t text_edits =
+  let textDocument =
+    OptionalVersionedTextDocumentIdentifier.create ~uri:t.uri ~version:t.version ()
+  in
+  let edits = List.map text_edits ~f:(fun edit -> `TextEdit edit) in
+  let edit = TextDocumentEdit.create ~textDocument ~edits in
+  WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
 ;;
 
 let absolute_position t pos =

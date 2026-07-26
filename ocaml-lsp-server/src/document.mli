@@ -126,7 +126,3 @@ val text_document : t -> Text_document.t
 
     For instance, the counterparts of the file [/file.ml] are [/file.mli]. *)
 val get_impl_intf_counterparts : Merlin.t option -> Uri.t -> Uri.t list
-
-(** [edits t edits] creates a [WorkspaceEdit.t] that applies edits [edits] to
-    the document [t]. *)
-val edit : t -> TextEdit.t list -> WorkspaceEdit.t

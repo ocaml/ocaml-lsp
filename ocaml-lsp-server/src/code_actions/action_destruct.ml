@@ -7,7 +7,7 @@ let kind = CodeActionKind.Other action_kind
 let code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc (loc, newText) =
   let range : Range.t = Range.of_loc loc in
   let textedit : TextEdit.t = { range; newText } in
-  let edit = Code_action.workspace_edit doc [ textedit ] in
+  let edit = Text_document.workspace_edit (Document.text_document doc) [ textedit ] in
   let title = String.capitalize_ascii action_kind in
   let command =
     if supportsJumpToNextHole

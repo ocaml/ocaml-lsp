@@ -33,6 +33,10 @@ val set_version : t -> version:int -> t
     interpreted relative to the original document. *)
 val apply_text_document_edits : t -> TextEdit.t list -> t
 
+(** [workspace_edit t edits] creates a versioned workspace edit that applies
+    [edits] to [t]. *)
+val workspace_edit : t -> TextEdit.t list -> WorkspaceEdit.t
+
 (** [absolute_position t pos] returns the absolute position of [pos] inside
     [text t]. If the position is outside the bounds of the document, the offset
     returned will be the length of the document. [pos] is interpreted with

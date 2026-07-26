@@ -368,7 +368,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
     in
     Some action
   | _ :: _, (Some _ | None) ->
-    let edit = Code_action.workspace_edit doc edits in
+    let edit = Text_document.workspace_edit (Document.text_document doc) edits in
     let action =
       CodeAction.create
         ~title:action_title
