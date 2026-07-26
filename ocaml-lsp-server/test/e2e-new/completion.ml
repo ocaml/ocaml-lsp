@@ -902,6 +902,47 @@ let x : t = `I
     |}]
 ;;
 
+let%expect_test "polymorphic variants use enum member kind when supported" =
+  let completionItemKind =
+    ClientCompletionItemOptionsKind.create ~valueSet:[ CompletionItemKind.EnumMember ] ()
+  in
+  let completion = CompletionClientCapabilities.create ~completionItemKind () in
+  let textDocument = TextDocumentClientCapabilities.create ~completion () in
+  let capabilities = ClientCapabilities.create ~textDocument () in
+  let source =
+    {ocaml|
+type t = [ `Int | `String ]
+
+let x : t = `I
+  |ocaml}
+  in
+  let position = Position.create ~line:3 ~character:15 in
+  let only_int =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "`Int")
+  in
+  Helpers.test ~capabilities source (fun client ->
+    let* response = request_completions client position in
+    print_completion_response ~pre_print:only_int response;
+    Fiber.return ());
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "`Int",
+      "kind": 20,
+      "label": "`Int",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "`Int",
+        "range": {
+          "end": { "character": 15, "line": 3 },
+          "start": { "character": 13, "line": 3 }
+        }
+      }
+    }
+    |}]
+;;
+
 let%expect_test "polymorphic variant completion replaces a backtick-only prefix" =
   let source =
     {ocaml|type t = [ `T1 | `T2 ]
