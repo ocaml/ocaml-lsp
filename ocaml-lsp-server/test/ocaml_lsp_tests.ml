@@ -1,5 +1,10 @@
 open Lsp.Types
 
+let%test_unit "convert an LSP position to a Merlin logical position" =
+  let position = Position.create ~line:2 ~character:3 in
+  assert (Ocaml_lsp_server.Testing.Position.logical position = `Logical (3, 3))
+;;
+
 let%expect_test "replacement ranges preserve trailing newlines" =
   let start = Position.create ~line:2 ~character:5 in
   let range = Range.create ~start ~end_:start in

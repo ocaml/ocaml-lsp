@@ -340,7 +340,7 @@ let type_enclosing_hover
         match state.hover_extended.history with
         | None -> 0
         | Some (h_uri, h_position, h_verbosity) ->
-          if Uri.equal uri h_uri && Ordering.is_eq (Position.compare position h_position)
+          if Uri.equal uri h_uri && Lsp.Position.compare position h_position = 0
           then succ h_verbosity
           else 0
       in

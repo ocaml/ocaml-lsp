@@ -59,8 +59,8 @@ module TySet = Set.Make (struct
       let c = Option.compare DocumentUri.compare doc_a doc_b in
       if Int.equal 0 c
       then (
-        let c = Position.compare pos_a pos_b in
-        if Ordering.is_eq c then compare ty_a ty_b else c |> Ordering.to_int)
+        let c = Lsp.Position.compare pos_a pos_b in
+        if Int.equal 0 c then Poly.compare ty_a ty_b |> Ordering.to_int else c)
       else c
     ;;
   end)

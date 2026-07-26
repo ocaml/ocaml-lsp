@@ -11,9 +11,9 @@ let find_prev ~range ~position holes =
   Base.List.fold_until
     ~init:None
     ~f:(fun prev hole ->
-      match Position.compare hole.end_ position with
-      | Lt -> Continue (Some hole)
-      | Gt | Eq -> Stop prev)
+      if Lsp.Position.compare hole.end_ position < 0
+      then Continue (Some hole)
+      else Stop prev)
     ~finish:Fun.id
     holes
   |> function
@@ -23,12 +23,7 @@ let find_prev ~range ~position holes =
 
 let find_next ~range ~position holes =
   let holes = in_range range holes in
-  List.find
-    ~f:(fun hole ->
-      match Position.compare hole.start position with
-      | Gt -> true
-      | Lt | Eq -> false)
-    holes
+  List.find ~f:(fun hole -> Lsp.Position.compare hole.start position > 0) holes
   |> function
   | None -> Base.List.hd holes
   | hole -> hole

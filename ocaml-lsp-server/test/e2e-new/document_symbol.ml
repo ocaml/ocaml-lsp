@@ -729,11 +729,7 @@ let g childs = List.map f childs
   let request client =
     let open Fiber.O in
     let+ response = Util.call_document_symbol client in
-    let le a b =
-      match Position.compare a b with
-      | Gt -> false
-      | Lt | Eq -> true
-    in
+    let le a b = Lsp.Position.compare a b <= 0 in
     let rec check (symbol : DocumentSymbol.t) =
       let range = symbol.range
       and selection = symbol.selectionRange in
