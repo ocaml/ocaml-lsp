@@ -123,6 +123,37 @@ let%expect_test "LSP framing rejects invalid lengths and truncated bodies" =
     truncated: unable to read json |}]
 ;;
 
+let%expect_test "LSP framing defines duplicate and overflowing length behavior" =
+  let packet =
+    Jsonrpc.Packet.Notification
+      (Jsonrpc.Notification.create ~method_:"duplicate-length" ())
+  in
+  let body = Jsonrpc.Packet.yojson_of_t packet |> Yojson.Safe.to_string in
+  let body_length = String.length body in
+  let duplicate =
+    Channel.input
+      ~body
+      [ Printf.sprintf "Content-Length: %d" body_length
+      ; Printf.sprintf "content-length: %d" (body_length + 10)
+      ; ""
+      ]
+  in
+  let parsed = Framing.read duplicate |> Option.get in
+  print_packet "duplicate length decoded packet" parsed;
+  print_requested_bytes "duplicate length body reads" duplicate.requested_bytes;
+  let overflow = string_of_int max_int ^ "0" in
+  check_read_error
+    "overflowing length"
+    (Channel.input [ "Content-Length: " ^ overflow; "" ]);
+  [%expect
+    {|
+    duplicate length decoded packet:
+    { "method": "duplicate-length", "jsonrpc": "2.0" }
+    duplicate length body reads: [45]
+    overflowing length: Content-Length is invalid
+    |}]
+;;
+
 let%expect_test "LSP framing reads and writes JSON-RPC packets" =
   let packet =
     Jsonrpc.Packet.Notification
