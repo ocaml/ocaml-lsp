@@ -238,7 +238,7 @@ end = struct
   let yojson_of_t t = Json.Conv.yojson_of_list yojson_of_token (List.rev t.tokens)
 
   let encode (t : t) : int array =
-    let data = Array.init (t.count * 5) ~f:(fun (_ : int) -> 0) in
+    let data = Array.create ~len:(t.count * 5) 0 in
     let rec aux ix = function
       | [] -> ()
       | [ { start; length; token_type; token_modifiers } ] ->
