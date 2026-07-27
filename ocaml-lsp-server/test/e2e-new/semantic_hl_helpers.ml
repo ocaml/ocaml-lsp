@@ -96,8 +96,11 @@ let annotate_src_with_tokens
   let token_types = legend.SemanticTokensLegend.tokenTypes |> Array.of_list in
   let token_mods = legend.SemanticTokensLegend.tokenModifiers |> Array.of_list in
   let src_ix = ref 0 in
-  let tokens = Array_iter.create (tokens encoded_tokens) in
-  let token = ref @@ Array_iter.next_exn tokens in
+  let token, remaining_tokens =
+    tokens encoded_tokens |> Array.to_sequence |> Sequence.next |> Option.value_exn
+  in
+  let token = ref token in
+  let remaining_tokens = ref remaining_tokens in
   let token_id = ref 0 in
   let line = ref !token.delta_line in
   let character = ref !token.delta_char in
@@ -117,12 +120,13 @@ let annotate_src_with_tokens
       Buffer.add_substring b src ~pos:!src_ix ~len:!token.len;
       src_ix := !src_ix + !token.len;
       Printf.bprintf b "</%d>" !token_id;
-      match Array_iter.next tokens with
+      match Sequence.next !remaining_tokens with
       | None ->
         (* copy the rest of src *)
         Buffer.add_substring b src ~pos:!src_ix ~len:(src_len - !src_ix);
         src_ix := src_len
-      | Some next_token ->
+      | Some (next_token, rest) ->
+        remaining_tokens := rest;
         Int.incr token_id;
         character := next_token.delta_char - !token.len;
         token := next_token;
