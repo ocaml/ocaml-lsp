@@ -565,12 +565,6 @@ end = struct
   ;;
 end
 
-module Dune_map = Stdlib.MoreLabels.Map.Make (struct
-    include Registry.Dune
-
-    let compare x y = Ordering.to_int (compare x y)
-  end)
-
 type active =
   { mutable instances : Instance.t Map.M(String).t (* keyed by root *)
   ; mutable workspaces : Workspaces.t

@@ -100,12 +100,6 @@ let tightest_enclosing_binder_position typedtree range =
   | Found e -> Some e
 ;;
 
-module LongidentSet = Stdlib.Set.Make (struct
-    type t = Longident.t
-
-    let compare = compare
-  end)
-
 (** [free expr] returns the free variables in [expr]. *)
 let free (expr : Typedtree.expression) =
   let module I = Ocaml_typing.Tast_iterator in
