@@ -75,9 +75,9 @@ let concat ?sep ts =
 let escape ?(in_choice = false) str =
   let str =
     str
+    |> String.replace_all ~pattern:"\\" ~with_:"\\\\"
     |> String.replace_all ~pattern:"$" ~with_:"\\$"
     |> String.replace_all ~pattern:"}" ~with_:"\\}"
-    |> String.replace_all ~pattern:"\\" ~with_:"\\\\"
   in
   if not in_choice
   then str
