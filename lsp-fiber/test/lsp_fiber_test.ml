@@ -356,6 +356,101 @@ let%expect_test "remote request cancellation raises" =
     [TEST] finished |}]
 ;;
 
+let%expect_test "duplicate incoming request IDs are both handled" =
+  let run () =
+    let request_started = Fiber.Ivar.create () in
+    let release_requests = Fiber.Ivar.create () in
+    let* client_in, server_out = pipe () in
+    let* server_in, client_out = pipe () in
+    let server_io = Lsp_fiber.Fiber_io.make server_in server_out in
+    let client_io = Lsp_fiber.Fiber_io.make client_in client_out in
+    let on_request =
+      let on_request
+        : type response.
+          unit Server.t
+          -> response Client_request.t
+          -> (response Rpc.Reply.t * unit) Fiber.t
+        =
+        fun _ request ->
+        match request with
+        | Initialize _ ->
+          let capabilities = ServerCapabilities.create () in
+          let result = InitializeResult.create ~capabilities () in
+          Fiber.return (Rpc.Reply.now result, ())
+        | ExecuteCommand _ ->
+          let* started = Fiber.Ivar.peek request_started in
+          let* () =
+            match started with
+            | Some () -> Fiber.return ()
+            | None -> Fiber.Ivar.fill request_started ()
+          in
+          let reply =
+            Rpc.Reply.later (fun send ->
+              let* () = Fiber.Ivar.read release_requests in
+              send (`String "done"))
+          in
+          Fiber.return (reply, ())
+        | _ ->
+          Jsonrpc.Response.Error.raise
+            (Jsonrpc.Response.Error.make ~code:InternalError ~message:"unexpected" ())
+      in
+      { Server.Handler.on_request }
+    in
+    let server =
+      let handler = Server.Handler.make ~on_request () in
+      Server.make handler server_io ()
+    in
+    let send_request request =
+      Fiber_io.send client_io [ Jsonrpc.Packet.Request request ]
+    in
+    let receive_response () =
+      let+ packet = Fiber_io.recv client_io in
+      match packet with
+      | Some (Jsonrpc.Packet.Response response) -> response
+      | Some (Notification _ | Request _ | Batch_call _ | Batch_response _) | None ->
+        failwith "expected a response"
+    in
+    let exchange () =
+      let initialize =
+        InitializeParams.create ~capabilities:(ClientCapabilities.create ()) ()
+      in
+      let params =
+        InitializeParams.yojson_of_t initialize |> Jsonrpc.Structured.t_of_yojson
+      in
+      let initialize =
+        Jsonrpc.Request.create ~id:(`Int 0) ~method_:"initialize" ~params ()
+      in
+      let* () = send_request initialize in
+      let* (_ : Jsonrpc.Response.t) = receive_response () in
+      let command = ExecuteCommandParams.create ~command:"slow" () in
+      let params =
+        ExecuteCommandParams.yojson_of_t command |> Jsonrpc.Structured.t_of_yojson
+      in
+      let request =
+        Jsonrpc.Request.create ~id:(`Int 1) ~method_:"workspace/executeCommand" ~params ()
+      in
+      let* () = send_request request in
+      let* () = Fiber.Ivar.read request_started in
+      let* () = send_request request in
+      let* () = Fiber.Ivar.fill release_requests () in
+      let* first = receive_response () in
+      let* second = receive_response () in
+      let classify (response : Jsonrpc.Response.t) =
+        match response.result with
+        | Ok _ -> "ok"
+        | Error error -> Jsonrpc.Response.Error.Code.to_string error.code
+      in
+      let responses = List.sort String.compare [ classify first; classify second ] in
+      Printf.printf "responses: %s\n" (String.concat ", " responses);
+      let exit = Jsonrpc.Notification.create ~method_:"exit" () in
+      Fiber_io.send client_io [ Jsonrpc.Packet.Notification exit ]
+    in
+    Fiber.all_concurrently_unit [ Server.start server; exchange () ]
+  in
+  Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
+  [%expect {| responses: ok, ok |}]
+;;
+
 let%expect_test "forcing a lazy fiber twice may run it twice" =
   Printexc.record_backtrace false;
   let run () =
