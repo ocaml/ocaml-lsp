@@ -344,12 +344,10 @@ let apply_edits src edits =
     List.map edits ~f:(fun (e : TextEdit.t) ->
       e.newText, offset_of_position src e.range.start, offset_of_position src e.range.end_)
     (* update the offsets to account for preceding edits *)
-    |> Stdlib.List.fold_left_map
-         (fun offset (new_text, start, end_) ->
-            if end_ < start then failwith "invalid edit: end before start";
-            ( offset + (String.length new_text - (end_ - start))
-            , (new_text, start + offset, end_ + offset) ))
-         0
+    |> List.fold_map ~init:0 ~f:(fun offset (new_text, start, end_) ->
+      if end_ < start then failwith "invalid edit: end before start";
+      ( offset + (String.length new_text - (end_ - start))
+      , (new_text, start + offset, end_ + offset) ))
   in
   (* apply edits *)
   List.fold_left edits ~init:src ~f:(fun src (new_text, start, end_) ->
