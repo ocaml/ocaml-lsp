@@ -307,7 +307,7 @@ struct
   let run t = Fiber.finalize (fun () -> run_until_stopped t) ~finally:(fun () -> close t)
 
   let check_running t =
-    if not t.running then Code_error.raise "jsonrpc must be running" []
+    if (not t.running) || t.closing then Code_error.raise "jsonrpc must be running" []
   ;;
 
   let notification t (n : Notification.t) =
