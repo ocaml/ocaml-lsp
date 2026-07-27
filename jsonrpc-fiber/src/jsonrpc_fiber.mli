@@ -44,7 +44,11 @@ module Make (Chan : sig
     -> 'state t
 
   val state : 'a t -> 'a
+
+  (** Stop reading and enter the draining phase. New requests are rejected, but
+      responses and one-way notifications may be sent until [close] begins. *)
   val stop : _ t -> unit Fiber.t
+
   val stopped : _ t -> unit Fiber.t
 
   (** Close the session's input and output channels. This operation is
@@ -84,5 +88,8 @@ module Make (Chan : sig
     val request : t -> Jsonrpc.Request.t -> response
   end
 
+  (** Submit a batch without consuming it if the current phase rejects it.
+      Notification-only batches may be submitted while draining; batches that
+      contain requests may only be submitted while running. *)
   val submit : _ t -> Batch.t -> unit Fiber.t
 end
