@@ -40,17 +40,11 @@ let metrics_handler contents =
 let metric_count metrics name =
   match Yojson.Safe.from_string metrics with
   | `Assoc fields ->
-    (match
-       List.find_map fields ~f:(fun (field, value) ->
-         Option.some_if (String.equal field "traceEvents") value)
-     with
+    (match List.Assoc.find fields "traceEvents" ~equal:String.equal with
      | Some (`List events) ->
        List.count events ~f:(function
          | `Assoc fields ->
-           (match
-              List.find_map fields ~f:(fun (field, value) ->
-                Option.some_if (String.equal field "name") value)
-            with
+           (match List.Assoc.find fields "name" ~equal:String.equal with
             | Some (`String event_name) -> String.equal event_name name
             | Some _ | None -> false)
          | _ -> false)
