@@ -586,46 +586,33 @@ let uri_dune_overlap =
 
      All of this is really hacky and error prone. We should let the user
      associate dune instances with workspace folders somehow *)
-  let is_dir_sep =
-    if Sys.win32 || Sys.cygwin
-    then fun c -> c = '/' || c = '\\' || c = ':'
-    else fun c -> c = '/'
+  let dir_separators = if Sys.win32 || Sys.cygwin then [ '/'; '\\'; ':' ] else [ '/' ] in
+  let explode_path path =
+    if String.equal path Filename.current_dir_name
+    then [ path ]
+    else (
+      match
+        String.split_on_chars path ~on:dir_separators
+        |> List.filter ~f:(fun component -> not (String.is_empty component))
+      with
+      | "." :: components -> components
+      | components -> components)
   in
-  let explode_path =
-    let rec start acc path i =
-      if i < 0
-      then acc
-      else if is_dir_sep (String.unsafe_get path i)
-      then start acc path (i - 1)
-      else component acc path i (i - 1)
-    and component acc path end_ i =
-      if i < 0
-      then String.prefix path (end_ + 1) :: acc
-      else if is_dir_sep (String.unsafe_get path i)
-      then start (String.sub path ~pos:(i + 1) ~len:(end_ - i) :: acc) path (i - 1)
-      else component acc path end_ (i - 1)
-    in
-    fun path ->
-      if path = Filename.current_dir_name
-      then [ path ]
-      else (
-        match start [] path (String.length path - 1) with
-        | "." :: xs -> xs
-        | xs -> xs)
+  let equal_path_component =
+    if Sys.win32
+    then fun x y -> String.equal (String.lowercase x) (String.lowercase y)
+    else String.equal
   in
-  let normalize = if Sys.win32 then String.lowercase else fun x -> x in
   fun (uri : Uri.t) (dune : Registry.Dune.t) ->
     let dune_root = Registry.Dune.root dune in
     let path =
       let path = Uri.to_path uri in
       if Filename.is_relative path then Filename.concat (Lazy.force cwd) path else path
     in
-    let rec loop xs ys =
-      match xs, ys with
-      | x :: xs, y :: ys -> normalize x = normalize y && loop xs ys
-      | [], _ | _, [] -> true
-    in
-    loop (explode_path dune_root) (explode_path path)
+    let dune_root = explode_path dune_root in
+    let path = explode_path path in
+    List.is_prefix path ~prefix:dune_root ~equal:equal_path_component
+    || List.is_prefix dune_root ~prefix:path ~equal:equal_path_component
 ;;
 
 let make_finalizer active (instance : Instance.t) =
