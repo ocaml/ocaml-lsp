@@ -66,6 +66,7 @@
     document_flow
     document_highlight
     document_sync
+    document_text_command
     exit_notification
     for_ppx
     hover
