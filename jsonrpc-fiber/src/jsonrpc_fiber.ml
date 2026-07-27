@@ -323,17 +323,27 @@ struct
   ;;
 
   let unregister_request_ivar t id ivar =
-    (* Receiving a response or cancelling a request can remove its entry before
-       the request fiber's finalizer runs. The ID is no longer pending, so another
-       request may reuse it in between. Only remove the entry if it still belongs
-       to this request; otherwise the old finalizer would unregister the newer
-       request.
+    (* Receiving a response can remove its entry before the request fiber's
+       finalizer runs. The ID is no longer pending, so another request may reuse
+       it in between. Only remove the entry if it still belongs to this request;
+       otherwise the old finalizer would unregister the newer request.
 
        TODO: Give pending registrations explicit ownership tokens so this check
        does not rely on physical equality. *)
     match Id.Table.find_opt t.pending id with
     | Some registered when registered == ivar -> Id.Table.remove t.pending id
     | Some _ | None -> ()
+  ;;
+
+  let unregister_completed_request_ivar t id ivar =
+    let+ result = Fiber.Ivar.peek ivar in
+    match result with
+    | Some (Error `Cancelled) ->
+      (* A server may still respond after cancellation. Keep the ID reserved so
+         that response cannot be delivered to a newer request using the same ID.
+         [on_response] removes the reservation when the response arrives. *)
+      ()
+    | Some (Ok _ | Error `Stopped) | None -> unregister_request_ivar t id ivar
   ;;
 
   let read_request_ivar req ivar =
@@ -365,9 +375,7 @@ struct
         let* result = Fiber.Ivar.peek ivar in
         match result with
         | Some _ -> Fiber.return ()
-        | None ->
-          unregister_request_ivar t req.id ivar;
-          Fiber.Ivar.fill ivar (Error `Cancelled))
+        | None -> Fiber.Ivar.fill ivar (Error `Cancelled))
     in
     let result () =
       register_request_ivar t req.id ivar;
@@ -388,9 +396,7 @@ struct
         | None ->
           Fiber.finalize
             (fun () -> result ())
-            ~finally:(fun () ->
-              unregister_request_ivar t req.id ivar;
-              Fiber.return ()))
+            ~finally:(fun () -> unregister_completed_request_ivar t req.id ivar))
     in
     cancel, resp
   ;;
