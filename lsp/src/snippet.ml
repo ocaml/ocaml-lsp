@@ -99,6 +99,9 @@ let pp_impl add_string (snippet : t) : unit =
     | None ->
       add_string (f n);
       n + 1, m
+    | Some 0 ->
+      add_string (f 0);
+      n, m
     | Some i ->
       (match Int_map.find_opt i m with
        | Some j ->
