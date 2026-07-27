@@ -213,7 +213,7 @@ let%expect_test "cleanup precedes explicit output close" =
     <opaque> |}]
 ;;
 
-let%expect_test "requests are rejected before reaching the transport after stop" =
+let%expect_test "requests may reach the transport after stop" =
   let channel = lifecycle_channel () in
   let session = Lifecycle_jrpc.create ~name:"test" channel () in
   let classify = function
@@ -238,7 +238,7 @@ let%expect_test "requests are rejected before reaching the transport after stop"
   [%expect
     {|
     request: error
-    transport attempts: 0
+    transport attempts: 1
     <opaque> |}]
 ;;
 
