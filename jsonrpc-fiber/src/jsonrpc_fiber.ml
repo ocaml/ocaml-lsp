@@ -322,6 +322,20 @@ struct
     | None -> Id.Table.add t.pending ~key:id ~data:ivar
   ;;
 
+  let unregister_request_ivar t id ivar =
+    (* Receiving a response or cancelling a request can remove its entry before
+       the request fiber's finalizer runs. The ID is no longer pending, so another
+       request may reuse it in between. Only remove the entry if it still belongs
+       to this request; otherwise the old finalizer would unregister the newer
+       request.
+
+       TODO: Give pending registrations explicit ownership tokens so this check
+       does not rely on physical equality. *)
+    match Id.Table.find_opt t.pending id with
+    | Some registered when registered == ivar -> Id.Table.remove t.pending id
+    | Some _ | None -> ()
+  ;;
+
   let read_request_ivar req ivar =
     let+ res = Fiber.Ivar.read ivar in
     match res with
@@ -333,27 +347,50 @@ struct
   let request t (req : Request.t) =
     Fiber.of_thunk (fun () ->
       check_running t;
-      let* () = Chan.send t.chan [ Request req ] in
       let ivar = Fiber.Ivar.create () in
-      register_request_ivar t req.id ivar;
-      read_request_ivar req ivar)
+      Fiber.finalize
+        (fun () ->
+           register_request_ivar t req.id ivar;
+           let* () = Chan.send t.chan [ Request req ] in
+           read_request_ivar req ivar)
+        ~finally:(fun () ->
+          unregister_request_ivar t req.id ivar;
+          Fiber.return ()))
   ;;
 
   let request_with_cancel t (req : Request.t) =
     let ivar = Fiber.Ivar.create () in
-    let cancel = Fiber.Ivar.fill ivar (Error `Cancelled) in
+    let cancel =
+      Fiber.of_thunk (fun () ->
+        let* result = Fiber.Ivar.peek ivar in
+        match result with
+        | Some _ -> Fiber.return ()
+        | None ->
+          unregister_request_ivar t req.id ivar;
+          Fiber.Ivar.fill ivar (Error `Cancelled))
+    in
+    let result () =
+      register_request_ivar t req.id ivar;
+      let* () = Chan.send t.chan [ Request req ] in
+      let+ res = Fiber.Ivar.read ivar in
+      match res with
+      | Ok s -> `Ok s
+      | Error `Cancelled -> `Cancelled
+      | Error `Stopped -> raise (Stopped req)
+    in
     let resp =
       Fiber.of_thunk (fun () ->
         check_running t;
-        let* () =
-          let+ () = Chan.send t.chan [ Request req ] in
-          register_request_ivar t req.id ivar
-        in
-        let+ res = Fiber.Ivar.read ivar in
-        match res with
-        | Ok s -> `Ok s
-        | Error `Cancelled -> `Cancelled
-        | Error `Stopped -> raise (Stopped req))
+        let* cancelled = Fiber.Ivar.peek ivar in
+        match cancelled with
+        | Some (Error `Cancelled) -> Fiber.return `Cancelled
+        | Some (Ok _ | Error `Stopped) -> assert false
+        | None ->
+          Fiber.finalize
+            (fun () -> result ())
+            ~finally:(fun () ->
+              unregister_request_ivar t req.id ivar;
+              Fiber.return ()))
     in
     cancel, resp
   ;;
