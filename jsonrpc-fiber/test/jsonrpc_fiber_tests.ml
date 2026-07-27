@@ -261,6 +261,32 @@ let%expect_test "serving requests" =
     <opaque> |}]
 ;;
 
+let%expect_test "delayed replies may return without sending a response" =
+  let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"missing-response" () in
+  let responses = ref [] in
+  let on_request context =
+    let state = Context.state context in
+    Fiber.return (Reply.later (fun _ -> Fiber.return ()), state)
+  in
+  let session =
+    Jrpc.create
+      ~name:"test"
+      ~on_request
+      (In.of_list [ Jsonrpc.Packet.Request request ], of_ref responses)
+      ()
+  in
+  Fiber_test.test Dyn.opaque (fun () -> Jrpc.run session);
+  (match !responses with
+   | [ Jsonrpc.Packet.Response { result = Error error; _ } ] ->
+     print_endline (Jsonrpc.Response.Error.Code.to_string error.code)
+   | _ -> print_endline "no response sent");
+  [%expect
+    {|
+    <opaque>
+    no response sent
+    |}]
+;;
+
 let%expect_test "delayed replies may issue concurrent requests" =
   let finished = Fiber.Ivar.create () in
   let print packet =
