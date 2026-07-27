@@ -79,12 +79,3 @@ nix-tests:
 .PHONY: nix-fmt
 nix-fmt:
 	dune build @fmt
-
-.PHONY: coverage-deps
-coverage-deps:
-	opam install -y bisect_ppx
-
-.PHONY: test-coverage
-test-coverage:
-	dune build --instrument-with bisect_ppx --force @lsp/test/runtest @lsp-fiber/runtest @jsonrpc-fiber/runtest @ocaml-lsp-server/runtest
-	bisect-ppx-report send-to Coveralls

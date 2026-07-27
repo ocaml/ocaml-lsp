@@ -2,6 +2,4 @@
  (name main)
  (package ocaml-lsp-server)
  (public_name ocamllsp)
- (libraries stdune lsp ocaml_lsp_server)
- (instrumentation
-  (backend bisect_ppx)))
+ (libraries stdune lsp ocaml_lsp_server))

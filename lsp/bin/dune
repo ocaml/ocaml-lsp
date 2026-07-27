@@ -10,7 +10,5 @@
 
 (library
  (name lsp_gen)
- (instrumentation
-  (backend bisect_ppx))
  (modules :standard \ test_metamodel)
  (libraries dyn pp top-closure yojson))
