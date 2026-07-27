@@ -242,7 +242,7 @@ let%expect_test "requests may reach the transport after stop" =
     <opaque> |}]
 ;;
 
-let%expect_test "notifications may reach the transport after close" =
+let%expect_test "notifications are rejected before reaching the transport after close" =
   let channel = lifecycle_channel () in
   let session = Lifecycle_jrpc.create ~name:"test" channel () in
   let classify = function
@@ -266,8 +266,8 @@ let%expect_test "notifications may reach the transport after close" =
     Fiber.fork_and_join_unit (fun () -> Lifecycle_jrpc.run session) operations);
   [%expect
     {|
-    notification: accepted
-    transport attempts: 1
+    notification: rejected
+    transport attempts: 0
     <opaque> |}]
 ;;
 
