@@ -135,40 +135,121 @@ let argument_labels typ =
     Some (loop [] typ)
 ;;
 
-let valid_application_name name =
-  String.split name ~on:'.'
-  |> List.for_all ~f:(fun segment ->
-    (not (String.is_empty segment))
-    && (match segment.[0] with
-        | 'a' .. 'z' | 'A' .. 'Z' | '_' -> true
-        | _ -> false)
-    && String.for_all segment ~f:(function
-      | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '\'' -> true
-      | _ -> false))
+let valid_application_name ~kind name =
+  let lexbuf = Lexing.from_string name in
+  let lexer = Lexer.make (Lexer.keywords []) in
+  let rec path () =
+    match lexer_token lexer lexbuf with
+    | Parser.UIDENT _ ->
+      (match lexer_token lexer lexbuf with
+       | Parser.DOT -> path ()
+       | EOF -> kind = `Constructor
+       | _ -> false)
+    | Parser.LIDENT _ -> kind = `Function && lexer_token lexer lexbuf = Parser.EOF
+    | _ -> false
+  in
+  match path () with
+  | result -> result
+  | exception Parser.Error -> false
 ;;
 
-let application ~name ~typ =
-  match valid_application_name name with
+let constructor_arity typ =
+  match
+    let lexbuf = Lexing.from_string typ in
+    let lexer = Lexer.make (Lexer.keywords []) in
+    let rec tokens () =
+      match lexer_token lexer lexbuf with
+      | Parser.EOF -> [ Parser.EOF ]
+      | token -> token :: tokens ()
+    in
+    let rec normalize = function
+      (* Merlin renders an inline-record payload as [t.Constructor], which is not
+         an OCaml type path. Use an opaque type while preserving its arity. *)
+      | Parser.LIDENT _ :: Parser.DOT :: Parser.UIDENT _ :: rest ->
+        Parser.UIDENT "Inline_record" :: Parser.DOT :: Parser.LIDENT "t" :: normalize rest
+      | token :: rest -> token :: normalize rest
+      | [] -> []
+    in
+    (* Parse a constructor signature, not a function type: parentheses distinguish
+       [int * bool -> t] from [(int * bool) -> t]. *)
+    let tokens =
+      Queue.of_list
+        ([ Parser.TYPE; Parser.LIDENT "t"; Parser.EQUAL; Parser.UIDENT "C"; Parser.COLON ]
+         @ normalize (tokens ()))
+    in
+    Parser.implementation
+      (fun _ -> Option.value (Queue.dequeue tokens) ~default:Parser.EOF)
+      lexbuf
+  with
+  | [ { pstr_desc =
+          Pstr_type (_, [ { ptype_kind = Ptype_variant [ { pcd_args; _ } ]; _ } ])
+      ; _
+      }
+    ] ->
+    Some
+      (match pcd_args with
+       | Pcstr_tuple arguments -> List.length arguments
+       | Pcstr_record _ -> 1)
+  | _ -> None
+  | exception Parser.Error -> None
+;;
+
+type application_kind =
+  [ `Function
+  | `Constructor
+  ]
+
+let application ~kind ~name ~typ =
+  match valid_application_name ~kind name with
   | false -> None
   | true ->
     let open Option.O in
-    let* labels = argument_labels typ in
-    if
-      List.count labels ~f:(function
-        | Asttypes.Nolabel -> false
-        | Labelled _ | Optional _ -> true)
-      < 2
-    then None
-    else (
-      let arguments =
-        let placeholder = [ Snippet.placeholder (Snippet.text "_") ] in
-        List.concat_map labels ~f:(fun (label : Asttypes.arg_label) ->
-          Snippet.text
-            (match label with
-             | Nolabel -> " "
-             | Labelled label -> " ~" ^ label ^ ":"
-             | Optional label -> " ?" ^ label ^ ":")
-          :: placeholder)
-      in
-      Some (Snippet.concat ((Snippet.text name :: arguments) @ [ Snippet.tabstop 0 ])))
+    let placeholder = Snippet.placeholder (Snippet.text "_") in
+    let* arguments =
+      match kind with
+      | `Constructor ->
+        let* arity = constructor_arity typ in
+        if arity = 0
+        then None
+        else (
+          let payload =
+            if arity = 1
+            then placeholder
+            else
+              Snippet.concat
+                [ Snippet.text "("
+                ; Snippet.concat
+                    (List.init arity ~f:(fun _ -> placeholder)
+                     |> List.intersperse ~sep:(Snippet.text ", "))
+                ; Snippet.text ")"
+                ]
+          in
+          Some [ Snippet.text " "; payload ])
+      | `Function ->
+        let* labels = argument_labels typ in
+        if
+          List.count labels ~f:(function
+            | Asttypes.Nolabel -> false
+            | Labelled _ | Optional _ -> true)
+          < 2
+        then None
+        else
+          Some
+            (List.concat_map labels ~f:(fun (label : Asttypes.arg_label) ->
+               [ Snippet.text
+                   (match label with
+                    | Nolabel -> " "
+                    | Labelled label -> " ~" ^ label ^ ":"
+                    | Optional label -> " ?" ^ label ^ ":")
+               ; placeholder
+               ]))
+    in
+    let prefix, suffix =
+      match kind with
+      | `Function -> name, ""
+      | `Constructor -> "(" ^ name, ")"
+    in
+    Some
+      (Snippet.concat
+         ((Snippet.text prefix :: arguments) @ [ Snippet.text suffix; Snippet.tabstop 0 ]))
 ;;

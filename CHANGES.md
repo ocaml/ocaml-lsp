@@ -2,6 +2,8 @@
 
 ## Features
 
+- Offer parenthesized application snippets for constructors with payloads, with
+  independent argument slots, while retaining name-only completions. (#2212, @rgrinberg)
 - Make generated destruct branch bodies interactive for clients with snippet edit
   support. (#2204, @rgrinberg)
 - Offer whole-call completions for OCaml functions with multiple labelled or

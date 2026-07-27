@@ -392,7 +392,7 @@ let check_application arguments =
       | Labelled | Optional -> true
       | _ -> false)
   in
-  match Builder.application ~name:"f" ~typ, label_count >= 2 with
+  match Builder.application ~kind:`Function ~name:"f" ~typ, label_count >= 2 with
   | None, false -> ()
   | Some snippet, true ->
     let rendered = Snippet.to_string snippet in
@@ -439,9 +439,86 @@ let%test_unit "whole-call snippets require multiple labels and preserve arity" =
     ~f:check_application
 ;;
 
+let%test_unit "constructor signatures preserve arity across nested payload types" =
+  Test.run_exn
+    (module Application_case)
+    ~examples:[ []; [ Tuple ]; [ Tuple; Nested_arrow ]; List.init 12 ~f:(fun _ -> Tuple) ]
+    ~f:(fun arguments ->
+      let typ =
+        match arguments with
+        | [] -> "t"
+        | arguments ->
+          List.map arguments ~f:(fun arg ->
+            let typ =
+              match arg with
+              | Labelled | Optional -> "f:int -> ?limit:int -> unit"
+              | _ -> argument arg
+            in
+            "(" ^ typ ^ ")")
+          |> String.concat ~sep:" * "
+          |> fun payload -> payload ^ " -> t"
+      in
+      match Builder.application ~kind:`Constructor ~name:"M.C" ~typ with
+      | None -> assert (List.is_empty arguments)
+      | Some snippet ->
+        let arity = List.length arguments in
+        let payload =
+          match arity with
+          | 1 -> "_"
+          | _ -> "(" ^ String.concat ~sep:", " (List.init arity ~f:(fun _ -> "_")) ^ ")"
+        in
+        let rendered = Snippet.to_string snippet in
+        assert (String.equal (defaults rendered) ("(M.C " ^ payload ^ ")"));
+        let { Builder.placeholders; _ } =
+          Builder.source ~holes:`Expression ~source:(defaults rendered)
+        in
+        assert (placeholders = arity))
+;;
+
+let%expect_test "constructor application snippets" =
+  let print name typ =
+    match Builder.application ~kind:`Constructor ~name ~typ with
+    | None -> Stdlib.print_endline "none"
+    | Some snippet -> Snippet.to_string snippet |> Stdlib.print_endline
+  in
+  print "Some" "'a -> 'a option";
+  print "None" "'a option";
+  print "Pair" "int * bool -> t";
+  print "Tuple" "(int * bool) -> t";
+  print "Function" "(int -> int) -> t";
+  print "Record" "t.Record -> t";
+  print "M.Record" "M.t.Record -> M.t";
+  print "Record" "{ x : int; y : bool } -> t";
+  print "Gadt" "'a -> 'a t";
+  print "M.Café" "int -> M.t";
+  List.iter [ ""; "Some$"; "C🚀"; "Some _"; "(::)" ] ~f:(fun name -> print name "int -> t");
+  List.iter [ ""; "int ->"; "(*" ] ~f:(print "C");
+  [%expect
+    {|
+    (Some ${1:_})$0
+    none
+    (Pair (${1:_}, ${2:_}))$0
+    (Tuple ${1:_})$0
+    (Function ${1:_})$0
+    (Record ${1:_})$0
+    (M.Record ${1:_})$0
+    (Record ${1:_})$0
+    (Gadt ${1:_})$0
+    (M.Café ${1:_})$0
+    none
+    none
+    none
+    none
+    none
+    none
+    none
+    none
+    |}]
+;;
+
 let%expect_test "whole-call snippets" =
   let print name typ =
-    match Builder.application ~name ~typ with
+    match Builder.application ~kind:`Function ~name ~typ with
     | None -> Stdlib.print_endline "none"
     | Some snippet -> Snippet.to_string snippet |> Stdlib.print_endline
   in

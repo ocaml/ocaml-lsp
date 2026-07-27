@@ -59,6 +59,7 @@
     code_actions_quick_fixes
     code_lens
     completion
+    completion_constructors
     completion_resolve
     completions
     formatting

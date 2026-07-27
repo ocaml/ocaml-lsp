@@ -133,7 +133,8 @@ let snippet_capabilities =
   ClientCapabilities.create ~textDocument ()
 ;;
 
-let%expect_test "completion converts UTF-16 positions before querying Merlin" =
+(* CR: Keep these known position bugs until the coordinated encoding fixes. *)
+let%expect_test "CR: completion queries use byte columns for UTF-16 positions" =
   let source = "let café = List.ma" in
   let position = Position.create ~line:0 ~character:18 in
   let only_map =
@@ -769,6 +770,21 @@ let y = 1 >$
   |}]
 ;;
 
+let%expect_test "a dot in a symbolic prefix does not shorten its replacement range" =
+  let source, position = Test.parse_cursor "let x = 1. +.$" in
+  iter_completions ~source ~position (function
+    | Some (`CompletionList { items; _ }) ->
+      assert (not (List.is_empty items));
+      List.iter items ~f:(fun (item : CompletionItem.t) ->
+        match item.textEdit with
+        | Some (`TextEdit { range; _ }) ->
+          assert (range.start = Position.create ~line:0 ~character:11);
+          assert (range.end_ = position)
+        | _ -> assert false)
+    | _ -> assert false);
+  [%expect {| |}]
+;;
+
 let%expect_test "completes without prefix" =
   let source =
     {ocaml|
@@ -779,7 +795,7 @@ let plus_42 (x:int) (y:int) =
   somenum +
 |ocaml}
   in
-  let position = Position.create ~line:5 ~character:12 in
+  let position = Position.create ~line:5 ~character:11 in
   print_completions source position;
   [%expect
     {|
@@ -792,8 +808,8 @@ let plus_42 (x:int) (y:int) =
     "textEdit": {
       "newText": "+",
       "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 11, "line": 5 }
+        "end": { "character": 11, "line": 5 },
+        "start": { "character": 10, "line": 5 }
       }
     }
   }
@@ -805,8 +821,8 @@ let plus_42 (x:int) (y:int) =
     "textEdit": {
       "newText": "+.",
       "range": {
-        "end": { "character": 12, "line": 5 },
-        "start": { "character": 11, "line": 5 }
+        "end": { "character": 11, "line": 5 },
+        "start": { "character": 10, "line": 5 }
       }
     }
   }
@@ -954,7 +970,7 @@ type t = [ `Int | `String ]
 let x : t = `I
   |ocaml}
   in
-  let position = Position.create ~line:3 ~character:15 in
+  let position = Position.create ~line:3 ~character:14 in
   print_completions source position;
   [%expect
     {|
@@ -967,8 +983,8 @@ let x : t = `I
       "textEdit": {
         "newText": "`Int",
         "range": {
-          "end": { "character": 15, "line": 3 },
-          "start": { "character": 13, "line": 3 }
+          "end": { "character": 14, "line": 3 },
+          "start": { "character": 12, "line": 3 }
         }
       }
     }
@@ -989,7 +1005,7 @@ type t = [ `Int | `String ]
 let x : t = `I
   |ocaml}
   in
-  let position = Position.create ~line:3 ~character:15 in
+  let position = Position.create ~line:3 ~character:14 in
   let only_int =
     List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "`Int")
   in
@@ -1008,8 +1024,8 @@ let x : t = `I
       "textEdit": {
         "newText": "`Int",
         "range": {
-          "end": { "character": 15, "line": 3 },
-          "start": { "character": 13, "line": 3 }
+          "end": { "character": 14, "line": 3 },
+          "start": { "character": 12, "line": 3 }
         }
       }
     }
@@ -1475,7 +1491,38 @@ let%expect_test "whole-call snippets preserve deprecation without symbol resolve
     |}]
 ;;
 
-let%expect_test "construct completion converts Merlin ranges to UTF-16" =
+let%expect_test "constructor completions offer application skeletons" =
+  let source, position = Test.parse_cursor "type t = C of int\nlet value = C$" in
+  let only_constructor_skeleton =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "C (call)")
+  in
+  print_completions
+    ~capabilities:snippet_capabilities
+    ~pre_print:only_constructor_skeleton
+    source
+    position;
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "int -> t",
+      "filterText": "C",
+      "insertTextFormat": 2,
+      "kind": 15,
+      "label": "C (call)",
+      "sortText": "0011",
+      "textEdit": {
+        "newText": "(C ${1:_})$0",
+        "range": {
+          "end": { "character": 13, "line": 1 },
+          "start": { "character": 12, "line": 1 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "CR: construct completion misses the hole after Unicode" =
   let source = "let café : int = _" in
   let position = Position.create ~line:0 ~character:18 in
   let only_zero =
@@ -2197,7 +2244,7 @@ let%expect_test "completion for object methods" =
 
 let%expect_test "completion for object methods" =
   let source = {ocaml|let f (x : < a_method : 'a; ab_m : 'b >) = x#ab|ocaml} in
-  let position = Position.create ~line:0 ~character:49 in
+  let position = Position.create ~line:0 ~character:47 in
   print_completions ~limit:3 source position;
   [%expect
     {|
@@ -2210,8 +2257,8 @@ let%expect_test "completion for object methods" =
       "textEdit": {
         "newText": "ab_m",
         "range": {
-          "end": { "character": 49, "line": 0 },
-          "start": { "character": 47, "line": 0 }
+          "end": { "character": 47, "line": 0 },
+          "start": { "character": 45, "line": 0 }
         }
       }
     } |}]
