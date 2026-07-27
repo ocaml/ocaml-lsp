@@ -641,6 +641,26 @@ let make_finalizer active (instance : Instance.t) =
     Document_store.unregister_promotions active.config.document_store to_unregister)
 ;;
 
+let run_instance active (instance : Instance.t) =
+  let cleanup = make_finalizer active instance in
+  let* (_ : (unit, unit) result) =
+    Fiber.map_reduce_errors
+      (module Monoid.Unit)
+      (fun () -> Instance.run instance)
+      ~on_error:(fun exn ->
+        let message =
+          Format.asprintf
+            "disconnected %s:@.%a"
+            (Registry.Dune.root (Instance.source instance))
+            Exn_with_backtrace.pp_uncaught
+            exn
+        in
+        let* () = active.config.log ~type_:Error ~message in
+        Lazy_fiber.force cleanup)
+  in
+  Lazy_fiber.force cleanup
+;;
+
 let poll active last_error =
   (* a single workspaces value for one iteration of the loop *)
   let workspaces = active.workspaces in
@@ -749,24 +769,7 @@ let poll active last_error =
                (* this is guaranteed not to raise since we don't connect to more
                   than one dune instance per workspace *)
                String.Map.add_exn acc (Registry.Dune.root source) instance);
-        Fiber.parallel_iter connected ~f:(fun (instance : Instance.t) ->
-          let cleanup = make_finalizer active instance in
-          let* (_ : (unit, unit) result) =
-            Fiber.map_reduce_errors
-              (module Monoid.Unit)
-              (fun () -> Instance.run instance)
-              ~on_error:(fun exn ->
-                let message =
-                  Format.asprintf
-                    "disconnected %s:@.%a"
-                    (Registry.Dune.root (Instance.source instance))
-                    Exn_with_backtrace.pp_uncaught
-                    exn
-                in
-                let* () = active.config.log ~type_:Error ~message in
-                Lazy_fiber.force cleanup)
-          in
-          Lazy_fiber.force cleanup)
+        Fiber.parallel_iter connected ~f:(run_instance active)
     in
     `No_error
 ;;
