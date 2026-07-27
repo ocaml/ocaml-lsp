@@ -1169,6 +1169,312 @@ let%expect_test "construct snippets respect capabilities and next-hole commands"
     |}]
 ;;
 
+let%expect_test "whole-call variants follow all ordinary candidates in complete lists" =
+  List.iter [ None; Some false; Some true ] ~f:(fun snippetSupport ->
+    let completionItem = ClientCompletionItemOptions.create ?snippetSupport () in
+    let completion = CompletionClientCapabilities.create ~completionItem () in
+    let textDocument = TextDocumentClientCapabilities.create ~completion () in
+    let capabilities = ClientCapabilities.create ~textDocument () in
+    List.iter [ "wholec_"; "wholec_al"; "wholec_alpha" ] ~f:(fun prefix ->
+      let source, position =
+        Test.parse_cursor
+          ("let wholec_alpha ~a ~b = a + b\n\
+            let wholec_alpine ~a ?b () = a, b\n\
+            let wholec_value = 42\n\
+            let value = "
+           ^ prefix
+           ^ "$")
+      in
+      iter_completions ~capabilities ~source ~position (function
+        | Some (`CompletionList { isIncomplete; items; _ }) ->
+          assert (not isIncomplete);
+          List.iteri items ~f:(fun i (item : CompletionItem.t) ->
+            assert (item.sortText = Some (Printf.sprintf "%04d" i)));
+          Printf.printf
+            "snippets=%s %s: %s\n"
+            (Option.value_map snippetSupport ~default:"absent" ~f:string_of_bool)
+            prefix
+            (List.map items ~f:(fun (item : CompletionItem.t) -> item.label)
+             |> String.concat ~sep:", ")
+        | _ -> failwith "expected a completion list")));
+  [%expect
+    {|
+    snippets=absent wholec_: wholec_alpha, wholec_alpine, wholec_value
+    snippets=absent wholec_al: wholec_alpha, wholec_alpine
+    snippets=absent wholec_alpha: wholec_alpha
+    snippets=false wholec_: wholec_alpha, wholec_alpine, wholec_value
+    snippets=false wholec_al: wholec_alpha, wholec_alpine
+    snippets=false wholec_alpha: wholec_alpha
+    snippets=true wholec_: wholec_alpha, wholec_alpine, wholec_value, wholec_alpha (call), wholec_alpine (call)
+    snippets=true wholec_al: wholec_alpha, wholec_alpine, wholec_alpha (call), wholec_alpine (call)
+    snippets=true wholec_alpha: wholec_alpha, wholec_alpha (call)
+    |}]
+;;
+
+let%expect_test "value completions offer whole-call snippets" =
+  let source, position = Test.parse_cursor "let f = ListLabels.fo$" in
+  let only_fold_snippet =
+    List.filter ~f:(fun (item : CompletionItem.t) ->
+      String.equal item.label "fold_left (call)")
+  in
+  print_completions
+    ~capabilities:snippet_capabilities
+    ~pre_print:only_fold_snippet
+    source
+    position;
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "f:('acc -> 'a -> 'acc) -> init:'acc -> 'a list -> 'acc",
+      "filterText": "fold_left",
+      "insertTextFormat": 2,
+      "kind": 15,
+      "label": "fold_left (call)",
+      "sortText": "0007",
+      "textEdit": {
+        "newText": "fold_left ~f:${1:_} ~init:${2:_} ${3:_}$0",
+        "range": {
+          "end": { "character": 21, "line": 0 },
+          "start": { "character": 19, "line": 0 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "whole-call snippets require multiple labelled or optional arguments" =
+  List.iter
+    [ "x = x"
+    ; "x y = x, y"
+    ; "~a = a"
+    ; "?a () = a"
+    ; "~a x = a, x"
+    ; "?a x = a, x"
+    ; "~a ~b = a, b"
+    ; "~a ?b () = a, b"
+    ; "?a ?b () = a, b"
+    ]
+    ~f:(fun definition ->
+      let source, position =
+        Test.parse_cursor ("let target " ^ definition ^ "\nlet value = tar$")
+      in
+      iter_completions
+        ~capabilities:snippet_capabilities
+        ~source
+        ~position
+        (fun response ->
+           let items =
+             match Option.value_exn response with
+             | `CompletionList list -> list.items
+             | `List items -> items
+           in
+           assert (
+             List.exists items ~f:(fun (item : CompletionItem.t) ->
+               String.equal item.label "target" && item.kind = Some Value));
+           let snippets =
+             List.count items ~f:(fun (item : CompletionItem.t) ->
+               item.kind = Some Snippet)
+           in
+           Printf.printf "%s: %d snippets\n" definition snippets));
+  [%expect
+    {|
+    x = x: 0 snippets
+    x y = x, y: 0 snippets
+    ~a = a: 0 snippets
+    ?a () = a: 0 snippets
+    ~a x = a, x: 0 snippets
+    ?a x = a, x: 0 snippets
+    ~a ~b = a, b: 1 snippets
+    ~a ?b () = a, b: 1 snippets
+    ?a ?b () = a, b: 1 snippets
+    |}]
+;;
+
+let%expect_test "completing existing label values does not add snippets" =
+  List.iter
+    [ "let f = ListLabels.map ~f$:Fun.id"
+    ; "let f = ListLabels.map ~$f:Fun.id"
+    ; "let f ?limit () = ()\nlet _ = f ?limit$:None ()"
+    ; "let f ?limit () = ()\nlet _ = f ?li$mit:None ()"
+    ]
+    ~f:(fun marked_source ->
+      let source, position = Test.parse_cursor marked_source in
+      print_endline marked_source;
+      iter_completions
+        ~capabilities:snippet_capabilities
+        ~source
+        ~position
+        (fun response ->
+           let items =
+             match Option.value_exn response with
+             | `CompletionList list -> list.items
+             | `List items -> items
+           in
+           let snippets =
+             List.filter items ~f:(fun (item : CompletionItem.t) ->
+               item.kind = Some CompletionItemKind.Snippet)
+           in
+           List.iter snippets ~f:(fun (item : CompletionItem.t) ->
+             match item.textEdit with
+             | Some (`TextEdit edit) ->
+               Printf.printf "%s -> %s\n" item.label (Test.apply_edits source [ edit ])
+             | _ -> failwith "expected a text edit")));
+  [%expect
+    {|
+    let f = ListLabels.map ~f$:Fun.id
+    let f = ListLabels.map ~$f:Fun.id
+    let f ?limit () = ()
+    let _ = f ?limit$:None ()
+    let f ?limit () = ()
+    let _ = f ?li$mit:None ()
+    |}]
+;;
+
+let%expect_test "whole-call snippet capabilities optional arguments and ordering" =
+  List.iter [ None; Some false; Some true ] ~f:(fun snippetSupport ->
+    let capabilities =
+      let completionItem = ClientCompletionItemOptions.create ?snippetSupport () in
+      let completion = CompletionClientCapabilities.create ~completionItem () in
+      let textDocument = TextDocumentClientCapabilities.create ~completion () in
+      ClientCapabilities.create ~textDocument ()
+    in
+    List.iter [ "tar$"; "tar$get_typo"; "targ$et" ] ~f:(fun prefix ->
+      let source, position =
+        Test.parse_cursor
+          ("let target ~name ?limit count = name, limit, count\nlet value = " ^ prefix)
+      in
+      Printf.printf
+        "snippets=%s prefix=%s:"
+        (Option.value_map snippetSupport ~default:"absent" ~f:string_of_bool)
+        prefix;
+      iter_completions ~capabilities ~source ~position (fun response ->
+        let items =
+          match Option.value_exn response with
+          | `CompletionList list -> list.items
+          | `List items -> items
+        in
+        List.iteri items ~f:(fun idx (item : CompletionItem.t) ->
+          assert (item.sortText = Some (Printf.sprintf "%04d" idx)));
+        List.iter items ~f:(fun (item : CompletionItem.t) ->
+          if String.is_prefix item.label ~prefix:"target"
+          then (
+            match item.textEdit with
+            | Some (`TextEdit edit) ->
+              assert (
+                String.equal
+                  (Test.apply_edits source [ edit ])
+                  ("let target ~name ?limit count = name, limit, count\nlet value = "
+                   ^ edit.newText));
+              Printf.printf " %s" edit.newText
+            | _ -> failwith "expected a text edit"));
+        print_newline ())));
+  [%expect
+    {|
+    snippets=absent prefix=tar$: target
+    snippets=absent prefix=tar$get_typo: target
+    snippets=absent prefix=targ$et: target
+    snippets=false prefix=tar$: target
+    snippets=false prefix=tar$get_typo: target
+    snippets=false prefix=targ$et: target
+    snippets=true prefix=tar$: target target ~name:${1:_} ?limit:${2:_} ${3:_}$0
+    snippets=true prefix=tar$get_typo: target target ~name:${1:_} ?limit:${2:_} ${3:_}$0
+    snippets=true prefix=targ$et: target target ~name:${1:_} ?limit:${2:_} ${3:_}$0
+    |}]
+;;
+
+let%expect_test "whole-call snippets exclude labels record fields and non-functions" =
+  List.iter
+    [ "let f = ListLabels.map ~$"
+    ; "let f ?limit () = ()\nlet value = f ?$"
+    ; "type t = { field : int }\nlet f (x : t) = x.fi$"
+    ; "let number = 42\nlet value = num$"
+    ]
+    ~f:(fun source ->
+      let source, position = Test.parse_cursor source in
+      print_completions
+        ~capabilities:snippet_capabilities
+        ~pre_print:
+          (List.filter ~f:(fun (item : CompletionItem.t) -> item.kind = Some Snippet))
+        source
+        position);
+  [%expect
+    {|
+    No completions
+    No completions
+    No completions
+    No completions
+    |}]
+;;
+
+let%expect_test "whole-call snippets are disabled for non-OCaml documents" =
+  (* Keep the .ml URI and OCaml source so this exercises the language-id guard
+     without depending on an external Reason or MLX reader. *)
+  let source, position = Test.parse_cursor "let f = ListLabels.fo$" in
+  List.iter [ "reason"; "ocaml.mlx" ] ~f:(fun language_id ->
+    Helpers.test ~language_id ~capabilities:snippet_capabilities source (fun client ->
+      let+ response = request_completions client position in
+      let items =
+        match Option.value_exn response with
+        | `CompletionList list -> list.items
+        | `List items -> items
+      in
+      assert (
+        List.exists items ~f:(fun (item : CompletionItem.t) ->
+          String.equal item.label "fold_left" && item.kind = Some Value));
+      print_completion_response
+        ~pre_print:
+          (List.filter ~f:(fun (item : CompletionItem.t) -> item.kind = Some Snippet))
+        response));
+  [%expect
+    {|
+    No completions
+    No completions
+    |}]
+;;
+
+let%expect_test "whole-call snippets preserve deprecation without symbol resolve data" =
+  let tagSupport =
+    CompletionItemTagOptions.create ~valueSet:[ CompletionItemTag.Deprecated ]
+  in
+  let resolveSupport =
+    ClientCompletionItemResolveOptions.create ~properties:[ "documentation" ]
+  in
+  let completionItem =
+    ClientCompletionItemOptions.create ~snippetSupport:true ~tagSupport ~resolveSupport ()
+  in
+  let completion = CompletionClientCapabilities.create ~completionItem () in
+  let textDocument = TextDocumentClientCapabilities.create ~completion () in
+  let capabilities = ClientCapabilities.create ~textDocument () in
+  let source, position =
+    Test.parse_cursor
+      "module M : sig val old : a:int -> b:int -> int [@@deprecated] end = struct\n\
+       let old ~a ~b = a + b end\n\
+       let value = M.ol$"
+  in
+  iter_completions ~capabilities ~source ~position (fun response ->
+    let items =
+      match Option.value_exn response with
+      | `CompletionList list -> list.items
+      | `List items -> items
+    in
+    List.iter [ "old"; "old (call)" ] ~f:(fun label ->
+      let item =
+        List.find_exn items ~f:(fun (item : CompletionItem.t) ->
+          String.equal item.label label)
+      in
+      Printf.printf
+        "%s: deprecated=%b resolve=%b\n"
+        label
+        (item.tags = Some [ CompletionItemTag.Deprecated ])
+        (Option.is_some item.data)));
+  [%expect
+    {|
+    old: deprecated=true resolve=true
+    old (call): deprecated=true resolve=false
+    |}]
+;;
+
 let%expect_test "construct completion converts Merlin ranges to UTF-16" =
   let source = "let café : int = _" in
   let position = Position.create ~line:0 ~character:18 in

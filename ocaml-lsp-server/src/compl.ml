@@ -139,14 +139,12 @@ let reindex_sortText completion_items =
 
 module Complete_by_prefix = struct
   let completionItem_of_completion_entry
-        idx
         (entry : Query_protocol.Compl.entry)
         ~compl_params
         ~range
         ~supports_deprecated_field
         ~supports_deprecated_tag
         ~supports_enum_member
-        ~sort_text_width
     =
     let kind = completion_kind ~supports_enum_member entry.kind in
     let { Deprecation.deprecated; tags } =
@@ -163,12 +161,21 @@ module Complete_by_prefix = struct
       ~detail:entry.desc
       ?deprecated
       ?tags
-        (* Without this field the client is not forced to respect the order
-           provided by merlin. *)
-      ~sortText:(sortText_of_index ~width:sort_text_width idx)
       ?data:compl_params
       ~textEdit
       ()
+  ;;
+
+  let snippet_completion_item (plain : CompletionItem.t) ~range snippet =
+    { plain with
+      label = plain.label ^ " (call)"
+    ; filterText = Some plain.label
+    ; insertTextFormat = Some Snippet
+    ; kind = Some Snippet
+    ; textEdit =
+        Some (`TextEdit (TextEdit.create ~range ~newText:(Snippet.to_string snippet)))
+    ; data = None
+    }
   ;;
 
   let dispatch_cmd ~prefix position pipeline =
@@ -180,6 +187,7 @@ module Complete_by_prefix = struct
         ~supports_deprecated_field
         ~supports_deprecated_tag
         ~supports_enum_member
+        ~supports_snippets
         ~resolve
         ~prefix
         doc
@@ -187,6 +195,9 @@ module Complete_by_prefix = struct
         (completion : Query_protocol.completions)
     =
     let range = edit_range doc pos in
+    let supports_snippets =
+      supports_snippets && Document.syntax (Document.Merlin.to_doc doc) = Ocaml
+    in
     let completion_entries =
       match completion.context with
       | `Unknown -> completion.entries
@@ -202,7 +213,7 @@ module Complete_by_prefix = struct
           ; kind = `Label
           ; desc = typ
           ; info = ""
-          ; deprecated = false (* TODO this is wrong *)
+          ; deprecated = false
           })
     in
     (* we need to json-ify completion params to put them in completion item's
@@ -220,17 +231,43 @@ module Complete_by_prefix = struct
            CompletionParams.create ~textDocument ~position:pos ()
            |> CompletionParams.yojson_of_t)
     in
-    let sort_text_width = sortText_width (List.length completion_entries) in
-    List.mapi
-      completion_entries
-      ~f:
-        (completionItem_of_completion_entry
-           ~supports_deprecated_field
-           ~supports_deprecated_tag
-           ~supports_enum_member
-           ~range
-           ~compl_params
-           ~sort_text_width)
+    let items =
+      List.concat_map completion_entries ~f:(fun (entry : Query_protocol.Compl.entry) ->
+        let plain =
+          completionItem_of_completion_entry
+            entry
+            ~supports_deprecated_field
+            ~supports_deprecated_tag
+            ~supports_enum_member
+            ~range
+            ~compl_params
+        in
+        let snippets =
+          match supports_snippets with
+          | false -> []
+          | true ->
+            (match entry.kind with
+             | `Label
+             | `Constructor
+             | `Keyword
+             | `MethodCall
+             | `Module
+             | `Modtype
+             | `Type
+             | `Variant -> []
+             | `Value ->
+               (match Snippet_builder.application ~name:entry.name ~typ:entry.desc with
+                | None -> []
+                | Some snippet -> [ snippet_completion_item plain ~range snippet ]))
+        in
+        plain :: snippets)
+    in
+    let plain, calls =
+      List.partition_tf items ~f:(fun (item : CompletionItem.t) ->
+        item.kind <> Some Snippet)
+    in
+    (* [calls] are last on purpose so that the user doesn't see duplication *)
+    plain @ calls
   ;;
 
   let complete_keywords completion_position prefix =
@@ -258,6 +295,7 @@ module Complete_by_prefix = struct
         ~supports_deprecated_field
         ~supports_deprecated_tag
         ~supports_enum_member
+        ~supports_snippets
         ~resolve
     =
     let+ (completion : Query_protocol.completions) =
@@ -278,6 +316,7 @@ module Complete_by_prefix = struct
         ~supports_deprecated_field
         ~supports_deprecated_tag
         ~supports_enum_member
+        ~supports_snippets
         ~resolve
         ~prefix
         doc
@@ -358,7 +397,7 @@ module Complete_with_construct = struct
           ~textEdit:(`TextEdit edit)
           ~filterText:("_" ^ expr)
           ?insertTextFormat:(Option.some_if use_snippet InsertTextFormat.Snippet)
-          ~kind:CompletionItemKind.Text
+          ~kind:Text
           ~sortText:(sortText_of_index ~width:sort_text_width idx)
           ?command
           ()
@@ -439,6 +478,7 @@ let complete
                ~supports_deprecated_field
                ~supports_deprecated_tag
                ~supports_enum_member
+               ~supports_snippets
                ~resolve
            else (
              let preselect_first =
@@ -481,6 +521,7 @@ let complete
                  ~supports_deprecated_field
                  ~supports_deprecated_tag
                  ~supports_enum_member
+                 ~supports_snippets
                  ~prefix
                  merlin
                  pos
