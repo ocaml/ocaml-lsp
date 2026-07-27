@@ -79,8 +79,8 @@ let modifiers ~(legend : string array) (encoded_mods : int) =
     if encoded_mods = 0
     then acc
     else (
-      let k = Stdlib.Int.logand encoded_mods 1 in
-      let new_val = Stdlib.Int.shift_right encoded_mods 1 in
+      let k = Int.bit_and encoded_mods 1 in
+      let new_val = Int.shift_right encoded_mods 1 in
       if k = 0 then loop new_val (i + 1) acc else loop new_val (i + 1) (legend.(k) :: acc))
   in
   loop encoded_mods 0 [] |> List.rev
