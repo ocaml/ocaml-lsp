@@ -1002,7 +1002,7 @@ let%expect_test "cancelling before a request starts does not send it" =
     <opaque> |}]
 ;;
 
-let%expect_test "late responses can reach a reused cancelled request ID" =
+let%expect_test "cancelled request IDs stay reserved for late responses" =
   let request_sent = Fiber.Mvar.create () in
   let incoming, incoming_writer = pipe () in
   let output : Jsonrpc.Packet.t Out.t =
@@ -1026,21 +1026,22 @@ let%expect_test "late responses can reach a reused cancelled request ID" =
      | `Cancelled -> print_endline "cancelled request outcome: cancelled"
      | `Ok _ -> print_endline "cancelled request outcome: response");
     let replacement = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"replacement" () in
-    let late_response =
-      Jsonrpc.Response.ok (`Int 1) (`String "late response for cancelled request")
-    in
     let deliver_late_response () =
-      let* () = Fiber.Mvar.read request_sent in
+      let late_response =
+        Jsonrpc.Response.ok (`Int 1) (`String "late response for cancelled request")
+      in
       print_endline "wire response: late response for cancelled request";
       Out.write incoming_writer (Some (Jsonrpc.Packet.Response late_response))
     in
-    let* replacement_response, () =
+    let* replacement_result, () =
       Fiber.fork_and_join
-        (fun () -> Jrpc.request session replacement)
+        (fun () -> Fiber.collect_errors (fun () -> Jrpc.request session replacement))
         deliver_late_response
     in
-    (match replacement_response.result with
-     | Ok (`String value) -> Printf.printf "replacement outcome: %s\n" value
+    (match replacement_result with
+     | Error [ _ ] -> print_endline "replacement outcome: duplicate ID retained"
+     | Ok { result = Ok (`String value); _ } ->
+       Printf.printf "replacement outcome: %s\n" value
      | Ok _ | Error _ -> print_endline "replacement outcome: unexpected");
     Out.write incoming_writer None
   in
@@ -1056,7 +1057,7 @@ let%expect_test "late responses can reach a reused cancelled request ID" =
     <opaque> |}]
 ;;
 
-let%expect_test "cancelled request IDs can be reused" =
+let%expect_test "cancelled request IDs remain registered" =
   let request_sent = Fiber.Mvar.create () in
   let incoming, incoming_writer = pipe () in
   let output : Jsonrpc.Packet.t Out.t =
@@ -1068,26 +1069,31 @@ let%expect_test "cancelled request IDs can be reused" =
   in
   let session = Jrpc.create ~name:"client" (incoming, output) () in
   let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"cancel" () in
-  let run_request () =
+  let run_request ~wait_for_send =
     let cancel, response = Jrpc.request_with_cancel session request in
     let fire_cancel () =
-      let* () = Fiber.Mvar.read request_sent in
+      let* () = if wait_for_send then Fiber.Mvar.read request_sent else Fiber.return () in
       Jrpc.fire cancel
     in
-    Fiber.collect_errors (fun () -> Fiber.fork_and_join fire_cancel (fun () -> response))
-  in
-  let classify = function
-    | Ok ((), `Cancelled) -> "cancelled"
-    | Error [ _ ] -> "duplicate ID retained"
-    | Ok ((), `Ok _) | Error _ -> "unexpected"
+    Fiber.collect_errors (fun () ->
+      if wait_for_send
+      then Fiber.fork_and_join fire_cancel (fun () -> response)
+      else
+        let+ response, () = Fiber.fork_and_join (fun () -> response) fire_cancel in
+        (), response)
   in
   let run () =
     Fiber.fork_and_join_unit
       (fun () -> Jrpc.run session)
       (fun () ->
-         let* first = run_request () in
+         let* first = run_request ~wait_for_send:true in
+         let* second = run_request ~wait_for_send:false in
+         let classify = function
+           | Ok ((), `Cancelled) -> "cancelled"
+           | Error [ _ ] -> "duplicate ID retained"
+           | Ok ((), `Ok _) | Error _ -> "unexpected"
+         in
          Printf.printf "first: %s\n" (classify first);
-         let* second = run_request () in
          Printf.printf "second: %s\n" (classify second);
          Out.write incoming_writer None)
   in
