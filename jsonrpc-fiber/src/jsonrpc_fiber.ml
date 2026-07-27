@@ -6,6 +6,8 @@ module Id = struct
   module Table = Stdlib.MoreLabels.Hashtbl.Make (Id)
 end
 
+module Registration_id = Stdune.Id.Make ()
+
 module Notify = struct
   type t =
     | Stop
@@ -71,11 +73,25 @@ struct
     | Draining
     | Closed
 
+  type request_error =
+    [ `Stopped
+    | `Cancelled
+    | `Failed of Exn_with_backtrace.t list
+    ]
+
+  type response_ivar = (Response.t, request_error) result Fiber.Ivar.t
+
+  type registration =
+    { id : Id.t
+    ; token : Registration_id.t
+    ; ivar : response_ivar
+    }
+
   type 'state t =
     { chan : Chan.t
     ; on_request : ('state, Request.t) context -> (Reply.t * 'state) Fiber.t
     ; on_notification : ('state, Notification.t) context -> (Notify.t * 'state) Fiber.t
-    ; pending : (Response.t, [ `Stopped | `Cancelled ]) result Fiber.Ivar.t Id.Table.t
+    ; pending : registration Id.Table.t
     ; name : string
     ; mutable phase : phase
     ; mutable tick : int
@@ -135,11 +151,11 @@ struct
           Id.Table.fold t.pending ~init:[] ~f:(fun ~key:_ ~data:x acc -> x :: acc)
         in
         Id.Table.clear t.pending;
-        Fiber.parallel_iter to_cancel ~f:(fun ivar ->
-          let* res = Fiber.Ivar.peek ivar in
+        Fiber.parallel_iter to_cancel ~f:(fun registration ->
+          let* res = Fiber.Ivar.peek registration.ivar in
           match res with
           | Some _ -> Fiber.return ()
-          | None -> Fiber.Ivar.fill ivar (Error `Stopped))))
+          | None -> Fiber.Ivar.fill registration.ivar (Error `Stopped))))
   ;;
 
   let create
@@ -252,13 +268,13 @@ struct
       | None ->
         log "dropped";
         Fiber.return ()
-      | Some ivar ->
+      | Some registration ->
         log "acknowledged";
         Id.Table.remove t.pending r.id;
-        let* resp = Fiber.Ivar.peek ivar in
+        let* resp = Fiber.Ivar.peek registration.ivar in
         (match resp with
          | Some _ -> Fiber.return ()
-         | None -> Fiber.Ivar.fill ivar (Ok r))
+         | None -> Fiber.Ivar.fill registration.ivar (Ok r))
     and on_request (r : Request.t) =
       log t (fun () -> Log.msg "handling request" []);
       let* result =
@@ -340,55 +356,60 @@ struct
       Chan.send t.chan [ Notification n ])
   ;;
 
-  let register_request_ivar t id ivar =
-    match Id.Table.find_opt t.pending id with
-    | Some _ -> Code_error.raise "duplicate request id" []
-    | None -> Id.Table.add t.pending ~key:id ~data:ivar
+  let request_id_is_registered t id = Option.is_some (Id.Table.find_opt t.pending id)
+
+  let register_request t id ivar =
+    if request_id_is_registered t id
+    then Code_error.raise "duplicate request id" []
+    else (
+      let registration = { id; token = Registration_id.gen (); ivar } in
+      Id.Table.add t.pending ~key:id ~data:registration;
+      registration)
   ;;
 
-  let unregister_request_ivar t id ivar =
-    (* Receiving a response can remove its entry before the request fiber's
-       finalizer runs. The ID is no longer pending, so another request may reuse
-       it in between. Only remove the entry if it still belongs to this request;
-       otherwise the old finalizer would unregister the newer request.
-
-       TODO: Give pending registrations explicit ownership tokens so this check
-       does not rely on physical equality. *)
-    match Id.Table.find_opt t.pending id with
-    | Some registered when registered == ivar -> Id.Table.remove t.pending id
+  let unregister_request t registration =
+    (* Receiving a response can remove an entry before the request fiber's
+       finalizer runs, allowing another request to reuse the ID. Match the
+       explicit ownership token so the old finalizer cannot unregister the new
+       request. *)
+    match Id.Table.find_opt t.pending registration.id with
+    | Some registered when Registration_id.equal registered.token registration.token ->
+      Id.Table.remove t.pending registration.id
     | Some _ | None -> ()
   ;;
 
-  let unregister_completed_request_ivar t id ivar =
-    let+ result = Fiber.Ivar.peek ivar in
+  let unregister_completed_request t registration =
+    let+ result = Fiber.Ivar.peek registration.ivar in
     match result with
     | Some (Error `Cancelled) ->
       (* A server may still respond after cancellation. Keep the ID reserved so
          that response cannot be delivered to a newer request using the same ID.
          [on_response] removes the reservation when the response arrives. *)
       ()
-    | Some (Ok _ | Error `Stopped) | None -> unregister_request_ivar t id ivar
+    | Some (Ok _ | Error (`Stopped | `Failed _)) | None ->
+      unregister_request t registration
   ;;
 
   let read_request_ivar req ivar =
-    let+ res = Fiber.Ivar.read ivar in
-    match res with
-    | Ok s -> s
+    Fiber.Ivar.read ivar
+    >>= function
+    | Ok response -> Fiber.return response
     | Error `Cancelled -> assert false
     | Error `Stopped -> raise (Stopped req)
+    | Error (`Failed errors) -> Fiber.reraise_all errors
   ;;
 
   let request t (req : Request.t) =
     Fiber.of_thunk (fun () ->
       check_accepting_requests t;
       let ivar = Fiber.Ivar.create () in
+      let registration = register_request t req.id ivar in
       Fiber.finalize
         (fun () ->
-           register_request_ivar t req.id ivar;
            let* () = Chan.send t.chan [ Request req ] in
            read_request_ivar req ivar)
         ~finally:(fun () ->
-          unregister_request_ivar t req.id ivar;
+          unregister_request t registration;
           Fiber.return ()))
   ;;
 
@@ -402,13 +423,13 @@ struct
         | None -> Fiber.Ivar.fill ivar (Error `Cancelled))
     in
     let result () =
-      register_request_ivar t req.id ivar;
       let* () = Chan.send t.chan [ Request req ] in
-      let+ res = Fiber.Ivar.read ivar in
-      match res with
-      | Ok s -> `Ok s
-      | Error `Cancelled -> `Cancelled
+      Fiber.Ivar.read ivar
+      >>= function
+      | Ok response -> Fiber.return (`Ok response)
+      | Error `Cancelled -> Fiber.return `Cancelled
       | Error `Stopped -> raise (Stopped req)
+      | Error (`Failed errors) -> Fiber.reraise_all errors
     in
     let resp =
       Fiber.of_thunk (fun () ->
@@ -416,20 +437,18 @@ struct
         let* cancelled = Fiber.Ivar.peek ivar in
         match cancelled with
         | Some (Error `Cancelled) -> Fiber.return `Cancelled
-        | Some (Ok _ | Error `Stopped) -> assert false
+        | Some (Ok _ | Error (`Stopped | `Failed _)) -> assert false
         | None ->
+          let registration = register_request t req.id ivar in
           Fiber.finalize
             (fun () -> result ())
-            ~finally:(fun () -> unregister_completed_request_ivar t req.id ivar))
+            ~finally:(fun () -> unregister_completed_request t registration))
     in
     cancel, resp
   ;;
 
   module Batch = struct
-    type response =
-      Jsonrpc.Request.t
-      * (Jsonrpc.Response.t, [ `Stopped | `Cancelled ]) result Fiber.Ivar.t
-
+    type response = Jsonrpc.Request.t * response_ivar
     type t = [ `Notification of Notification.t | `Request of response ] list ref
 
     let await (req, resp) = read_request_ivar req resp
@@ -443,6 +462,24 @@ struct
       resp
     ;;
   end
+
+  let fail_batch ivars errors =
+    Fiber.parallel_iter ivars ~f:(fun (_, ivar) ->
+      let* result = Fiber.Ivar.peek ivar in
+      match result with
+      | Some _ -> Fiber.return ()
+      | None -> Fiber.Ivar.fill ivar (Error (`Failed errors)))
+  ;;
+
+  let validate_batch t ivars =
+    Fiber.of_thunk (fun () ->
+      let ids = Id.Table.create (List.length ivars) in
+      List.iter ivars ~f:(fun (id, _) ->
+        if request_id_is_registered t id || Option.is_some (Id.Table.find_opt ids id)
+        then Code_error.raise "duplicate request id" []
+        else Id.Table.add ids ~key:id ~data:());
+      Fiber.return ())
+  ;;
 
   let submit (t : _ t) (batch : Batch.t) =
     Fiber.of_thunk (fun () ->
@@ -460,7 +497,21 @@ struct
           | `Request ((r : Request.t), ivar) ->
             Jsonrpc.Packet.Request r :: pending, (r.id, ivar) :: ivars)
       in
-      List.iter ivars ~f:(fun (id, ivar) -> register_request_ivar t id ivar);
-      Chan.send t.chan pending)
+      let* validation = Fiber.collect_errors (fun () -> validate_batch t ivars) in
+      match validation with
+      | Error errors ->
+        let* () = fail_batch ivars errors in
+        Fiber.reraise_all errors
+      | Ok () ->
+        let registrations =
+          List.map ivars ~f:(fun (id, ivar) -> register_request t id ivar)
+        in
+        let* result = Fiber.collect_errors (fun () -> Chan.send t.chan pending) in
+        (match result with
+         | Ok () -> Fiber.return ()
+         | Error errors ->
+           List.iter registrations ~f:(unregister_request t);
+           let* () = fail_batch ivars errors in
+           Fiber.reraise_all errors))
   ;;
 end

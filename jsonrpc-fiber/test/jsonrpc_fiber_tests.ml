@@ -911,17 +911,15 @@ let%expect_test "submitting a batch sends one ordered packet group" =
     <opaque> |}]
 ;;
 
-let%expect_test "duplicate batch registration leaks earlier request IDs" =
+let%expect_test "batch registration is transactional" =
   let incoming, incoming_writer = pipe () in
   let sent = ref [] in
   let channel : Recording_chan.t = { input = incoming; sent } in
   let session = Recording_jrpc.create ~name:"client" channel () in
   let request method_ = Jsonrpc.Request.create ~id:(`Int 1) ~method_ () in
   let duplicate_batch = Recording_jrpc.Batch.create () in
-  let (_ : Recording_jrpc.Batch.response) =
-    Recording_jrpc.Batch.request duplicate_batch (request "first")
-  in
-  let (_ : Recording_jrpc.Batch.response) =
+  let first_response = Recording_jrpc.Batch.request duplicate_batch (request "first") in
+  let duplicate_response =
     Recording_jrpc.Batch.request duplicate_batch (request "duplicate")
   in
   let retry_batch = Recording_jrpc.Batch.create () in
@@ -929,17 +927,32 @@ let%expect_test "duplicate batch registration leaks earlier request IDs" =
     Recording_jrpc.Batch.request retry_batch (request "retry")
   in
   let classify = function
+    | Ok () -> "submitted"
     | Error [ _ ] -> "rejected"
-    | Ok () | Error _ -> "unexpected"
+    | Error _ -> "unexpected errors"
   in
   let operations () =
     let* duplicate =
       Fiber.collect_errors (fun () -> Recording_jrpc.submit session duplicate_batch)
     in
+    let* first_response =
+      Fiber.collect_errors (fun () -> Recording_jrpc.Batch.await first_response)
+    in
+    let* duplicate_response =
+      Fiber.collect_errors (fun () -> Recording_jrpc.Batch.await duplicate_response)
+    in
     let* retry =
       Fiber.collect_errors (fun () -> Recording_jrpc.submit session retry_batch)
     in
+    let classify_response = function
+      | Error [ _ ] -> "error"
+      | Ok _ | Error _ -> "unexpected"
+    in
     Printf.printf "duplicate batch: %s\n" (classify duplicate);
+    Printf.printf
+      "batch responses: %s, %s\n"
+      (classify_response first_response)
+      (classify_response duplicate_response);
     Printf.printf "retry: %s\n" (classify retry);
     print_packet_groups "wire packets" (List.rev !sent);
     Out.write incoming_writer None
@@ -949,13 +962,14 @@ let%expect_test "duplicate batch registration leaks earlier request IDs" =
   [%expect
     {|
     duplicate batch: rejected
-    retry: rejected
+    batch responses: error, error
+    retry: submitted
     wire packets:
-    []
+    [ [ { "id": 1, "method": "retry", "jsonrpc": "2.0" } ] ]
     <opaque> |}]
 ;;
 
-let%expect_test "batch send errors retain request IDs" =
+let%expect_test "batch request IDs may be retried after send errors" =
   let incoming, incoming_writer = pipe () in
   let attempts = ref [] in
   let channel : Failing_send_chan.t = { input = incoming; attempts } in
@@ -963,20 +977,30 @@ let%expect_test "batch send errors retain request IDs" =
   let submit () =
     let batch = Failing_send_jrpc.Batch.create () in
     let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"retry" () in
-    let (_ : Failing_send_jrpc.Batch.response) =
-      Failing_send_jrpc.Batch.request batch request
+    let response = Failing_send_jrpc.Batch.request batch request in
+    let* submit =
+      Fiber.collect_errors (fun () -> Failing_send_jrpc.submit session batch)
     in
-    Fiber.collect_errors (fun () -> Failing_send_jrpc.submit session batch)
+    let+ response =
+      Fiber.collect_errors (fun () -> Failing_send_jrpc.Batch.await response)
+    in
+    submit, response
   in
   let classify = function
     | Error [ _ ] -> "error"
-    | Ok () | Error _ -> "unexpected"
+    | Ok _ | Error _ -> "unexpected"
   in
   let operations () =
-    let* first = submit () in
-    let* retry = submit () in
-    Printf.printf "first: %s\n" (classify first);
-    Printf.printf "retry: %s\n" (classify retry);
+    let* first_submit, first_response = submit () in
+    let* second_submit, second_response = submit () in
+    Printf.printf
+      "first: submit %s, response %s\n"
+      (classify first_submit)
+      (classify first_response);
+    Printf.printf
+      "retry: submit %s, response %s\n"
+      (classify second_submit)
+      (classify second_response);
     print_packet_groups "wire attempts" (List.rev !attempts);
     Out.write incoming_writer None
   in
@@ -984,10 +1008,13 @@ let%expect_test "batch send errors retain request IDs" =
     Fiber.fork_and_join_unit (fun () -> Failing_send_jrpc.run session) operations);
   [%expect
     {|
-    first: error
-    retry: error
+    first: submit error, response error
+    retry: submit error, response error
     wire attempts:
-    [ [ { "id": 1, "method": "retry", "jsonrpc": "2.0" } ] ]
+    [
+      [ { "id": 1, "method": "retry", "jsonrpc": "2.0" } ],
+      [ { "id": 1, "method": "retry", "jsonrpc": "2.0" } ]
+    ]
     <opaque> |}]
 ;;
 
