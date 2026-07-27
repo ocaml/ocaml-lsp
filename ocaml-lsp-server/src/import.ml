@@ -232,6 +232,7 @@ include struct
   module InlayHintParams = InlayHintParams
   module InitializeParams = InitializeParams
   module InitializeResult = InitializeResult
+  module InsertTextFormat = InsertTextFormat
   module LanguageKind = LanguageKind
   module Location = Location
   module LogMessageParams = LogMessageParams
@@ -271,6 +272,7 @@ include struct
   module ServerInfo = ServerInfo
   module Server_notification = Lsp.Server_notification
   module SetTraceParams = SetTraceParams
+  module Snippet = Lsp.Snippet
   module ShowDocumentClientCapabilities = ShowDocumentClientCapabilities
   module ShowDocumentParams = ShowDocumentParams
   module ShowDocumentResult = ShowDocumentResult

@@ -19,6 +19,9 @@ val completion_deprecated_support : t -> bool
 (** Whether the client supports preselecting a completion item. *)
 val completion_preselect_support : t -> bool
 
+(** Whether the client supports snippets in completion items. *)
+val completion_snippet_support : t -> bool
+
 (** The properties the client supports resolving for completion items. *)
 val completion_resolve_properties : t -> string list option
 

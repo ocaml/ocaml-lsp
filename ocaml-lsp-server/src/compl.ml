@@ -299,7 +299,12 @@ module Complete_with_construct = struct
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
 
-  let process_dispatch_resp ~supportsJumpToNextHole ~fallback_range ~position = function
+  let process_dispatch_resp
+        ~supportsJumpToNextHole
+        ~supports_snippets
+        ~fallback_range
+        ~position
+    = function
     | None -> []
     | Some (loc, constructed_exprs) ->
       let range =
@@ -324,9 +329,22 @@ module Complete_with_construct = struct
       in
       let completionItem_of_constructed_expr idx expr =
         let expr_wo_parens = deparen_constr_expr expr in
-        let edit = { TextEdit.range; newText = expr } in
+        let snippet =
+          match supports_snippets with
+          | false -> None
+          | true ->
+            let { Snippet_builder.snippet; placeholders } =
+              Snippet_builder.source ~source:expr
+            in
+            Option.some_if (placeholders > 0) snippet
+        in
+        let use_snippet = Option.is_some snippet in
+        let edit =
+          let newText = Option.value_map snippet ~default:expr ~f:Snippet.to_string in
+          { TextEdit.range; newText }
+        in
         let command =
-          if supportsJumpToNextHole
+          if (not use_snippet) && supportsJumpToNextHole
           then
             Some
               (Client.Custom_commands.next_hole
@@ -339,6 +357,7 @@ module Complete_with_construct = struct
           ~label:expr_wo_parens
           ~textEdit:(`TextEdit edit)
           ~filterText:("_" ^ expr)
+          ?insertTextFormat:(Option.some_if use_snippet InsertTextFormat.Snippet)
           ~kind:CompletionItemKind.Text
           ~sortText:(sortText_of_index ~width:sort_text_width idx)
           ?command
@@ -358,6 +377,7 @@ let complete
     | `Other -> Fiber.return None
     | `Merlin merlin ->
       let capabilities = State.client_capabilities state in
+      let supports_snippets = Capabilities.completion_snippet_support capabilities in
       let resolve =
         match Capabilities.completion_resolve_properties capabilities with
         | None -> false
@@ -450,6 +470,7 @@ let complete
                in
                Complete_with_construct.process_dispatch_resp
                  ~supportsJumpToNextHole
+                 ~supports_snippets
                  ~fallback_range:(edit_range merlin pos)
                  ~position:pos
                  construct_cmd_resp
