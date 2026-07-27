@@ -83,9 +83,7 @@ module Syntax = struct
              ())
   ;;
 
-  let to_language_id x =
-    List.find_map all ~f:(fun (k, v) -> Option.some_if (v = x) k) |> Option.value_exn
-  ;;
+  let to_language_id x = List.find_map_exn all ~f:(fun (k, v) -> Option.some_if (v = x) k)
 
   let markdown_name = function
     | Ocaml -> "ocaml"
