@@ -110,7 +110,7 @@ let pp_impl add_string (snippet : t) : unit =
   in
   let rec go ctx = function
     | Text s ->
-      add_string s;
+      add_string (escape s);
       ctx
     | Concat (l, r) -> go (go ctx l) r
     | Tabstop (i, `None) -> with_ctx ctx i (fun i -> sprintf "$%d" i)
