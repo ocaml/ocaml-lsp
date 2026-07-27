@@ -300,7 +300,7 @@ let%expect_test "server enforces initialization ordering" =
     notification handled: workspace/didChangeConfiguration |}]
 ;;
 
-let%expect_test "remote request cancellation raises" =
+let%expect_test "remote request cancellation returns Cancelled" =
   let make_server io =
     let on_request =
       let on_request
@@ -351,7 +351,7 @@ let%expect_test "remote request cancellation raises" =
   test make_client make_server;
   [%expect
     {|
-    request_with_cancel: raised
+    request_with_cancel: cancelled
     Successful termination of test
     [TEST] finished |}]
 ;;
