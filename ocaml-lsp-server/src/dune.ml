@@ -703,19 +703,18 @@ let poll active last_error =
            dune *)
         let is_running dune = Map.mem active.instances (Registry.Dune.root dune) in
         Registry.current active.registry
-        |> List.fold_left ~init:[] ~f:(fun acc dune ->
+        |> List.filter_map ~f:(fun dune ->
           if
             (not (is_running dune))
             && List.exists workspace_folders ~f:(fun (wsf : WorkspaceFolder.t) ->
               uri_dune_overlap wsf.uri dune)
-          then Instance.create dune active.config :: acc
-          else acc)
+          then Some (Instance.create dune active.config)
+          else None)
       in
       List.map to_create ~f:(fun instance ->
         let source = Instance.source instance in
         let root = Registry.Dune.root source in
         root, instance)
-      |> List.rev
       |> Map.of_alist_multi (module String)
       |> Map.data
       |> Fiber.parallel_map ~f:(fun instances ->

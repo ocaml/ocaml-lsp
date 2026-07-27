@@ -45,15 +45,15 @@ let metric_count metrics name =
          Option.some_if (String.equal field "traceEvents") value)
      with
      | Some (`List events) ->
-       List.fold_left events ~init:0 ~f:(fun count -> function
+       List.count events ~f:(function
          | `Assoc fields ->
            (match
               List.find_map fields ~f:(fun (field, value) ->
                 Option.some_if (String.equal field "name") value)
             with
-            | Some (`String event_name) when String.equal event_name name -> count + 1
-            | Some _ | None -> count)
-         | _ -> count)
+            | Some (`String event_name) -> String.equal event_name name
+            | Some _ | None -> false)
+         | _ -> false)
      | _ -> 0)
   | _ -> 0
 ;;

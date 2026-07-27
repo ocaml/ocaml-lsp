@@ -28,33 +28,13 @@ module Request_params = struct
     | _ -> None
   ;;
 
-  let args_of_yojson_list args =
-    let open Option.O in
-    let+ args =
-      List.fold_left
-        ~f:(fun acc x ->
-          let* acc in
-          let+ x = stringish_of_yojson x in
-          x :: acc)
-        ~init:(Some [])
-        args
-    in
-    List.rev args
-  ;;
+  let args_of_yojson_list args = List.map args ~f:stringish_of_yojson |> Option.all
 
   let args_of_yojson_assoc args =
-    let open Option.O in
-    let+ args =
-      List.fold_left
-        ~f:(fun acc (key, value) ->
-          let key = "-" ^ key in
-          let* acc in
-          let+ x = stringish_of_yojson value in
-          x :: key :: acc)
-        ~init:(Some [])
-        args
-    in
-    List.rev args
+    List.map args ~f:(fun (key, value) ->
+      Option.map (stringish_of_yojson value) ~f:(fun value -> [ "-" ^ key; value ]))
+    |> Option.all
+    |> Option.map ~f:List.concat
   ;;
 
   let args_of_yojson json =

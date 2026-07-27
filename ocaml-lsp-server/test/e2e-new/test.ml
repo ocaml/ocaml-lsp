@@ -293,8 +293,7 @@ let open_document ?(language_id = "ocaml") ~client ~uri ~source () =
 let offset_of_position src (pos : Position.t) =
   let line_offset =
     String.split_lines src
-    |> fun lines ->
-    List.take lines pos.line |> List.fold_left ~init:0 ~f:(fun s l -> s + String.length l)
+    |> fun lines -> List.take lines pos.line |> List.sum (module Int) ~f:String.length
   in
   line_offset + pos.line (* account for line endings *) + pos.character
 ;;
