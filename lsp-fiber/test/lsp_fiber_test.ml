@@ -300,6 +300,34 @@ let%expect_test "server enforces initialization ordering" =
     notification handled: workspace/didChangeConfiguration |}]
 ;;
 
+let%expect_test "forcing a lazy fiber twice may run it twice" =
+  Printexc.record_backtrace false;
+  let run () =
+    let runs = ref 0 in
+    let lazy_fiber =
+      Lazy_fiber.create (fun () ->
+        incr runs;
+        Fiber.return 42)
+    in
+    let first = Lazy_fiber.force lazy_fiber in
+    let second = Lazy_fiber.force lazy_fiber in
+    let+ result =
+      Fiber.collect_errors (fun () ->
+        let+ _, _ = Fiber.fork_and_join (fun () -> first) (fun () -> second) in
+        ())
+    in
+    let result =
+      match result with
+      | Error [ _ ] -> "error"
+      | Ok () | Error _ -> "unexpected"
+    in
+    Printf.printf "result: %s; runs: %d\n" result !runs
+  in
+  Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
+  [%expect.unreachable]
+[@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
+;;
+
 let%expect_test "end to end run of lsp tests" =
   test End_to_end_client.run End_to_end_server.run;
   [%expect
