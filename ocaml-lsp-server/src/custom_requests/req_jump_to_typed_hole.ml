@@ -24,12 +24,7 @@ module Request_params = struct
     match TextDocumentIdentifier.yojson_of_t text_document with
     | `Assoc assoc ->
       let position = "position", Position.yojson_of_t position in
-      let range =
-        ( "range"
-        , match range with
-          | None -> `Null
-          | Some r -> Range.yojson_of_t r )
-      in
+      let range = "range", Option.value_map range ~default:`Null ~f:Range.yojson_of_t in
       let direction = "direction", yojson_of_direction direction in
       `Assoc (direction :: position :: range :: assoc)
     | _ -> (* unreachable *) assert false

@@ -370,7 +370,7 @@ let find_dune_project_context start_dir =
     | None ->
       (* XXX what's ["dune-file"]? *)
       let fnames = List.map ~f:(Filename.concat dir) [ "dune"; "dune-file" ] in
-      if List.exists ~f:file_exists fnames then Some dir else None
+      Option.some_if (List.exists ~f:file_exists fnames) dir
   in
   let rec loop ~workdir ~dir =
     match

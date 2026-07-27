@@ -10,9 +10,7 @@ let location_of_merlin_loc uri : _ -> (_, string) result = function
   | `Not_found (ident, where) ->
     let msg =
       let msg = sprintf "%S not found." ident in
-      match where with
-      | None -> msg
-      | Some w -> sprintf "%s last looked in %s" msg w
+      Option.value_map where ~default:msg ~f:(sprintf "%s last looked in %s" msg)
     in
     Error msg
   | `Not_in_env m -> Error (sprintf "Not in environment: %s" m)
@@ -21,11 +19,7 @@ let location_of_merlin_loc uri : _ -> (_, string) result = function
       (Position.of_lexical_position lex_position
        |> Option.map ~f:(fun position ->
          let range = { Range.start = position; end_ = position } in
-         let uri =
-           match path with
-           | None -> uri
-           | Some path -> Uri.of_path path
-         in
+         let uri = Option.value_map path ~default:uri ~f:Uri.of_path in
          let locs = [ { Location.uri; range } ] in
          `Location locs))
 ;;

@@ -219,7 +219,7 @@ let to_test_result workspaces (symbol : SymbolInformation.t) =
   let path = DocumentUri.to_path location.uri in
   let workspace_path =
     List.find_map workspaces ~f:(fun workspace ->
-      if String.is_prefix path ~prefix:workspace.path then Some workspace.path else None)
+      Option.some_if (String.is_prefix path ~prefix:workspace.path) workspace.path)
   in
   let relative_path =
     match workspace_path with

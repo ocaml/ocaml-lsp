@@ -101,10 +101,7 @@ let yojson_of_result = function
     `Assoc
       [ "kind", `String "not-found"
       ; "uri", DocumentUri.yojson_of_t uri
-      ; ( "type"
-        , match ty with
-          | None -> `Null
-          | Some ty -> `String ty )
+      ; "type", Option.value_map ty ~default:`Null ~f:(fun ty -> `String ty)
       ]
 ;;
 

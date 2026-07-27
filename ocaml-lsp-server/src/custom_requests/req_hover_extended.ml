@@ -151,8 +151,7 @@ module Request_params = struct
   ;;
 
   let of_jsonrpc_params params =
-    try Some (t_of_yojson (Jsonrpc.Structured.yojson_of_t params)) with
-    | _exn -> None
+    Option.try_with (fun () -> t_of_yojson (Jsonrpc.Structured.yojson_of_t params))
   ;;
 
   let of_jsonrpc_params_exn params : t =
@@ -176,11 +175,8 @@ let on_request ~(params : Jsonrpc.Structured.t option) (server : State.t Server.
       ; position = cursor_position
       ; workDoneToken = None
       }
-      (match verbosity with
-       | None -> Hover_req.Extended_variable
-       | Some v -> Hover_req.Extended_fixed v)
+      (Option.value_map verbosity ~default:Hover_req.Extended_variable ~f:(fun v ->
+         Hover_req.Extended_fixed v))
   in
-  match res with
-  | None -> `Null
-  | Some res -> Hover.yojson_of_t res
+  Option.value_map res ~default:`Null ~f:Hover.yojson_of_t
 ;;

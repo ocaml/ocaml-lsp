@@ -275,11 +275,7 @@ let symbols_of_outline resolve_uri outline =
 let symbols_from_cm_file ~filter ~resolve_uri (cancel : Fiber.Cancel.t option) cm_file =
   let cmt =
     let filename = string_of_cm cm_file in
-    let cancelled =
-      match cancel with
-      | None -> false
-      | Some cancel -> Fiber.Cancel.fired cancel
-    in
+    let cancelled = Option.exists cancel ~f:Fiber.Cancel.fired in
     if cancelled then raise Cancelled else Cmt_format.read_cmt filename
   in
   match cmt.cmt_sourcefile with

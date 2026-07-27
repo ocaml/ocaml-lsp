@@ -67,7 +67,6 @@ let on_request ~params state =
           in
           List.find_map enclosing_nodes ~f:find_fst_structure_item_or_structure)
       in
-      (match node with
-       | None -> `Null
-       | Some loc -> Range.of_loc loc |> Range.yojson_of_t))
+      Option.value_map node ~default:`Null ~f:(fun loc ->
+        Range.of_loc loc |> Range.yojson_of_t))
 ;;

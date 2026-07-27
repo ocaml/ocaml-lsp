@@ -102,10 +102,8 @@ let%expect_test "generated source has an existing workspace-symbol location" =
     let* symbols = workspace_symbol client "generated_workspace_symbol" in
     let symbols = Option.value symbols ~default:[] in
     (match
-       List.find_map symbols ~f:(fun (symbol : SymbolInformation.t) ->
-         if String.equal symbol.name "generated_workspace_symbol"
-         then Some symbol
-         else None)
+       List.find symbols ~f:(fun (symbol : SymbolInformation.t) ->
+         String.equal symbol.name "generated_workspace_symbol")
      with
      | None -> print_endline "generated_workspace_symbol: not found"
      | Some symbol ->
