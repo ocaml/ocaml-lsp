@@ -241,7 +241,9 @@ module Entry = struct
               (Pid.to_int t.process.pid)
               t.process.initial_cwd)
       in
-      Dot_protocol_io.Commands.halt t.process.session)
+      let+ () = Dot_protocol_io.Commands.halt t.process.session in
+      (* Do not leave a process that handled [Halt] blocked waiting for more input. *)
+      Lev_fiber.Io.close t.process.stdin)
   ;;
 
   let destroy (t : t) =
