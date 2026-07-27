@@ -9,6 +9,4 @@
   lsp
   ppx_yojson_conv_lib
   stdune
-  yojson)
- (instrumentation
-  (backend bisect_ppx)))
+  yojson))

@@ -41,8 +41,6 @@
   ocamlc-loc
   base)
  (lint
-  (pps ppx_yojson_conv))
- (instrumentation
-  (backend bisect_ppx)))
+  (pps ppx_yojson_conv)))
 
 (include_subdirs unqualified)

@@ -20,8 +20,6 @@
  (synopsis "libev bindings")
  (libraries unix)
  (foreign_archives ev)
- (instrumentation
-  (backend bisect_ppx))
  (foreign_stubs
   (language c)
   (names lev_stubs)))
