@@ -203,3 +203,113 @@ ignore (bar ?foo ())
     }
     |}]
 ;;
+
+let setup_multi_file_workspace () =
+  let dir = Test.temp_dir "ocamllsp-rename-" in
+  Test.write_file (Filename.concat dir "dune-project") "(lang dune 3.0)\n";
+  Test.write_file
+    (Filename.concat dir "dune")
+    "(library\n (name rename_files)\n (wrapped false))\n";
+  Test.write_file (Filename.concat dir "lib.ml") "let value = 1\n";
+  Test.write_file (Filename.concat dir "main.ml") "let result = Lib.value\n";
+  Test.write_file (Filename.concat dir "other.ml") "let other = Lib.value\n";
+  Test.run_command ~cwd:dir "dune build @ocaml-index";
+  dir
+;;
+
+let open_project_document client ~uri ~version ~text =
+  let textDocument =
+    TextDocumentItem.create ~uri ~languageId:(LanguageKind.Other "ocaml") ~version ~text
+  in
+  Client.notification
+    client
+    (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
+;;
+
+let print_document_changes (edit : WorkspaceEdit.t) =
+  match edit.documentChanges with
+  | None -> print_endline "missing documentChanges"
+  | Some changes ->
+    List.iter changes ~f:(function
+      | `TextDocumentEdit { textDocument = { uri; version }; edits } ->
+        let version = Option.value_map version ~default:"null" ~f:Int.to_string in
+        Printf.printf
+          "%s (version %s)\n"
+          (DocumentUri.to_path uri |> Filename.basename)
+          version;
+        List.iter edits ~f:(function
+          | `TextEdit edit -> TextEdit.yojson_of_t edit |> Test.print_result
+          | `AnnotatedTextEdit _ | `SnippetTextEdit _ ->
+            failwith "unexpected annotated or snippet edit")
+      | `CreateFile _ | `RenameFile _ | `DeleteFile _ ->
+        failwith "unexpected resource operation")
+;;
+
+let%expect_test "rename a symbol across open and closed files" =
+  let dir = setup_multi_file_workspace () in
+  let uri name = Filename.concat dir name |> DocumentUri.of_path in
+  let lib_uri = uri "lib.ml" in
+  let main_uri = uri "main.ml" in
+  let workspace = WorkspaceFolder.create ~uri:(DocumentUri.of_path dir) ~name:"rename" in
+  let stderr = Unix.openfile Test.null_device [ O_WRONLY ] 0 in
+  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  (Test.run_initialized
+     ~cwd:dir
+     ~stderr
+     ~handler
+     ~capabilities:(capabilities ~documentChanges:true)
+     ~workspaceFolders:(Some [ workspace ])
+   @@ fun client ->
+   let* () =
+     open_project_document client ~uri:lib_uri ~version:7 ~text:"let value = 1\n"
+   in
+   let* () =
+     open_project_document
+       client
+       ~uri:main_uri
+       ~version:3
+       ~text:"let result = Lib.value\n"
+   in
+   let textDocument = TextDocumentIdentifier.create ~uri:main_uri in
+   let* response =
+     Client.request
+       client
+       (TextDocumentRename
+          (RenameParams.create
+             ~textDocument
+             ~position:(Position.create ~line:0 ~character:20)
+             ~newName:"renamed"
+             ()))
+   in
+   print_document_changes response;
+   let* () = Client.request client Shutdown in
+   Client.stop client);
+  Unix.close stderr;
+  [%expect
+    {|
+    lib.ml (version 3)
+    {
+      "newText": "renamed",
+      "range": {
+        "end": { "character": 9, "line": 0 },
+        "start": { "character": 4, "line": 0 }
+      }
+    }
+    main.ml (version 3)
+    {
+      "newText": "renamed",
+      "range": {
+        "end": { "character": 22, "line": 0 },
+        "start": { "character": 17, "line": 0 }
+      }
+    }
+    other.ml (version 3)
+    {
+      "newText": "renamed",
+      "range": {
+        "end": { "character": 21, "line": 0 },
+        "start": { "character": 16, "line": 0 }
+      }
+    }
+    |}]
+;;

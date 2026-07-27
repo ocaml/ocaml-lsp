@@ -81,7 +81,8 @@ let waitpid ?(timeout = 5.0) pid =
 
 module T : sig
   val run_with_status
-    :  ?extra_env:string list
+    :  ?cwd:string
+    -> ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> ?stderr:Unix.file_descr
     -> ?timeout:float
@@ -90,7 +91,8 @@ module T : sig
     -> Unix.process_status * 'a
 
   val run
-    :  ?extra_env:string list
+    :  ?cwd:string
+    -> ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> ?stderr:Unix.file_descr
     -> ?timeout:float
@@ -101,7 +103,8 @@ module T : sig
   (** Run a test after starting and initializing its client. The test remains
       responsible for shutting the client down. *)
   val run_initialized
-    :  ?extra_env:string list
+    :  ?cwd:string
+    -> ?extra_env:string list
     -> ?handler:unit Client.Handler.t
     -> ?stderr:Unix.file_descr
     -> ?timeout:float
@@ -113,6 +116,7 @@ module T : sig
     -> 'a
 end = struct
   let run_with_status
+        ?cwd
         ?(extra_env = [])
         ?handler
         ?(stderr = Unix.stderr)
@@ -124,7 +128,16 @@ end = struct
     let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
     let pid =
       let env = extra_env @ Array.to_list (Unix.environment ()) |> Spawn.Env.of_list in
-      Spawn.spawn ~env ~prog:bin ~argv:[ bin ] ~stdin:stdin_i ~stdout:stdout_o ~stderr ()
+      let cwd = Option.map cwd ~f:(fun cwd -> Spawn.Working_dir.Path cwd) in
+      Spawn.spawn
+        ?cwd
+        ~env
+        ~prog:bin
+        ~argv:[ bin ]
+        ~stdin:stdin_i
+        ~stdout:stdout_o
+        ~stderr
+        ()
     in
     Option.iter on_spawn ~f:(fun on_spawn -> on_spawn pid);
     Unix.close stdin_i;
@@ -186,11 +199,12 @@ end = struct
     |> Lev_fiber.Error.ok_exn
   ;;
 
-  let run ?extra_env ?handler ?stderr ?timeout ?on_spawn f =
-    snd @@ run_with_status ?extra_env ?handler ?stderr ?timeout ?on_spawn f
+  let run ?cwd ?extra_env ?handler ?stderr ?timeout ?on_spawn f =
+    snd @@ run_with_status ?cwd ?extra_env ?handler ?stderr ?timeout ?on_spawn f
   ;;
 
   let run_initialized
+        ?cwd
         ?extra_env
         ?handler
         ?stderr
@@ -201,7 +215,7 @@ end = struct
         ?on_spawn
         f
     =
-    run ?extra_env ?handler ?stderr ?timeout ?on_spawn
+    run ?cwd ?extra_env ?handler ?stderr ?timeout ?on_spawn
     @@ fun client ->
     let run_client () = start_client ~capabilities ?workspaceFolders ?trace client in
     let run_test () =
