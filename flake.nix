@@ -78,6 +78,14 @@
             ];
           });
 
+          ocaml-index = buildDunePackage {
+            pname = "ocaml-index";
+            src = pkgs.ocamlPackages.merlin-lib.src;
+            version = pkgs.ocamlPackages.merlin-lib.version;
+            doCheck = false;
+            propagatedBuildInputs = [ pkgs.ocamlPackages.merlin-lib ];
+          };
+
           ocaml-lsp = with pkgs.ocamlPackages;
             buildDunePackage (basePackage // {
               pname = package;
@@ -88,6 +96,7 @@
                 p.ppx_expect
                 p.ppx_sexp_conv
                 p.ppx_yojson_conv
+                ocaml-index
                 (ocamlformat pkgs)
               ];
               buildInputs = [
@@ -161,7 +170,7 @@
         checkPackages = makeLocalPackages checkPkgs;
         devShell = localPackages: nixpkgs:
           nixpkgs.mkShell {
-            buildInputs = [ nixpkgs.ocamlPackages.utop ];
+            buildInputs = [ nixpkgs.ocamlPackages.utop localPackages.ocaml-index ];
             inputsFrom =
               builtins.map (x: x.overrideAttrs (p: n: { doCheck = true; }))
               (builtins.attrValues localPackages);
@@ -195,6 +204,7 @@
               base_quickcheck
               ppx_expect
               ppx_sexp_conv
+              checkPackages.ocaml-index
               (ocamlformat checkPkgs)
             ];
             # Keep Dune RPC Unix socket paths below the platform limit.
