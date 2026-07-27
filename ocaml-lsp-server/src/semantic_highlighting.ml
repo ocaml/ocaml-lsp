@@ -360,7 +360,7 @@ end = struct
       [ "asr"; "land"; "lor"; "lsl"; "lsr"; "lxor"; "mod"; "or" ]
       name
       ~equal:String.equal
-    || (String.length name > 0 && is_operator_initial name.[0])
+    || ((not (String.is_empty name)) && is_operator_initial name.[0])
     || (String.length name > 3
         && (String.is_prefix name ~prefix:"let" || String.is_prefix name ~prefix:"and")
         && is_operator_initial name.[3])

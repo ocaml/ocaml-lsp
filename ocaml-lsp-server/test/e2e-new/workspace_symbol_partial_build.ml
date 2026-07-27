@@ -93,10 +93,7 @@ let setup_generated_workspace () =
 ;;
 
 let relative_path ~root path =
-  let prefix = root ^ Filename.dir_sep in
-  if String.is_prefix path ~prefix
-  then String.drop_prefix path (String.length prefix)
-  else path
+  String.chop_prefix_if_exists path ~prefix:(root ^ Filename.dir_sep)
 ;;
 
 let%expect_test "generated source has an existing workspace-symbol location" =
