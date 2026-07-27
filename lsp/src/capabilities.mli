@@ -108,6 +108,9 @@ val text_document_sync_dynamic_registration : t -> bool
 (** The set of workspace-symbol tags the client supports. *)
 val workspace_symbol_tag_support : t -> SymbolTag.t list option
 
+(** Whether the client supports snippet edits in workspace edits. *)
+val workspace_edit_snippet_support : t -> bool
+
 (** Whether the client supports document changes in workspace edits. *)
 val workspace_edit_document_changes : t -> bool
 

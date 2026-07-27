@@ -373,7 +373,7 @@ module Complete_with_construct = struct
           | false -> None
           | true ->
             let { Snippet_builder.snippet; placeholders } =
-              Snippet_builder.source ~source:expr
+              Snippet_builder.source ~holes:`Expression ~source:expr
             in
             Option.some_if (placeholders > 0) snippet
         in

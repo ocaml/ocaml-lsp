@@ -7,13 +7,13 @@ let range ~start_line ~start_character ~end_line ~end_character =
   Range.create ~start ~end_
 ;;
 
-let iter_code_actions ?prep ?path ?capabilities ?(diagnostics = []) ?only ~source range =
+let iter_code_actions ?prep ?path ?capabilities ?(diagnostics = []) ?only ~source range k =
   let makeRequest textDocument =
     let context = CodeActionContext.create ~diagnostics ?only () in
     Lsp.Client_request.CodeAction
       (CodeActionParams.create ~textDocument ~range ~context ())
   in
-  iter_lsp_response ?prep ?path ?capabilities ~language_id:"ocaml" ~makeRequest ~source
+  iter_lsp_response ?prep ?path ?capabilities ~language_id:"ocaml" ~makeRequest ~source k
 ;;
 
 let print_code_action_result ?(filter = fun _ -> true) = function
@@ -55,6 +55,16 @@ let print_code_actions
     (print_code_action_result ?filter)
 ;;
 
+let snippet_edit_capabilities =
+  let workspace =
+    let workspaceEdit =
+      WorkspaceEditClientCapabilities.create ~snippetEditSupport:true ()
+    in
+    WorkspaceClientCapabilities.create ~workspaceEdit ()
+  in
+  ClientCapabilities.create ~workspace ()
+;;
+
 let find_action action_name action =
   match action with
   | `CodeAction { CodeAction.kind = Some (Other name); _ } ->
@@ -69,6 +79,7 @@ let parse_selection = Test.parse_selection
 let apply_code_action
       ?prep
       ?path
+      ?capabilities
       ?diagnostics
       ?(filter = fun _ -> true)
       title
@@ -78,7 +89,7 @@ let apply_code_action
   let open Option.O in
   (* collect code action results *)
   let code_actions = ref None in
-  iter_code_actions ?prep ?path ?diagnostics ~source range (fun ca ->
+  iter_code_actions ?prep ?path ?capabilities ?diagnostics ~source range (fun ca ->
     code_actions := Some ca);
   let* m_code_actions = !code_actions in
   let* code_actions = m_code_actions in
@@ -94,9 +105,20 @@ let apply_code_action
   Test.apply_workspace_edit source edit
 ;;
 
-let code_action_test ?prep ?path ?diagnostics ?filter ?(print_none = false) ~title source =
+let code_action_test
+      ?prep
+      ?path
+      ?capabilities
+      ?diagnostics
+      ?filter
+      ?(print_none = false)
+      ~title
+      source
+  =
   let src, range = parse_selection source in
-  match apply_code_action ?prep ?path ?diagnostics ?filter title src range with
+  match
+    apply_code_action ?prep ?path ?capabilities ?diagnostics ?filter title src range
+  with
   | None -> if print_none then print_endline "None"
   | Some result -> print_string result
 ;;

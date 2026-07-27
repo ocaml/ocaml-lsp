@@ -4,13 +4,41 @@ open Fiber.O
 let action_kind = "destruct (enumerate cases)"
 let kind = CodeActionKind.Other action_kind
 
-let code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc (loc, newText) =
+let code_action_of_case_analysis
+      ~action_kind
+      ~supportsJumpToNextHole
+      ~supportsSnippetEdits
+      doc
+      (loc, newText)
+  =
   let range : Range.t = Range.of_loc loc in
   let textedit : TextEdit.t = { range; newText } in
-  let edit = Text_document.workspace_edit (Document.text_document doc) [ textedit ] in
+  let snippet =
+    match supportsSnippetEdits with
+    | false -> None
+    | true ->
+      let { Snippet_builder.snippet; placeholders } =
+        Snippet_builder.source ~holes:`After_arrow ~source:newText
+      in
+      Option.some_if (placeholders > 0) snippet
+  in
+  let edit =
+    let edits =
+      match snippet with
+      | None -> [ `TextEdit textedit ]
+      | Some snippet ->
+        [ `SnippetTextEdit
+            (SnippetTextEdit.create
+               ~range
+               ~snippet:(StringValue.create ~value:(Snippet.to_string snippet))
+               ())
+        ]
+    in
+    Text_document.workspace_edit_of_edits (Document.text_document doc) edits
+  in
   let title = String.capitalize action_kind in
   let command =
-    if supportsJumpToNextHole
+    if Option.is_none snippet && supportsJumpToNextHole
     then
       Some
         (Client.Custom_commands.next_hole
@@ -61,7 +89,15 @@ let run state doc ~(dispatch : dispatch) ~action_kind ~(range : Range.t) ~postpr
       let supportsJumpToNextHole =
         Experimental.bool (State.experimental_client_capabilities state) "jumpToNextHole"
       in
-      code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc reply)
+      let supportsSnippetEdits =
+        State.client_capabilities state |> Capabilities.workspace_edit_snippet_support
+      in
+      code_action_of_case_analysis
+        ~action_kind
+        ~supportsJumpToNextHole
+        ~supportsSnippetEdits
+        doc
+        reply)
   | Error
       { exn =
           ( Merlin_analysis.Destruct.Wrong_parent _

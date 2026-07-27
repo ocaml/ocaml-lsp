@@ -10,6 +10,23 @@ let destruct_line =
     ~title:"Destruct-line (enumerate cases, use existing match)"
 ;;
 
+let has_edit ~snippet ~jump_to_next_hole = function
+  | `CodeAction { CodeAction.edit = Some edit; command; _ } ->
+    let command_matches =
+      match command with
+      | None -> not jump_to_next_hole
+      | Some { command = "ocaml.next-hole"; _ } -> jump_to_next_hole
+      | Some _ -> false
+    in
+    command_matches
+    &&
+      (match edit.documentChanges with
+      | Some [ `TextDocumentEdit { edits = [ `SnippetTextEdit _ ]; _ } ] -> snippet
+      | Some [ `TextDocumentEdit { edits = [ `TextEdit _ ]; _ } ] -> not snippet
+      | _ -> false)
+  | _ -> false
+;;
+
 let rec censor_backtraces = function
   | `Assoc fields ->
     `Assoc
@@ -103,6 +120,151 @@ let f (x : t) = $x$
     {|
     type t = Foo of int | Bar of bool
     let f (x : t) = match x with | Foo _ -> _ | Bar _ -> _
+    |}]
+;;
+
+let%expect_test "destruct uses snippet edits for branch bodies when supported" =
+  destruct
+    ~capabilities:snippet_edit_capabilities
+    ~filter:(has_edit ~snippet:true ~jump_to_next_hole:false)
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) = $x$
+|ocaml};
+  [%expect
+    {|
+    type t = Foo of int | Bar of bool
+    let f (x : t) = match x with | Foo _ -> ${1:_} | Bar _ -> ${2:_}$0
+    |}]
+;;
+
+let%expect_test "destruct snippet edits and next-hole fallbacks" =
+  List.iter [ None; Some false; Some true ] ~f:(fun snippetEditSupport ->
+    List.iter [ false; true ] ~f:(fun jumpToNextHole ->
+      let workspaceEdit = WorkspaceEditClientCapabilities.create ?snippetEditSupport () in
+      let workspace = WorkspaceClientCapabilities.create ~workspaceEdit () in
+      let capabilities =
+        ClientCapabilities.create
+          ~workspace
+          ~experimental:(`Assoc [ "jumpToNextHole", `Bool jumpToNextHole ])
+          ()
+      in
+      Printf.printf
+        "snippetEditSupport=%s jumpToNextHole=%b\n"
+        (Option.value_map snippetEditSupport ~default:"absent" ~f:Bool.to_string)
+        jumpToNextHole;
+      let snippet = Option.value snippetEditSupport ~default:false in
+      destruct
+        ~capabilities
+        ~filter:(has_edit ~snippet ~jump_to_next_hole:(jumpToNextHole && not snippet))
+        {ocaml|let f (x : bool) = $x$
+|ocaml};
+      (* Refining a pattern generates no branch bodies: even a snippet-capable
+         client must receive a plain edit, retaining its next-hole fallback. *)
+      destruct
+        ~capabilities
+        ~filter:(has_edit ~snippet:false ~jump_to_next_hole:jumpToNextHole)
+        {ocaml|let f (x : bool) = match x with | $_$ -> ()
+|ocaml}));
+  [%expect
+    {|
+    snippetEditSupport=absent jumpToNextHole=false
+    let f (x : bool) = match x with | false -> _ | true -> _
+    let f (x : bool) = match x with | false | true -> ()
+    snippetEditSupport=absent jumpToNextHole=true
+    let f (x : bool) = match x with | false -> _ | true -> _
+    let f (x : bool) = match x with | false | true -> ()
+    snippetEditSupport=false jumpToNextHole=false
+    let f (x : bool) = match x with | false -> _ | true -> _
+    let f (x : bool) = match x with | false | true -> ()
+    snippetEditSupport=false jumpToNextHole=true
+    let f (x : bool) = match x with | false -> _ | true -> _
+    let f (x : bool) = match x with | false | true -> ()
+    snippetEditSupport=true jumpToNextHole=false
+    let f (x : bool) = match x with | false -> ${1:_} | true -> ${2:_}$0
+    let f (x : bool) = match x with | false | true -> ()
+    snippetEditSupport=true jumpToNextHole=true
+    let f (x : bool) = match x with | false -> ${1:_} | true -> ${2:_}$0
+    let f (x : bool) = match x with | false | true -> ()
+    |}]
+;;
+
+let%expect_test "destruct-line snippets expand a multiline match" =
+  destruct_line
+    ~capabilities:snippet_edit_capabilities
+    ~filter:(has_edit ~snippet:true ~jump_to_next_hole:false)
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) =
+  mat$ch x
+|ocaml};
+  [%expect
+    {|
+    type t = Foo of int | Bar of bool
+    let f (x : t) =
+      match x with
+      | Foo _ -> ${1:_}
+      | Bar _ -> ${2:_}$0
+    |}]
+;;
+
+let%expect_test
+    "destruct-line snippets append missing cases without changing existing bodies"
+  =
+  destruct_line
+    ~capabilities:snippet_edit_capabilities
+    ~filter:(has_edit ~snippet:true ~jump_to_next_hole:false)
+    {ocaml|
+type t = A | B | C
+let f (x : t) =
+  match x with
+$  | C -> 42
+|ocaml};
+  [%expect
+    {|
+    type t = A | B | C
+    let f (x : t) =
+      match x with
+      | C -> 42
+      | A -> ${1:_}
+      | B -> ${2:_}$0
+    |}]
+;;
+
+let%expect_test
+    "destruct-line snippets refine a pattern while retaining its existing body"
+  =
+  destruct_line
+    ~capabilities:snippet_edit_capabilities
+    ~filter:(has_edit ~snippet:true ~jump_to_next_hole:false)
+    {ocaml|
+let f (x : bool) =
+  match x with
+  | $_$ -> 42
+|ocaml};
+  [%expect
+    {|
+    let f (x : bool) =
+      match x with
+      | false -> ${1:_}
+      | true$0 -> 42
+    |}]
+;;
+
+let%expect_test
+    "destruct snippets do not turn scrutinee type wildcards into expression slots"
+  =
+  destruct
+    ~capabilities:snippet_edit_capabilities
+    ~filter:(has_edit ~snippet:true ~jump_to_next_hole:false)
+    {ocaml|
+let get _ = true
+let value = $((get : int -> _) 0)$
+|ocaml};
+  [%expect
+    {|
+    let get _ = true
+    let value = match (get : int -> _) 0 with | false -> ${1:_} | true -> ${2:_}$0
     |}]
 ;;
 

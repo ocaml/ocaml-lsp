@@ -164,6 +164,11 @@ let workspace_symbol_tag_support (t : t) =
 
 let workspace_edit (t : t) = Option.bind t.workspace (fun w -> w.workspaceEdit)
 
+let workspace_edit_snippet_support t =
+  Option.bind (workspace_edit t) (fun edit -> edit.snippetEditSupport)
+  |> Option.value ~default:false
+;;
+
 let workspace_edit_document_changes t =
   Option.bind (workspace_edit t) (fun edit -> edit.documentChanges)
   |> Option.value ~default:false
