@@ -89,9 +89,9 @@ let%expect_test "it should allow double opening the same document" =
 let%expect_test "missing dune leaves an opened document unavailable (#1417)" =
   let dir = Test.temp_dir "ocamllsp-missing-dune-" in
   let source = "let answer = 42\n" in
-  let path = Stdlib.Filename.concat dir "main.ml" in
-  Test.write_file (Stdlib.Filename.concat dir "dune-project") "(lang dune 3.24)\n";
-  Test.write_file (Stdlib.Filename.concat dir "dune") "(executable (name main))\n";
+  let path = Filename.concat dir "main.ml" in
+  Test.write_file (Filename.concat dir "dune-project") "(lang dune 3.24)\n";
+  Test.write_file (Filename.concat dir "dune") "(executable (name main))\n";
   Test.write_file path source;
   let uri = DocumentUri.of_path path in
   let workspace = WorkspaceFolder.create ~uri:(DocumentUri.of_path dir) ~name:"test" in

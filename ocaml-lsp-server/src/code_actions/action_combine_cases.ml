@@ -34,7 +34,7 @@ let pick_rhs rhs_expressions =
   let distinct_nonempty =
     List.map rhs_expressions ~f:String.strip
     |> List.filter ~f:(fun s -> (not (String.is_empty s)) && not (String.equal s "_"))
-    |> Base.List.dedup_and_sort ~compare:Base.String.compare
+    |> List.dedup_and_sort ~compare:String.compare
   in
   match distinct_nonempty with
   | [ expr ] -> expr
@@ -59,7 +59,7 @@ let code_action doc params =
          let* code = Text_document.substring (Document.text_document doc) range in
          let code = String.strip ~drop:(fun c -> Char.equal c '\n') code in
          let* lhs_patterns, rhs_expressions = split_cases code in
-         let+ i = Base.String.index code '|' in
+         let+ i = String.index code '|' in
          let indent = String.sub code ~pos:0 ~len:i in
          let lhs = String.concat ~sep:" | " lhs_patterns in
          let rhs = pick_rhs rhs_expressions in

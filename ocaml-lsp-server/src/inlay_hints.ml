@@ -4,9 +4,8 @@ open Fiber.O
 let outline_type typ =
   typ
   |> Format.asprintf "@[<h>: %s@]"
-  |> String.extract_words ~is_word_char:(function
-    | ' ' | '\t' | '\n' -> false
-    | _ -> true)
+  |> String.split_on_chars ~on:[ ' '; '\t'; '\n' ]
+  |> List.filter ~f:(Fn.non String.is_empty)
   |> String.concat ~sep:" "
 ;;
 

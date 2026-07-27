@@ -223,11 +223,11 @@ let outline_kind kind : SymbolKind.t =
   | `Method -> Method
 ;;
 
-let make_uri_resolver ~root_dir ~build_dir : (Loc.t -> Uri.t option) Base.Staged.t =
-  let cache = ref String.Map.empty in
-  Base.Staged.stage (fun (location : Loc.t) ->
+let make_uri_resolver ~root_dir ~build_dir : (Loc.t -> Uri.t option) Staged.t =
+  let cache = ref (Map.empty (module String)) in
+  Staged.stage (fun (location : Loc.t) ->
     let fname = location.loc_start.pos_fname in
-    match String.Map.find !cache fname with
+    match Map.find !cache fname with
     | Some uri -> uri
     | None ->
       let uri =
@@ -241,7 +241,7 @@ let make_uri_resolver ~root_dir ~build_dir : (Loc.t -> Uri.t option) Base.Staged
           in
           List.find candidates ~f:Sys.file_exists |> Option.map ~f:Uri.of_path)
       in
-      cache := String.Map.set !cache fname uri;
+      cache := Map.set !cache ~key:fname ~data:uri;
       uri)
 ;;
 
@@ -313,17 +313,18 @@ let find_cm_files dir =
       then loop acc path
       else (
         match String.rsplit2 ~on:'.' path with
-        | Some (path_without_ext, "cmt") -> String.Map.set acc path_without_ext (Cmt path)
+        | Some (path_without_ext, "cmt") ->
+          Map.set acc ~key:path_without_ext ~data:(Cmt path)
         | Some (path_without_ext, "cmti") ->
-          let current_file = String.Map.find acc path_without_ext in
+          let current_file = Map.find acc path_without_ext in
           let cmi_file = Cmti path in
           (match current_file with
-           | None -> String.Map.set acc path_without_ext cmi_file
+           | None -> Map.set acc ~key:path_without_ext ~data:cmi_file
            | Some current_file ->
-             String.Map.set acc path_without_ext (choose_file current_file cmi_file))
+             Map.set acc ~key:path_without_ext ~data:(choose_file current_file cmi_file))
         | _ -> acc))
   in
-  loop String.Map.empty dir |> String.Map.values
+  loop (Map.empty (module String)) dir |> Map.data
 ;;
 
 let run
@@ -346,9 +347,7 @@ let run
          | None -> []
          | Some build_dir ->
            let cm_files = find_cm_files build_dir in
-           let resolve_uri =
-             Base.Staged.unstage (make_uri_resolver ~root_dir ~build_dir)
-           in
+           let resolve_uri = Staged.unstage (make_uri_resolver ~root_dir ~build_dir) in
            List.concat_map ~f:(symbols_from_cm_file ~filter ~resolve_uri cancel) cm_files))
   with
   | Cancelled -> Error `Cancelled

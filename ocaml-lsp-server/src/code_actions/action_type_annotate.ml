@@ -34,7 +34,7 @@ let code_action_of_type_enclosing doc (loc, typ) =
   let newText = Printf.sprintf "(%s : %s)" original_text typ in
   let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
   let edit = Text_document.workspace_edit (Document.text_document doc) [ textedit ] in
-  let title = String.capitalize_ascii action_kind in
+  let title = String.capitalize action_kind in
   CodeAction.create
     ~title
     ~kind:(CodeActionKind.Other action_kind)

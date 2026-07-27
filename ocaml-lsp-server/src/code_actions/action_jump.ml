@@ -74,7 +74,7 @@ let code_actions
         let+ position = Position.of_lexical_position lexing_pos in
         let uri = Document.uri doc in
         let range = { Range.start = position; end_ = position } in
-        let title = sprintf "%s jump" (String.capitalize_ascii (rename_target target)) in
+        let title = sprintf "%s jump" (String.capitalize (rename_target target)) in
         let command =
           let arguments = [ DocumentUri.yojson_of_t uri; Range.yojson_of_t range ] in
           Command.create ~title ~command:command_name ~arguments ()

@@ -1,14 +1,34 @@
 (* The modules are listed alphabetically. Try to keep the order. *)
 
-module Poly = struct
-  let equal = ( = )
-  let compare x y = Ordering.of_int (compare x y)
-  let hash x = Hashtbl.hash x
+include struct
+  open Base
+  module Array = Array
+  module Char = Char
+  module Comparator = Comparator
+  module Either = Either
+  module Float = Float
+  module Fn = Fn
+  module Hashtbl = Hashtbl
+  module Int = Int
+  module List = List
+  module Map = Map
+  module Option = Option
+  module Poly = Poly
+  module Queue = Queue
+  module Result = Result
+  module Set = Set
+  module Staged = Staged
+  module String = String
 end
 
 let sprintf = Printf.sprintf
 
-module Map = Stdlib.MoreLabels.Map
+module Poly = struct
+  include Base.Poly
+
+  let hash = Base.Hashtbl.hash
+end
+
 module Exn_with_backtrace = Stdune.Exn_with_backtrace
 
 module Id = struct
@@ -19,87 +39,21 @@ module Id = struct
 
     let gen () =
       let id = !next in
-      incr next;
+      Int.incr next;
       id
     ;;
 
     let to_int t = t
-    let compare x y = Ordering.of_int (Stdlib.Int.compare x y)
+    let compare x y = Ordering.of_int (Int.compare x y)
   end
 end
 
 module Monoid = Stdune.Monoid
 
-module Int = struct
-  type t = int
-
-  let compare x y = Ordering.of_int (Stdlib.Int.compare x y)
-  let equal = Stdlib.Int.equal
-  let of_string = int_of_string_opt
-  let to_string = string_of_int
-end
-
-module Table = struct
-  include Base.Hashtbl
-
-  module Multi = struct
-    let find = find_multi
-  end
-end
-
-include struct
-  open Base
-  module Queue = Queue
-
-  module Array = struct
-    include Base.Array
-
-    let common_prefix_len ~equal (a : 'a array) (b : 'a array) : int =
-      let i = ref 0 in
-      let min_len = min (Array.length a) (Array.length b) in
-      while !i < min_len && equal (Array.get a !i) (Array.get b !i) do
-        Int.incr i
-      done;
-      !i
-    ;;
-  end
-end
-
-module List = struct
-  include Base.List
-
-  let compare xs ys ~compare =
-    Base.List.compare (fun x y -> Ordering.to_int (compare x y)) xs ys
-  ;;
-
-  let sort xs ~compare = sort xs ~compare:(fun x y -> Ordering.to_int (compare x y))
-  let fold_left2 xs ys ~init ~f = Stdlib.List.fold_left2 f init xs ys
-  let mem t x ~equal = mem t x ~equal
-  let map t ~f = map t ~f
-  let concat_map t ~f = concat_map t ~f
-  let filter_map t ~f = filter_map t ~f
-  let fold_left t ~init ~f = fold_left t ~init ~f
-  let findi xs ~f = findi xs ~f
-
-  let sort_uniq xs ~compare =
-    Stdlib.List.sort_uniq (fun x y -> Ordering.to_int (compare x y)) xs
-  ;;
-
-  let for_all xs ~f = for_all xs ~f
-  let find_mapi xs ~f = find_mapi xs ~f
-  let sub xs ~pos ~len = sub xs ~pos ~len
-  let hd_exn t = hd_exn t
-  let nth_exn t n = nth_exn t n
-  let hd t = hd t
-  let filter t ~f = filter t ~f
-  let tl t = tl t
-  let drop xs i = drop xs i
-end
-
 module Result = struct
   module O = struct
-    let ( let+ ) x f = Result.map f x
-    let ( let* ) x f = Result.bind x f
+    let ( let+ ) x f = Stdlib.Result.map f x
+    let ( let* ) x f = Stdlib.Result.bind x f
   end
 
   include Base.Result
@@ -107,8 +61,8 @@ end
 
 module Option = struct
   module O = struct
-    let ( let+ ) x f = Option.map f x
-    let ( let* ) x f = Option.bind x f
+    let ( let+ ) x f = Stdlib.Option.map f x
+    let ( let* ) x f = Stdlib.Option.bind x f
   end
 
   module List = struct
@@ -148,92 +102,6 @@ module Env_vars = struct
   ;;
 end
 
-module String = struct
-  type t = string
-
-  module Map = struct
-    include MoreLabels.Map.Make (Stdlib.String)
-
-    let find t key = find_opt key t
-    let mem t key = mem key t
-    let set t key data = add t ~key ~data
-    let remove t key = remove key t
-    let values t = to_list t |> List.map ~f:snd
-    let to_list_map t ~f = to_list t |> List.map ~f:(fun (k, v) -> f k v)
-    let partition t ~f = partition t ~f:(fun _key v -> f v)
-    let fold t ~init ~f = fold t ~init ~f:(fun ~key:_ ~data acc -> f data acc)
-
-    let of_list_multi xs =
-      List.fold_left xs ~init:empty ~f:(fun acc (key, v) ->
-        update acc ~key ~f:(function
-          | None -> Some [ v ]
-          | Some xs -> Some (v :: xs)))
-    ;;
-
-    let add_exn t key data =
-      match find t key with
-      | None -> set t key data
-      | Some _ -> failwith (sprintf "%s already set" key)
-    ;;
-  end
-
-  let extract_words s ~is_word_char =
-    let open StringLabels in
-    let rec skip_blanks i =
-      if i = length s
-      then []
-      else if is_word_char s.[i]
-      then parse_word i (i + 1)
-      else skip_blanks (i + 1)
-    and parse_word i j =
-      if j = length s
-      then [ sub s ~pos:i ~len:(j - i) ]
-      else if is_word_char s.[j]
-      then parse_word i (j + 1)
-      else sub s ~pos:i ~len:(j - i) :: skip_blanks (j + 1)
-    in
-    skip_blanks 0
-  ;;
-
-  let to_dyn = Dyn.string
-
-  include struct
-    open Base.String
-
-    let unsafe_get = unsafe_get
-    let get = get
-    let split_lines = split_lines
-    let sub = sub
-    let equal = equal
-    let rsplit2 = rsplit2
-    let concat = concat
-    let length = length
-    let strip = strip
-    let trim = strip
-    let drop = drop_prefix
-    let hash = hash
-    let drop_prefix = chop_prefix
-    let is_prefix = is_prefix
-    let map = map
-    let lowercase = lowercase
-    let capitalize_ascii = capitalize
-    let capitalize = capitalize
-    let split_on_char t ~sep = split t ~on:sep
-    let is_empty = is_empty
-    let split = split
-    let chop_prefix_if_exists = chop_prefix_if_exists
-    let chop_suffix_if_exists = chop_suffix_if_exists
-    let drop_prefix_if_exists = chop_prefix_if_exists
-    let take = prefix
-    let substr_index_exn = substr_index_exn
-    let substr_index = substr_index
-    let prefix = prefix
-    let lfindi = lfindi
-    let filter = filter
-    let is_suffix = is_suffix
-  end
-end
-
 (* All modules from [Lsp] should be in the struct below. The modules are listed
    alphabetically. Try to keep the order. *)
 include struct
@@ -252,7 +120,7 @@ include struct
     end
 
     include Uri
-    include Base.Comparator.Make (Uri)
+    include Comparator.Make (Uri)
     module Map = Stdlib.Map.Make (Uri)
   end
 end

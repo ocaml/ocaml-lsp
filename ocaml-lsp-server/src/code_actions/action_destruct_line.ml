@@ -211,15 +211,13 @@ let format_match_cases lines ~indent =
 let separate_match_line new_code =
   let end_of_match = String.substr_index_exn new_code ~pattern:"with" in
   let match_line = String.prefix new_code (end_of_match + 4) in
-  let rest = Base.String.drop_prefix new_code (end_of_match + 4) in
+  let rest = String.drop_prefix new_code (end_of_match + 4) in
   match_line, rest
 ;;
 
 let format_merlin_reply ~(statement : destructable_statement) (new_code : string) =
   let indent =
-    match
-      String.lfindi statement.code ~f:(fun _ c -> not (Base.Char.is_whitespace c))
-    with
+    match String.lfindi statement.code ~f:(fun _ c -> not (Char.is_whitespace c)) with
     | None -> ""
     | Some i -> String.sub statement.code ~pos:0 ~len:i
   in

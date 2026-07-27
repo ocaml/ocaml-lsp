@@ -1,5 +1,5 @@
 open Import
-module Uri_map = Map.Make (Uri)
+module Uri_map = Stdlib.MoreLabels.Map.Make (Uri)
 
 type t =
   { workspace_folders : WorkspaceFolder.t Uri_map.t option

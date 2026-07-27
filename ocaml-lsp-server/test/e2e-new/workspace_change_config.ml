@@ -8,9 +8,7 @@ let codelens client textDocument =
 ;;
 
 let%expect_test "can add the first workspace folder after initialization" =
-  let stderr_path, stderr_chan =
-    Stdlib.Filename.open_temp_file "ocamllsp-workspace" ".log"
-  in
+  let stderr_path, stderr_chan = Filename.open_temp_file "ocamllsp-workspace" ".log" in
   let stderr = Unix.descr_of_out_channel stderr_chan in
   let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
   Test.run_initialized ~handler ~stderr ~workspaceFolders:None (fun client ->
@@ -21,9 +19,9 @@ let%expect_test "can add the first workspace folder after initialization" =
     let change = DidChangeWorkspaceFoldersParams.create ~event in
     let* () = Client.notification client (ChangeWorkspaceFolders change) in
     Test.exit_client client);
-  Stdlib.close_out stderr_chan;
+  close_out stderr_chan;
   let stderr = Fs_io.read_file stderr_path |> Result.ok_exn in
-  Stdlib.Sys.remove stderr_path;
+  Sys.remove stderr_path;
   Printf.printf "stderr: %s\n" (Yojson.Safe.to_string (`String stderr));
   [%expect {| stderr: "" |}]
 ;;

@@ -49,7 +49,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
             ; Action_refactor_open.qualify
             ; Action_inline.t
             ]
-        |> List.sort_uniq ~compare:Poly.compare
+        |> List.dedup_and_sort ~compare:Poly.compare
       in
       `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
     | _ -> `Bool true

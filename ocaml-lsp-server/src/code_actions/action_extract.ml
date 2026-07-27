@@ -100,7 +100,7 @@ let tightest_enclosing_binder_position typedtree range =
   | Found e -> Some e
 ;;
 
-module LongidentSet = Set.Make (struct
+module LongidentSet = Stdlib.Set.Make (struct
     type t = Longident.t
 
     let compare = compare

@@ -3,12 +3,11 @@ module Req = Ocaml_lsp_server.Custom_request.Switch_impl_intf
 
 let setup_files exts =
   let dir = Test.temp_dir "ocamllsp-switch-" in
-  List.iter exts ~f:(fun ext ->
-    Test.write_file (Stdlib.Filename.concat dir ("test." ^ ext)) "");
+  List.iter exts ~f:(fun ext -> Test.write_file (Filename.concat dir ("test." ^ ext)) "");
   dir
 ;;
 
-let uri_of_ext dir ext = DocumentUri.of_path (Stdlib.Filename.concat dir ("test." ^ ext))
+let uri_of_ext dir ext = DocumentUri.of_path (Filename.concat dir ("test." ^ ext))
 
 let open_document client uri =
   let textDocument =
@@ -30,7 +29,7 @@ let switch_impl_intf client uri =
 let print_response json =
   Yojson.Safe.Util.to_list json
   |> List.map ~f:(fun json -> DocumentUri.t_of_yojson json |> DocumentUri.to_path)
-  |> List.map ~f:Stdlib.Filename.basename
+  |> List.map ~f:Filename.basename
   |> List.iter ~f:print_endline
 ;;
 

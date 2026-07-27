@@ -21,7 +21,7 @@ val iter_lsp_response_result
   -> language_id:string
   -> makeRequest:(TextDocumentIdentifier.t -> 'a Client.out_request)
   -> source:string
-  -> (('a, Jsonrpc.Response.Error.t) result -> unit)
+  -> (('a, Jsonrpc.Response.Error.t) Result.t -> unit)
   -> unit
 
 (** Opens the file in the specified path with source code as specified in src.

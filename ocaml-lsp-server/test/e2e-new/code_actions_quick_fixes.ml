@@ -4,12 +4,12 @@ open Code_actions
 
 let setup_inferred_intf_workspace () =
   let dir = Test.temp_dir "ocamllsp-code-action-" in
-  Test.write_file (Stdlib.Filename.concat dir "dune-project") "(lang dune 2.5)\n";
+  Test.write_file (Filename.concat dir "dune-project") "(lang dune 2.5)\n";
   Test.write_file
-    (Stdlib.Filename.concat dir "dune")
+    (Filename.concat dir "dune")
     "(library\n (name code_action_intf)\n (flags :standard -w -32))\n";
-  Test.write_file (Stdlib.Filename.concat dir "lib.ml") "let x = 1\n";
-  Test.write_file (Stdlib.Filename.concat dir "lib.mli") "";
+  Test.write_file (Filename.concat dir "lib.ml") "let x = 1\n";
+  Test.write_file (Filename.concat dir "lib.mli") "";
   Test.run_command ~cwd:dir "dune build";
   dir
 ;;
@@ -53,7 +53,7 @@ let print_inferred_intf_edits source path range =
 
 let%expect_test "opens the implementation if not in store" =
   let dir = setup_inferred_intf_workspace () in
-  let path = Stdlib.Filename.concat dir "lib.mli" in
+  let path = Filename.concat dir "lib.mli" in
   let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
   print_inferred_intf_edits "" path range;
   [%expect

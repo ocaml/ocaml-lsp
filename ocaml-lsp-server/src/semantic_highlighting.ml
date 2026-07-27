@@ -123,10 +123,10 @@ end = struct
   let array = lazy (Array.of_list list)
 
   let to_legend =
-    let cache = lazy (Hashtbl.create 3) in
+    let cache = lazy (Stdlib.Hashtbl.create 3) in
     fun t ->
       let cache = Lazy.force cache in
-      match Hashtbl.find_opt cache t with
+      match Stdlib.Hashtbl.find_opt cache t with
       | Some x -> x
       | None ->
         let rec translate t i acc : string list =
@@ -136,7 +136,7 @@ end = struct
           if Int.equal t' 0 then List.rev acc' else translate (i + 1) t' acc'
         in
         let res = translate t 0 [] in
-        Hashtbl.add cache t res;
+        Stdlib.Hashtbl.add cache t res;
         res
   ;;
 end
@@ -1006,7 +1006,14 @@ let on_request_full : State.t -> SemanticTokensParams.t -> SemanticTokens.t opti
 let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list =
   let old_len = Array.length old in
   let new_len = Array.length new_ in
-  let left_offset = Array.common_prefix_len ~equal:Int.equal old new_ in
+  let left_offset =
+    let i = ref 0 in
+    let min_len = min old_len new_len in
+    while !i < min_len && Int.equal (Array.get old !i) (Array.get new_ !i) do
+      Int.incr i
+    done;
+    !i
+  in
   if left_offset = old_len
   then
     if left_offset = new_len

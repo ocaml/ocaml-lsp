@@ -5,7 +5,7 @@ let action_kind = "update_intf"
 
 let code_action_of_intf doc text_edits =
   let edit = Text_document.workspace_edit (Document.text_document doc) text_edits in
-  let title = String.capitalize_ascii "update signature(s) to match implementation" in
+  let title = String.capitalize "update signature(s) to match implementation" in
   CodeAction.create
     ~title
     ~kind:(CodeActionKind.Other action_kind)
