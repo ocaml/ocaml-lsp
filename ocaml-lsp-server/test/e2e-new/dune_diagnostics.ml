@@ -219,14 +219,26 @@ let%expect_test "Dune success refreshes load paths in every Merlin state" =
   let runtime_dir = Filename.concat temp "runtime" in
   let gate = Filename.concat temp "gate" in
   let trigger = Filename.concat root "trigger" in
+  let bin_dir = Filename.concat temp "bin" in
+  let dune_shim = Filename.concat bin_dir "dune" in
   Unix.mkdir root 0o700;
   Unix.mkdir lib 0o700;
   Unix.mkdir runtime_dir 0o700;
+  Unix.mkdir bin_dir 0o700;
   Test.write_file (Filename.concat root "dune-project") "(lang dune 3.24)\n(name repro)\n";
   Test.write_file trigger "0\n";
   let wait_script = Filename.concat root "wait.sh" in
   Test.write_file wait_script "#!/bin/sh\nwhile [ ! -e \"$1\" ]; do sleep 0.05; done\n";
   Unix.chmod wait_script 0o755;
+  (* Keep the shim alive after the real [dune ocaml-merlin] handles [Halt].
+     Closing the protocol input must make the shim observe EOF and exit. *)
+  let dune = Bin.which "dune" |> Option.value_exn in
+  Test.write_file
+    dune_shim
+    (Printf.sprintf
+       "#!/bin/sh\ntrap '' TERM\n%s \"$@\"\nwhile IFS= read -r _; do :; done\n"
+       (Filename.quote dune));
+  Unix.chmod dune_shim 0o755;
   Test.write_file
     (Filename.concat root "dune")
     (Printf.sprintf
@@ -290,7 +302,11 @@ let%expect_test "Dune success refreshes load paths in every Merlin state" =
          WorkspaceFolder.create ~uri:(Uri.of_path root) ~name:"stale-load-path"
        in
        Test.run_initialized
-         ~extra_env:[ "OCAMLLSP_TEST=false"; "XDG_RUNTIME_DIR=" ^ runtime_dir ]
+         ~extra_env:
+           [ "OCAMLLSP_TEST=false"
+           ; "XDG_RUNTIME_DIR=" ^ runtime_dir
+           ; "PATH=" ^ bin_dir ^ ":" ^ Option.value_exn (Sys.getenv_opt "PATH")
+           ]
          ~timeout:30.0
          ~handler
          ~stderr:ocamllsp_stderr
