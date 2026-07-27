@@ -156,6 +156,7 @@ module T : sig
     -> ?handler:unit Client.Handler.t
     -> ?stderr:Unix.file_descr
     -> ?timeout:float
+    -> ?on_spawn:(int -> unit)
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 
@@ -169,6 +170,7 @@ module T : sig
     -> ?capabilities:ClientCapabilities.t
     -> ?workspaceFolders:WorkspaceFolder.t list option
     -> ?trace:TraceValue.t
+    -> ?on_spawn:(int -> unit)
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 end = struct
@@ -246,8 +248,8 @@ end = struct
     |> Lev_fiber.Error.ok_exn
   ;;
 
-  let run ?extra_env ?handler ?stderr ?timeout f =
-    snd @@ run_with_status ?extra_env ?handler ?stderr ?timeout f
+  let run ?extra_env ?handler ?stderr ?timeout ?on_spawn f =
+    snd @@ run_with_status ?extra_env ?handler ?stderr ?timeout ?on_spawn f
   ;;
 
   let run_initialized
@@ -258,9 +260,10 @@ end = struct
         ?(capabilities = ClientCapabilities.create ())
         ?workspaceFolders
         ?trace
+        ?on_spawn
         f
     =
-    run ?extra_env ?handler ?stderr ?timeout
+    run ?extra_env ?handler ?stderr ?timeout ?on_spawn
     @@ fun client ->
     let run_client () = start_client ~capabilities ?workspaceFolders ?trace client in
     let run_test () =
