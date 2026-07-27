@@ -164,7 +164,7 @@ let extract_function doc typedtree range =
       List.map free_vars ~f:(function
         | Longident.Lident id -> Some id
         | _ -> None)
-      |> Option.List.all
+      |> Option.all
     in
     let s = String.concat ~sep:" " args in
     if String.is_empty s then "()" else s

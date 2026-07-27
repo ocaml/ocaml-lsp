@@ -65,17 +65,6 @@ module Option = struct
     let ( let* ) x f = Stdlib.Option.bind x f
   end
 
-  module List = struct
-    let all =
-      let rec loop acc = function
-        | [] -> Some (List.rev acc)
-        | None :: _ -> None
-        | Some x :: xs -> loop (x :: acc) xs
-      in
-      fun xs -> loop [] xs
-    ;;
-  end
-
   include Base.Option
 end
 

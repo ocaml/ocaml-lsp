@@ -231,7 +231,7 @@ let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
       match p.Parsetree.pparam_desc with
       | Pparam_val (Nolabel, _, pat) -> Some pat
       | _ -> None)
-    |> Option.List.all
+    |> Option.all
   in
   match app.pexp_desc with
   | Pexp_apply ({ pexp_desc = Pexp_function (params, None, Pfunction_body body); _ }, args)
