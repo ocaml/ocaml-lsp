@@ -167,6 +167,11 @@ struct
         let code = Jsonrpc.Response.Error.Code.InvalidParams in
         let error = Jsonrpc.Response.Error.make ~code ~message () in
         Fiber.return (Jsonrpc_fiber.Reply.now (Jsonrpc.Response.error req.id error), state)
+      | Ok (In_request.E _) when Table.mem t.pending req.id ->
+        let code = Jsonrpc.Response.Error.Code.InvalidRequest in
+        let message = "duplicate request id" in
+        let error = Jsonrpc.Response.Error.make ~code ~message () in
+        Fiber.return (Jsonrpc_fiber.Reply.now (Jsonrpc.Response.error req.id error), state)
       | Ok (In_request.E r) ->
         let cancel = Fiber.Cancel.create () in
         let remove = lazy (Table.remove t.pending req.id) in
@@ -178,7 +183,7 @@ struct
                  exn))
             (fun () ->
                Fiber.Var.set cancel_token cancel (fun () ->
-                 Table.replace t.pending req.id cancel;
+                 Table.add t.pending req.id cancel;
                  h_on_request.on_request t r))
         in
         let to_response x =
