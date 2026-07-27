@@ -310,12 +310,6 @@ struct
     if (not t.running) || t.closing then Code_error.raise "jsonrpc must be running" []
   ;;
 
-  let check_accepting_requests t =
-    check_running t;
-    if t.pending_requests_stopped
-    then Code_error.raise "jsonrpc is not accepting requests" []
-  ;;
-
   let notification t (n : Notification.t) =
     Fiber.of_thunk (fun () ->
       check_running t;
@@ -352,7 +346,7 @@ struct
 
   let request t (req : Request.t) =
     Fiber.of_thunk (fun () ->
-      check_accepting_requests t;
+      check_running t;
       let ivar = Fiber.Ivar.create () in
       Fiber.finalize
         (fun () ->
@@ -386,7 +380,7 @@ struct
     in
     let resp =
       Fiber.of_thunk (fun () ->
-        check_accepting_requests t;
+        check_running t;
         let* cancelled = Fiber.Ivar.peek ivar in
         match cancelled with
         | Some (Error `Cancelled) -> Fiber.return `Cancelled
@@ -422,7 +416,7 @@ struct
 
   let submit (t : _ t) (batch : Batch.t) =
     Fiber.of_thunk (fun () ->
-      check_accepting_requests t;
+      check_running t;
       let pending = !batch in
       batch := [];
       let pending, ivars =
