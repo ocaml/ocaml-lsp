@@ -1,6 +1,6 @@
-let%expect_test "snippet text is not escaped" =
+let%expect_test "snippet text escapes metacharacters" =
   Lsp.Snippet.text "$}\\" |> Lsp.Snippet.to_string |> print_endline;
-  [%expect {| $}\ |}]
+  [%expect {| \$\}\\ |}]
 ;;
 
 let%expect_test "snippet choices escape metacharacters" =
