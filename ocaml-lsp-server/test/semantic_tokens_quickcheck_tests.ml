@@ -3,7 +3,7 @@ open Base_quickcheck
 open Lsp.Types
 module Semantic_tokens = Ocaml_lsp_server.Testing.Semantic_tokens
 
-let select selector ~choices = Int.rem (selector land Stdlib.max_int) choices
+let select selector ~choices = Int.rem (selector land Int.max_value) choices
 let check label condition = if not condition then failwith label
 
 module Token_case = struct

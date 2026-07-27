@@ -123,10 +123,10 @@ end = struct
   let array = lazy (Array.of_list list)
 
   let to_legend =
-    let cache = lazy (Stdlib.Hashtbl.create 3) in
+    let cache = lazy (Hashtbl.create (module Int)) in
     fun t ->
       let cache = Lazy.force cache in
-      match Stdlib.Hashtbl.find_opt cache t with
+      match Hashtbl.find cache t with
       | Some x -> x
       | None ->
         let rec translate t i acc : string list =
@@ -136,7 +136,7 @@ end = struct
           if Int.equal t' 0 then List.rev acc' else translate (i + 1) t' acc'
         in
         let res = translate t 0 [] in
-        Stdlib.Hashtbl.add cache t res;
+        Hashtbl.set cache ~key:t ~data:res;
         res
   ;;
 end

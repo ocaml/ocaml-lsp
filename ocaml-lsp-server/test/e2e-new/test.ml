@@ -14,6 +14,7 @@ module Import = struct
     module Poly = Poly
     module Queue = Queue
     module Result = Result
+    module Sequence = Sequence
     module Set = Set
     module String = String
   end
@@ -30,33 +31,6 @@ module Import = struct
   end
 
   module Exn_with_backtrace = Stdune.Exn_with_backtrace
-
-  module Array_iter : sig
-    type 'a t
-
-    val create : 'a array -> 'a t
-    val has_next : 'a t -> bool
-    val next : 'a t -> 'a option
-    val next_exn : 'a t -> 'a
-  end = struct
-    type 'a t =
-      { contents : 'a array
-      ; mutable ix : int
-      }
-
-    let create contents = { contents; ix = 0 }
-    let has_next t = t.ix < Array.length t.contents
-
-    let next_exn t =
-      let { contents; ix } = t in
-      let v = contents.(ix) in
-      t.ix <- ix + 1;
-      v
-    ;;
-
-    let next t = if has_next t then Some (next_exn t) else None
-  end
-
   include Fiber.O
   module Bin = Ocaml_lsp_server.Testing.Bin
   module Client = Lsp_fiber.Client
@@ -344,12 +318,10 @@ let apply_edits src edits =
     List.map edits ~f:(fun (e : TextEdit.t) ->
       e.newText, offset_of_position src e.range.start, offset_of_position src e.range.end_)
     (* update the offsets to account for preceding edits *)
-    |> Stdlib.List.fold_left_map
-         (fun offset (new_text, start, end_) ->
-            if end_ < start then failwith "invalid edit: end before start";
-            ( offset + (String.length new_text - (end_ - start))
-            , (new_text, start + offset, end_ + offset) ))
-         0
+    |> List.fold_map ~init:0 ~f:(fun offset (new_text, start, end_) ->
+      if end_ < start then failwith "invalid edit: end before start";
+      ( offset + (String.length new_text - (end_ - start))
+      , (new_text, start + offset, end_ + offset) ))
   in
   (* apply edits *)
   List.fold_left edits ~init:src ~f:(fun src (new_text, start, end_) ->

@@ -94,7 +94,7 @@ let setup_generated_workspace () =
 
 let relative_path ~root path =
   let prefix = root ^ Filename.dir_sep in
-  if Stdlib.String.starts_with ~prefix path
+  if String.is_prefix path ~prefix
   then String.drop_prefix path (String.length prefix)
   else path
 ;;

@@ -97,15 +97,14 @@ module Events = struct
   let on_notification t _ (notification : Lsp.Server_notification.t) =
     match notification with
     | PublishDiagnostics diagnostic -> publish_diagnostics t diagnostic
-    | LogMessage { message; _ }
-      when Stdlib.String.starts_with ~prefix:"Connected to dune " message ->
-      Signal.notify t.dune_connected
+    | LogMessage { message; _ } when String.is_prefix message ~prefix:"Connected to dune "
+      -> Signal.notify t.dune_connected
     | LogTrace { message = "Connected to Dune RPC"; verbose = None } ->
       Signal.notify t.dune_connection_traced
     | LogTrace { message = "Connected to Dune RPC"; verbose = Some _ } ->
       failwith "messages-level Dune connection trace included verbose details"
     | LogTrace { message = "Dune build finished"; verbose = Some verbose }
-      when Stdlib.String.starts_with ~prefix:"Dune root: " verbose ->
+      when String.is_prefix verbose ~prefix:"Dune root: " ->
       Signal.notify t.build_finished_traced
     | LogTrace { message = "Dune build finished"; verbose = None } ->
       failwith "verbose Dune build trace omitted details"
@@ -129,8 +128,7 @@ module Events = struct
         ; verbose = None
         } -> failwith "verbose Merlin configuration process trace omitted details"
     | WorkDoneProgress { token = `String token; value = Lsp.Progress.End _ }
-      when Stdlib.String.starts_with ~prefix:"dune-build-" token ->
-      Signal.notify t.build_finished
+      when String.is_prefix token ~prefix:"dune-build-" -> Signal.notify t.build_finished
     | _ -> Fiber.return ()
   ;;
 end
@@ -181,9 +179,7 @@ let start_dune root runtime_dir =
   let prog = Bin.which "dune" |> Option.value_exn in
   let output = Unix.openfile Test.null_device [ Unix.O_WRONLY ] 0o666 in
   let env =
-    let is_runtime_dir value =
-      Stdlib.String.starts_with ~prefix:"XDG_RUNTIME_DIR=" value
-    in
+    let is_runtime_dir value = String.is_prefix value ~prefix:"XDG_RUNTIME_DIR=" in
     Unix.environment ()
     |> Array.to_list
     |> List.filter ~f:(fun value -> not (is_runtime_dir value))
