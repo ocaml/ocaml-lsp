@@ -262,7 +262,11 @@ struct
             let+ res =
               Fiber.map_reduce_errors
                 (module Stdune.Monoid.Unit)
-                (fun () -> Reply.send reply sender)
+                (fun () ->
+                   let* () = Reply.send reply sender in
+                   if sender.called
+                   then Fiber.return ()
+                   else Code_error.raise "deferred reply did not send a response" [])
                 ~on_error:(fun exn_bt ->
                   if sender.called
                   then (* TODO we should log *)

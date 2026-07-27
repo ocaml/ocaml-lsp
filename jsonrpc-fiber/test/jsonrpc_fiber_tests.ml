@@ -384,7 +384,7 @@ let%expect_test "delayed replies may return without sending a response" =
   [%expect
     {|
     <opaque>
-    no response sent
+    InternalError
     |}]
 ;;
 
