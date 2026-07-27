@@ -101,6 +101,49 @@ end
 
 module Failing_send_jrpc = Jsonrpc_fiber.Make (Failing_send_chan)
 
+module Lifecycle_chan = struct
+  type t =
+    { input_closed : unit Fiber.Ivar.t
+    ; mutable read_closed : bool
+    ; mutable write_closed : bool
+    ; mutable fail_sends : bool
+    ; mutable send_attempts : int
+    }
+
+  let send t _ =
+    Fiber.of_thunk (fun () ->
+      t.send_attempts <- t.send_attempts + 1;
+      if t.fail_sends then failwith "transport send attempted" else Fiber.return ())
+  ;;
+
+  let recv t =
+    let+ () = Fiber.Ivar.read t.input_closed in
+    None
+  ;;
+
+  let close t what =
+    match what with
+    | `Read when not t.read_closed ->
+      t.read_closed <- true;
+      Fiber.Ivar.fill t.input_closed ()
+    | `Write ->
+      t.write_closed <- true;
+      Fiber.return ()
+    | `Read -> Fiber.return ()
+  ;;
+end
+
+module Lifecycle_jrpc = Jsonrpc_fiber.Make (Lifecycle_chan)
+
+let lifecycle_channel () =
+  { Lifecycle_chan.input_closed = Fiber.Ivar.create ()
+  ; read_closed = false
+  ; write_closed = false
+  ; fail_sends = false
+  ; send_attempts = 0
+  }
+;;
+
 let print_json json = print_endline (Yojson.Safe.pretty_to_string ~std:false json)
 
 let print_packets label packets =
@@ -167,6 +210,64 @@ let%expect_test "cleanup precedes explicit output close" =
     stopping
     notification sent
     output closed
+    <opaque> |}]
+;;
+
+let%expect_test "requests may reach the transport after stop" =
+  let channel = lifecycle_channel () in
+  let session = Lifecycle_jrpc.create ~name:"test" channel () in
+  let classify = function
+    | Error [ _ ] -> "error"
+    | Ok _ | Error _ -> "unexpected"
+  in
+  let operations () =
+    let notification = Jsonrpc.Notification.create ~method_:"started" () in
+    let* () = Lifecycle_jrpc.notification session notification in
+    channel.send_attempts <- 0;
+    channel.fail_sends <- true;
+    let* () = Lifecycle_jrpc.stop session in
+    let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"stopped" () in
+    let+ result =
+      Fiber.collect_errors (fun () -> Lifecycle_jrpc.request session request)
+    in
+    Printf.printf "request: %s\n" (classify result);
+    Printf.printf "transport attempts: %d\n" channel.send_attempts
+  in
+  Fiber_test.test Dyn.opaque (fun () ->
+    Fiber.fork_and_join_unit (fun () -> Lifecycle_jrpc.run session) operations);
+  [%expect
+    {|
+    request: error
+    transport attempts: 1
+    <opaque> |}]
+;;
+
+let%expect_test "notifications may reach the transport after close" =
+  let channel = lifecycle_channel () in
+  let session = Lifecycle_jrpc.create ~name:"test" channel () in
+  let classify = function
+    | Ok () -> "accepted"
+    | Error [ _ ] -> "rejected"
+    | Error _ -> "unexpected"
+  in
+  let operations () =
+    let started = Jsonrpc.Notification.create ~method_:"started" () in
+    let* () = Lifecycle_jrpc.notification session started in
+    channel.send_attempts <- 0;
+    let* () = Lifecycle_jrpc.close session in
+    let notification = Jsonrpc.Notification.create ~method_:"closed" () in
+    let+ result =
+      Fiber.collect_errors (fun () -> Lifecycle_jrpc.notification session notification)
+    in
+    Printf.printf "notification: %s\n" (classify result);
+    Printf.printf "transport attempts: %d\n" channel.send_attempts
+  in
+  Fiber_test.test Dyn.opaque (fun () ->
+    Fiber.fork_and_join_unit (fun () -> Lifecycle_jrpc.run session) operations);
+  [%expect
+    {|
+    notification: accepted
+    transport attempts: 1
     <opaque> |}]
 ;;
 
