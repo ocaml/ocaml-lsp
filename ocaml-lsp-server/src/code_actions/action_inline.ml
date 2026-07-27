@@ -222,7 +222,7 @@ let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
       (match arg.pexp_desc with
        | Pexp_tuple args ->
          let args = List.map ~f:snd args in
-         List.fold_left2 ~f:beta_reduce_arg ~init:body pats args
+         List.fold2_exn pats args ~init:body ~f:beta_reduce_arg
        | _ -> with_let ())
     | _ -> with_let ()
   in
@@ -238,11 +238,8 @@ let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
     when List.length params = List.length args && all_unlabeled_params params ->
     (match extract_param_pats params with
      | Some pats ->
-       List.fold_left2
-         ~f:(fun body pat (_, arg) -> beta_reduce_arg body pat arg)
-         ~init:body
-         pats
-         args
+       List.fold2_exn pats args ~init:body ~f:(fun body pat (_, arg) ->
+         beta_reduce_arg body pat arg)
      | None -> app)
   | _ -> app
 ;;

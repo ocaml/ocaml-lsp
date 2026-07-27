@@ -139,7 +139,7 @@ module Instance : sig
   val connect : t -> (unit, unit) result Fiber.t
   val source : t -> Registry.Dune.t
   val create : Registry.Dune.t -> config -> t
-  val promotions : t -> Drpc.Diagnostic.Promotion.t String.Map.t
+  val promotions : t -> Drpc.Diagnostic.Promotion.t Map.M(String).t
   val client : t -> Client.t option
 end = struct
   module Id = Id.Make ()
@@ -152,7 +152,7 @@ end = struct
     ; mutable client : Client.t option
     ; mutable promotions :
         (* TODO we need to clean these up in the finalizer *)
-        Drpc.Diagnostic.Promotion.t String.Map.t
+        Drpc.Diagnostic.Promotion.t Map.M(String).t
     }
 
   type state =
@@ -175,7 +175,7 @@ end = struct
 
   let promotions t =
     match t.state with
-    | Connected _ | Idle | Finished -> String.Map.empty
+    | Connected _ | Idle | Finished -> Map.empty (module String)
     | Running r -> r.promotions
   ;;
 
@@ -202,7 +202,7 @@ end = struct
         | D.Error -> DiagnosticSeverity.Error
         | Warning -> DiagnosticSeverity.Warning)
     in
-    let make_message message = String.trim (Format.asprintf "%a@." Pp.to_fmt message) in
+    let make_message message = String.strip (Format.asprintf "%a@." Pp.to_fmt message) in
     let relatedInformation =
       match D.related diagnostic with
       | [] -> None
@@ -320,8 +320,8 @@ end = struct
                   ~init:(promotions, [])
                   ~f:(fun (ps, acc) promotion ->
                     let source = Drpc.Diagnostic.Promotion.in_source promotion in
-                    match String.Map.find ps source with
-                    | Some _ -> String.Map.remove ps source, promotion :: acc
+                    match Map.find ps source with
+                    | Some _ -> Map.remove ps source, promotion :: acc
                     | None ->
                       Log.log ~section:"warning" (fun () ->
                         Log.msg
@@ -340,12 +340,12 @@ end = struct
                   ~init:(promotions, [])
                   ~f:(fun (ps, acc) promotion ->
                     let source = Drpc.Diagnostic.Promotion.in_source promotion in
-                    match String.Map.find ps source with
+                    match Map.find ps source with
                     | Some _ ->
                       (* TODO it should not be possible to offer more than one
                          promotion for a file in dune *)
                       assert false
-                    | None -> String.Map.add_exn ps source promotion, promotion :: acc)
+                    | None -> Map.add_exn ps ~key:source ~data:promotion, promotion :: acc)
               in
               let uri : Uri.t =
                 match Drpc.Diagnostic.loc d with
@@ -481,7 +481,7 @@ end = struct
     let running =
       { chan
       ; finish
-      ; promotions = String.Map.empty
+      ; promotions = Map.empty (module String)
       ; client = None
       ; diagnostics_id = Diagnostics.Dune.gen (Pid.of_int (Registry.Dune.pid source))
       ; id = Id.gen ()
@@ -565,14 +565,14 @@ end = struct
   ;;
 end
 
-module Dune_map = Map.Make (struct
+module Dune_map = Stdlib.MoreLabels.Map.Make (struct
     include Registry.Dune
 
     let compare x y = Ordering.to_int (compare x y)
   end)
 
 type active =
-  { mutable instances : Instance.t String.Map.t (* keyed by root *)
+  { mutable instances : Instance.t Map.M(String).t (* keyed by root *)
   ; mutable workspaces : Workspaces.t
   ; registry : Registry.t
   ; config : config
@@ -600,7 +600,7 @@ let uri_dune_overlap =
       else component acc path i (i - 1)
     and component acc path end_ i =
       if i < 0
-      then String.take path (end_ + 1) :: acc
+      then String.prefix path (end_ + 1) :: acc
       else if is_dir_sep (String.unsafe_get path i)
       then start (String.sub path ~pos:(i + 1) ~len:(end_ - i) :: acc) path (i - 1)
       else component acc path end_ (i - 1)
@@ -631,10 +631,11 @@ let uri_dune_overlap =
 let make_finalizer active (instance : Instance.t) =
   Lazy_fiber.create (fun () ->
     active.instances
-    <- String.Map.remove active.instances (Registry.Dune.root (Instance.source instance));
+    <- Map.remove active.instances (Registry.Dune.root (Instance.source instance));
     let to_unregister =
       Instance.promotions instance
-      |> String.Map.to_list_map ~f:(fun _ promotion ->
+      |> Map.data
+      |> List.map ~f:(fun promotion ->
         let path = Drpc.Diagnostic.Promotion.in_source promotion in
         Uri.of_path path)
     in
@@ -689,18 +690,18 @@ let poll active last_error =
     `Exn exn
   | Ok _refresh ->
     let remaining, to_kill =
-      String.Map.partition active.instances ~f:(fun (running : Instance.t) ->
+      Map.partition_tf active.instances ~f:(fun (running : Instance.t) ->
         let source = Instance.source running in
         List.exists workspace_folders ~f:(fun (wsf : WorkspaceFolder.t) ->
           uri_dune_overlap wsf.uri source))
     in
-    let to_kill = String.Map.values to_kill in
+    let to_kill = Map.data to_kill in
     active.instances <- remaining;
     let* connected =
       let to_create =
         (* won't work very well with large workspaces and many instances of
            dune *)
-        let is_running dune = String.Map.mem active.instances (Registry.Dune.root dune) in
+        let is_running dune = Map.mem active.instances (Registry.Dune.root dune) in
         Registry.current active.registry
         |> List.fold_left ~init:[] ~f:(fun acc dune ->
           if
@@ -714,8 +715,9 @@ let poll active last_error =
         let source = Instance.source instance in
         let root = Registry.Dune.root source in
         root, instance)
-      |> String.Map.of_list_multi
-      |> String.Map.values
+      |> List.rev
+      |> Map.of_alist_multi (module String)
+      |> Map.data
       |> Fiber.parallel_map ~f:(fun instances ->
         (* TODO put timeouts on all this stuff *)
         let rec loop = function
@@ -768,7 +770,7 @@ let poll active last_error =
                let source = Instance.source instance in
                (* this is guaranteed not to raise since we don't connect to more
                   than one dune instance per workspace *)
-               String.Map.add_exn acc (Registry.Dune.root source) instance);
+               Map.add_exn acc ~key:(Registry.Dune.root source) ~data:instance);
         Fiber.parallel_iter connected ~f:(run_instance active)
     in
     `No_error
@@ -788,11 +790,8 @@ let stop (t : t) =
       t := Closed;
       Fiber.fork_and_join_unit
         (fun () -> Fiber.Pool.stop active.pool)
-        (fun () ->
-           String.Map.values active.instances |> Fiber.parallel_iter ~f:Instance.stop))
+        (fun () -> Map.data active.instances |> Fiber.parallel_iter ~f:Instance.stop))
 ;;
-
-let env = Sys.getenv_opt
 
 let create
       workspaces
@@ -820,11 +819,13 @@ let create
     in
     { document_store; diagnostics; progress; include_promotions; log; trace }
   in
-  let registry = Registry.create (Registry.Config.create (Xdg.create ~env ())) in
+  let registry =
+    Registry.create (Registry.Config.create (Xdg.create ~env:Sys.getenv_opt ()))
+  in
   ref
     (Active
        { pool = Fiber.Pool.create ()
-       ; instances = String.Map.empty
+       ; instances = Map.empty (module String)
        ; config
        ; registry
        ; workspaces
@@ -912,7 +913,7 @@ module Promote = struct
           | Some [ arg ] -> Input.t_of_yojson arg
           | _ -> assert false
         in
-        (match String.Map.find active.instances promote.dune with
+        (match Map.find active.instances promote.dune with
          | None ->
            let message = sprintf "dune %S already disconected" promote.dune in
            Jsonrpc.Response.Error.raise
@@ -947,10 +948,10 @@ let code_actions (t : t) (uri : Uri.t) =
   | Closed -> []
   | Active active ->
     let path = Uri.to_path uri in
-    String.Map.fold active.instances ~init:[] ~f:(fun dune acc ->
+    Map.fold active.instances ~init:[] ~f:(fun ~key:_ ~data:dune acc ->
       match
         let promotions = Instance.promotions dune in
-        String.Map.find promotions path
+        Map.find promotions path
       with
       | None -> acc
       | Some promotion ->
@@ -983,6 +984,6 @@ let for_doc t doc =
   | Closed -> []
   | Active t ->
     let uri = Document.Dune.uri doc in
-    String.Map.fold ~init:[] t.instances ~f:(fun instance acc ->
+    Map.fold t.instances ~init:[] ~f:(fun ~key:_ ~data:instance acc ->
       if uri_dune_overlap uri (Instance.source instance) then instance :: acc else acc)
 ;;

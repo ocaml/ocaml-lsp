@@ -5,7 +5,7 @@ let path_separator = if Sys.win32 then ';' else ':'
 let path =
   lazy
     (Option.value ~default:"" (Sys.getenv_opt "PATH")
-     |> String.split_on_char ~sep:path_separator
+     |> String.split ~on:path_separator
      |> List.filter ~f:(fun path -> not (String.is_empty path)))
 ;;
 

@@ -195,10 +195,10 @@ let compute_modified_margin binary cancel offset formatter =
           config
           |> String.split_lines
           |> List.find_map ~f:(fun line ->
-            match String.drop_prefix line ~prefix:"margin=" with
+            match String.chop_prefix line ~prefix:"margin=" with
             | None -> None
             | Some margin ->
-              String.split margin ~on:' ' |> List.hd |> Option.bind ~f:Int.of_string)
+              String.split margin ~on:' ' |> List.hd |> Option.bind ~f:Int.of_string_opt)
           |> Option.value ~default
         | Error _ -> default
       in
@@ -207,7 +207,7 @@ let compute_modified_margin binary cancel offset formatter =
   | Reason _ ->
     let margin =
       Sys.getenv_opt "REFMT_PRINT_WIDTH"
-      |> Option.bind ~f:Int.of_string
+      |> Option.bind ~f:Int.of_string_opt
       |> Option.value ~default
     in
     let margin = margin - offset in
@@ -231,14 +231,14 @@ let format_snippet ~start ~stop ~padding formatter binary cancel contents =
   let prefix, to_format, suffix =
     ( String.sub contents ~pos:0 ~len:start
     , String.sub contents ~pos:start ~len:(stop - start)
-    , String.drop contents stop )
+    , String.drop_prefix contents stop )
   in
   let args = args formatter in
   let args =
     (* if we're formatting the start of a [let ... in] construct,
         don't emit [;;] before the [in]! *)
     let next =
-      String.trim suffix ~drop:(function
+      String.strip suffix ~drop:(function
         | ' ' | '\n' | '\r' | '\t' -> true
         | _ -> false)
     in
@@ -249,7 +249,7 @@ let format_snippet ~start ~stop ~padding formatter binary cancel contents =
   let pad s =
     let spaces_pad = Bytes.make padding ' ' |> Bytes.to_string in
     String.concat ~sep:"\n" (List.map (String.split_lines s) ~f:(( ^ ) spaces_pad))
-    |> String.trim ~drop:(( = ) ' ')
+    |> String.strip ~drop:(( = ) ' ')
   in
   let open Fiber.O in
   let* margin = compute_modified_margin binary cancel padding formatter in

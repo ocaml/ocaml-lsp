@@ -206,7 +206,7 @@ module Dot_protocol_io =
 let prefer_dot_merlin = ref false
 
 type db =
-  { running : (string, entry) Table.t
+  { running : (string, entry) Hashtbl.t
   ; pool : Fiber.Pool.t
   ; trace : trace
   }
@@ -230,7 +230,7 @@ module Entry = struct
     then Fiber.return ()
     else (
       t.stopping <- true;
-      Table.remove t.db.running t.process.initial_cwd;
+      Hashtbl.remove t.db.running t.process.initial_cwd;
       let* () =
         t.process.trace
           ~message:(fun () -> "Stopping Merlin configuration process")
@@ -252,12 +252,12 @@ module Entry = struct
 end
 
 let get_process t ~dir =
-  match Table.find t.running dir with
+  match Hashtbl.find t.running dir with
   | Some p -> Fiber.return p
   | None ->
     let* process = Process.start ~trace:t.trace ~dir in
     let entry = Entry.create t process in
-    Table.add_exn t.running ~key:dir ~data:entry;
+    Hashtbl.add_exn t.running ~key:dir ~data:entry;
     let+ () = Fiber.Pool.task t.pool ~f:(fun () -> Process.waitpid process) in
     entry
 ;;
@@ -298,13 +298,13 @@ let get_config (p : Process.t) ~workdir path_abs =
   (* Both [p.initial_cwd] and [path_abs] have gone through
      [canonicalize_filename] *)
   let path_rel =
-    String.drop_prefix ~prefix:p.initial_cwd path_abs
+    String.chop_prefix ~prefix:p.initial_cwd path_abs
     |> Option.map ~f:(fun path ->
       (* We need to remove the leading path separator after chopping. There
          is one case where no separator is left: when [initial_cwd] was the
          root of the filesystem *)
       if String.length path > 0 && path.[0] = Filename.dir_sep.[0]
-      then String.drop path 1
+      then String.drop_prefix path 1
       else path)
   in
   let path =
@@ -468,14 +468,14 @@ module DB = struct
   let get t uri = create t uri
 
   let create ~trace =
-    { running = Table.create (module Base.String); pool = Fiber.Pool.create (); trace }
+    { running = Hashtbl.create (module String); pool = Fiber.Pool.create (); trace }
   ;;
 
   let run t = Fiber.Pool.run t.pool
 
   let stop t =
     let running =
-      Table.fold t.running ~init:[] ~f:(fun ~key:_ ~data acc -> data :: acc)
+      Hashtbl.fold t.running ~init:[] ~f:(fun ~key:_ ~data acc -> data :: acc)
     in
     match running with
     | [] -> Fiber.Pool.stop t.pool

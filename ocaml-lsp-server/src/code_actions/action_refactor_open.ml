@@ -27,7 +27,7 @@ let code_action
         WorkspaceEdit.create ~changes:[ uri, edits ] ()
       in
       let kind = CodeActionKind.Other action_kind in
-      let title = String.capitalize_ascii action_kind in
+      let title = String.capitalize action_kind in
       CodeAction.create ~title ~kind ~edit ~isPreferred:false ()
     in
     Some code_action

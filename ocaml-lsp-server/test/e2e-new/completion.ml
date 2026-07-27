@@ -37,7 +37,8 @@ let print_completion_response
        print_endline "Completions:";
        let originalLength = List.length items in
        items
-       |> List.take (min limit originalLength)
+       |> fun items ->
+       List.take items (min limit originalLength)
        |> List.iter ~f:(fun item ->
          item
          |> CompletionItem.yojson_of_t
@@ -1184,7 +1185,7 @@ let%expect_test "completes from a module" =
 let%expect_test "completes a module name" =
   let source = {ocaml|let f = L|ocaml} in
   let position = Position.create ~line:0 ~character:9 in
-  print_completions ~pre_print:(List.take 5) source position;
+  print_completions ~pre_print:(fun items -> List.take items 5) source position;
   [%expect
     {|
   Completions:
@@ -1341,7 +1342,7 @@ let%expect_test "completion doesn't autocomplete record fields" =
   print_completions
     ~pre_print:
       (List.filter ~f:(fun (compl : CompletionItem.t) ->
-         compl.label = "x" || compl.label = "y"))
+         String.equal compl.label "x" || String.equal compl.label "y"))
     source
     position;
   (* We expect 0 completions*)

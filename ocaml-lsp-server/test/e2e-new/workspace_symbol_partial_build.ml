@@ -70,11 +70,11 @@ let%expect_test "mixed workspaces return symbols only from built workspaces" =
 
 let setup_generated_workspace () =
   let path = Test.temp_dir "ocamllsp-generated-workspace-symbol-" in
-  let lib = Stdlib.Filename.concat path "lib" in
+  let lib = Filename.concat path "lib" in
   mkdir lib;
-  Test.write_file (Stdlib.Filename.concat path "dune-project") "(lang dune 2.5)\n";
+  Test.write_file (Filename.concat path "dune-project") "(lang dune 2.5)\n";
   Test.write_file
-    (Stdlib.Filename.concat lib "dune")
+    (Filename.concat lib "dune")
     {dune|
 (library
  (name generated_source))
@@ -93,7 +93,7 @@ let setup_generated_workspace () =
 ;;
 
 let relative_path ~root path =
-  let prefix = root ^ Stdlib.Filename.dir_sep in
+  let prefix = root ^ Filename.dir_sep in
   if Stdlib.String.starts_with ~prefix path
   then String.drop_prefix path (String.length prefix)
   else path

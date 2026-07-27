@@ -62,6 +62,6 @@ let on_request ~params state =
       let* result = Ocamlformat_rpc.format_type ~typ state.ocamlformat_rpc in
       (match result with
        | Error _ -> Fiber.return (`String typ)
-       | Ok typ -> Fiber.return (`String (String.trim ~drop:(Char.equal '\n') typ)))
+       | Ok typ -> Fiber.return (`String (String.strip ~drop:(Char.equal '\n') typ)))
     | None -> Fiber.return `Null)
 ;;

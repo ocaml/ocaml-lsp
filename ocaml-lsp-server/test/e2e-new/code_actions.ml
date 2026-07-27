@@ -55,7 +55,8 @@ let print_code_actions
 
 let find_action action_name action =
   match action with
-  | `CodeAction { CodeAction.kind = Some (Other name); _ } -> name = action_name
+  | `CodeAction { CodeAction.kind = Some (Other name); _ } ->
+    String.equal name action_name
   | _ -> false
 ;;
 
@@ -67,11 +68,11 @@ let position_of_offset src x =
   let cnum = ref 0
   and lnum = ref 0 in
   for i = 0 to x - 1 do
-    if src.[i] = '\n'
+    if Char.equal src.[i] '\n'
     then (
-      incr lnum;
+      Int.incr lnum;
       cnum := 0)
-    else incr cnum
+    else Int.incr cnum
   done;
   Position.create ~character:!cnum ~line:!lnum
 ;;

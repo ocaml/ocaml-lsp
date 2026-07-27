@@ -47,7 +47,7 @@ let prefix_of_position ~short_path source position =
     in
     if short_path
     then (
-      match String.split_on_char reconstructed_prefix ~sep:'.' |> List.last with
+      match String.split reconstructed_prefix ~on:'.' |> List.last with
       | Some s -> s
       | None -> reconstructed_prefix)
     else reconstructed_prefix
@@ -170,7 +170,7 @@ module Complete_by_prefix = struct
         @ List.map labels ~f:(fun (name, typ) ->
           let name =
             if String.is_prefix prefix ~prefix:"~" && String.is_prefix name ~prefix:"?"
-            then "~" ^ String.drop_prefix_if_exists name ~prefix:"?"
+            then "~" ^ String.chop_prefix_if_exists name ~prefix:"?"
             else name
           in
           { Query_protocol.Compl.name

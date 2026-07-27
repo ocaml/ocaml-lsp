@@ -365,7 +365,7 @@ let type_enclosing_hover
       match result with
       | Ok v ->
         (* OCamlformat adds an unnecessary newline at the end of the type *)
-        Fiber.return (String.trim v)
+        Fiber.return (String.strip v)
       | Error `No_process -> Fiber.return typ
       | Error (`Msg message) ->
         (* We log OCamlformat errors and display the unformatted type *)

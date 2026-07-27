@@ -52,7 +52,7 @@ type t =
   ; children : t list
   }
 
-module TySet = Set.Make (struct
+module TySet = Stdlib.Set.Make (struct
     type t = string * DocumentUri.t option * Position.t
 
     let compare (ty_a, doc_a, pos_a) (ty_b, doc_b, pos_b) =
@@ -60,7 +60,7 @@ module TySet = Set.Make (struct
       if Int.equal 0 c
       then (
         let c = Lsp.Position.compare pos_a pos_b in
-        if Int.equal 0 c then Poly.compare ty_a ty_b |> Ordering.to_int else c)
+        if Int.equal 0 c then Poly.compare ty_a ty_b else c)
       else c
     ;;
   end)

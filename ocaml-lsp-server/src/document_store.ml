@@ -37,7 +37,7 @@ type doc =
   }
 
 type t =
-  { db : (Uri.t, doc ref) Table.t
+  { db : (Uri.t, doc ref) Hashtbl.t
   ; server : server
   ; (* The pool is needed to run subscribe/unsubscribe requests. To prevent
        deadlocks with synchronous responses to lsp. In the future, these
@@ -45,7 +45,7 @@ type t =
     pool : Fiber.Pool.t
   }
 
-let make s pool = { db = Table.create (module Uri); server = Server s; pool }
+let make s pool = { db = Hashtbl.create (module Uri); server = Server s; pool }
 let code_action_id uri = "ocamllsp-promote/" ^ Uri.to_string uri
 let method_ = "textDocument/codeAction"
 
@@ -96,9 +96,9 @@ let register_request t uris =
 let open_document t doc =
   let* () = Fiber.return () in
   let key = Document.uri doc in
-  match Table.find t.db key with
+  match Hashtbl.find t.db key with
   | None ->
-    Table.set
+    Hashtbl.set
       t.db
       ~key
       ~data:(ref { document = Some doc; promotions = 0; semantic_tokens_cache = None });
@@ -113,7 +113,7 @@ let open_document t doc =
     if unregister then unregister_request t [ key ] else Fiber.return ()
 ;;
 
-let get_opt t uri = Table.find t.db uri |> Option.bind ~f:(fun d -> !d.document)
+let get_opt t uri = Hashtbl.find t.db uri |> Option.bind ~f:(fun d -> !d.document)
 
 let no_document_found uri = function
   | Some s -> s
@@ -125,7 +125,7 @@ let no_document_found uri = function
          ())
 ;;
 
-let get' t uri = Table.find t.db uri |> no_document_found uri
+let get' t uri = Hashtbl.find t.db uri |> no_document_found uri
 let get t uri = !(get' t uri).document |> no_document_found uri
 
 let change_document t uri ~f =
@@ -143,13 +143,13 @@ let maybe_close_doc (doc : doc) =
 
 let close_document t uri =
   Fiber.of_thunk (fun () ->
-    match Table.find t.db uri with
+    match Hashtbl.find t.db uri with
     | None -> Fiber.return ()
     | Some doc ->
       let close_doc () = maybe_close_doc !doc in
       if !doc.promotions = 0
       then (
-        Table.remove t.db uri;
+        Hashtbl.remove t.db uri;
         close_doc ())
       else (
         doc := { !doc with document = None };
@@ -159,12 +159,12 @@ let close_document t uri =
 let unregister_promotions t uris =
   let* () = Fiber.return () in
   List.filter uris ~f:(fun uri ->
-    match Table.find t.db uri with
+    match Hashtbl.find t.db uri with
     | None -> false
     | Some doc ->
       doc := { !doc with promotions = !doc.promotions - 1 };
       let unsubscribe = !doc.promotions = 0 in
-      if unsubscribe && !doc.document = None then Table.remove t.db uri;
+      if unsubscribe && !doc.document = None then Hashtbl.remove t.db uri;
       unsubscribe)
   |> unregister_request t
 ;;
@@ -172,10 +172,10 @@ let unregister_promotions t uris =
 let register_promotions t uris =
   let* () = Fiber.return () in
   List.filter uris ~f:(fun uri ->
-    match Table.find t.db uri with
+    match Hashtbl.find t.db uri with
     | None ->
       let doc = ref { document = None; promotions = 1; semantic_tokens_cache = None } in
-      Table.set t.db ~key:uri ~data:doc;
+      Hashtbl.set t.db ~key:uri ~data:doc;
       true
     | Some doc ->
       doc := { !doc with promotions = !doc.promotions + 1 };
@@ -198,7 +198,7 @@ let get_semantic_tokens_cache : t -> Uri.t -> semantic_tokens_cache option =
 ;;
 
 let parallel_iter t ~f =
-  let all = Table.fold ~init:[] t.db ~f:(fun ~key:_ ~data:doc acc -> doc :: acc) in
+  let all = Hashtbl.fold ~init:[] t.db ~f:(fun ~key:_ ~data:doc acc -> doc :: acc) in
   Fiber.parallel_iter all ~f:(fun doc ->
     match !doc.document with
     | None -> Fiber.return ()
@@ -206,7 +206,7 @@ let parallel_iter t ~f =
 ;;
 
 let fold t ~init ~f =
-  Table.fold t.db ~init ~f:(fun ~key:_ ~data:doc acc ->
+  Hashtbl.fold t.db ~init ~f:(fun ~key:_ ~data:doc acc ->
     match !doc.document with
     | None -> acc
     | Some x -> f x acc)
@@ -214,7 +214,7 @@ let fold t ~init ~f =
 
 let close_all t =
   Fiber.of_thunk (fun () ->
-    let docs = Table.fold t.db ~init:[] ~f:(fun ~key:_ ~data:doc acc -> !doc :: acc) in
-    Table.clear t.db;
+    let docs = Hashtbl.fold t.db ~init:[] ~f:(fun ~key:_ ~data:doc acc -> !doc :: acc) in
+    Hashtbl.clear t.db;
     Fiber.parallel_iter docs ~f:maybe_close_doc)
 ;;

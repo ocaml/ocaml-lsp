@@ -1,6 +1,4 @@
 open Import
-module List = Merlin_utils.Std.List
-module String = Merlin_utils.Std.String
 module Misc_utils = Merlin_analysis.Misc_utils
 module Type_utils = Merlin_analysis.Type_utils
 

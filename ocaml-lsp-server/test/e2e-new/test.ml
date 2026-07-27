@@ -1,96 +1,60 @@
 module Import = struct
   include struct
-    include Base
+    open Base
+    module Array = Array
+    module Buffer = Buffer
+    module Char = Char
+    module Either = Either
+    module Float = Float
+    module Hashtbl = Hashtbl
+    module Int = Int
+    module List = List
+    module Map = Map
+    module Option = Option
+    module Poly = Poly
+    module Queue = Queue
+    module Result = Result
+    module Set = Set
+    module String = String
+  end
 
-    type nonrec ('a, 'b) result = ('a, 'b) Stdlib.result
+  let sprintf = Printf.sprintf
 
-    let ( = ) = Stdlib.( = )
-    let ( <> ) = Stdlib.( <> )
-    let ( < ) = Stdlib.( < )
-    let ( <= ) = Stdlib.( <= )
-    let ( > ) = Stdlib.( > )
-    let ( >= ) = Stdlib.( >= )
-    let incr = Stdlib.incr
-    let decr = Stdlib.decr
-    let sprintf = Stdlib.Printf.sprintf
-    let print_endline = Stdlib.print_endline
-    let print_string = Stdlib.print_string
-    let print_int = Stdlib.print_int
-    let print_newline = Stdlib.print_newline
-    let output_string = Stdlib.output_string
-    let close_out = Stdlib.close_out
-    let stdout = Stdlib.stdout
+  module Option = struct
+    include Option
 
-    module Buffer = Stdlib.Buffer
-    module Exn_with_backtrace = Stdune.Exn_with_backtrace
-    module Filename = Stdlib.Filename
-    module Format = Stdlib.Format
-    module Fun = Stdlib.Fun
-    module Printf = Stdlib.Printf
-    module Sys = Stdlib.Sys
-
-    module Option = struct
-      include Option
-
-      module O = struct
-        let ( let+ ) value f = map value ~f
-        let ( let* ) value f = bind value ~f
-      end
+    module O = struct
+      let ( let+ ) value f = map value ~f
+      let ( let* ) value f = bind value ~f
     end
+  end
 
-    module List = struct
-      include List
+  module Exn_with_backtrace = Stdune.Exn_with_backtrace
 
-      let take n l =
-        if n < 0 || n > List.length l
-        then failwith "list shorter than n"
-        else
-          let open Base in
-          List.take l n
-      ;;
+  module Array_iter : sig
+    type 'a t
 
-      let fold_left_map values ~init ~f =
-        let state, values =
-          Stdlib.List.fold_left
-            (fun (state, values) value ->
-               let state, value = f state value in
-               state, value :: values)
-            (init, [])
-            values
-        in
-        state, rev values
-      ;;
-    end
+    val create : 'a array -> 'a t
+    val has_next : 'a t -> bool
+    val next : 'a t -> 'a option
+    val next_exn : 'a t -> 'a
+  end = struct
+    type 'a t =
+      { contents : 'a array
+      ; mutable ix : int
+      }
 
-    module Array = struct
-      include Array
+    let create contents = { contents; ix = 0 }
+    let has_next t = t.ix < Array.length t.contents
 
-      module Iter : sig
-        type 'a t
+    let next_exn t =
+      let { contents; ix } = t in
+      let v = contents.(ix) in
+      t.ix <- ix + 1;
+      v
+    ;;
 
-        val create : 'a array -> 'a t
-        val has_next : 'a t -> bool
-        val next : 'a t -> 'a option
-        val next_exn : 'a t -> 'a
-      end = struct
-        type 'a t =
-          { contents : 'a array
-          ; mutable ix : int
-          }
-
-        let create contents = { contents; ix = 0 }
-        let has_next t = t.ix < Array.length t.contents
-
-        let next_exn t =
-          let { contents; ix } = t in
-          let v = contents.(ix) in
-          t.ix <- ix + 1;
-          v
-        ;;
-
-        let next t = if has_next t then Some (next_exn t) else None
-      end
-    end
+    let next t = if has_next t then Some (next_exn t) else None
   end
 
   include Fiber.O
@@ -128,7 +92,7 @@ let waitpid ?(timeout = 5.0) pid =
   let deadline = Unix.gettimeofday () +. timeout in
   let rec wait () =
     match Unix.waitpid [ Unix.WNOHANG ] pid with
-    | 0, _ when Unix.gettimeofday () < deadline ->
+    | 0, _ when Float.(Unix.gettimeofday () < deadline) ->
       Unix.sleepf 0.01;
       wait ()
     | 0, _ ->
@@ -280,8 +244,8 @@ include T
 let write_file path data = Fs_io.write_file ~perm:0o666 ~path ~data |> Result.ok_exn
 
 let temp_dir ?temp_dir prefix =
-  let dir = Stdlib.Filename.temp_file ?temp_dir prefix "" in
-  Stdlib.Sys.remove dir;
+  let dir = Filename.temp_file ?temp_dir prefix "" in
+  Sys.remove dir;
   Unix.mkdir dir 0o700;
   dir
 ;;
@@ -290,9 +254,9 @@ let run_command ?cwd command =
   let command =
     match cwd with
     | None -> command
-    | Some cwd -> Printf.sprintf "cd %s && %s" (Stdlib.Filename.quote cwd) command
+    | Some cwd -> Printf.sprintf "cd %s && %s" (Filename.quote cwd) command
   in
-  if Stdlib.Sys.command command <> 0 then failwith command
+  if Sys.command command <> 0 then failwith command
 ;;
 
 let null_device = if Sys.win32 then "NUL" else "/dev/null"
@@ -355,8 +319,8 @@ let open_document ?(language_id = "ocaml") ~client ~uri ~source () =
 let offset_of_position src (pos : Position.t) =
   let line_offset =
     String.split_lines src
-    |> List.take pos.line
-    |> List.fold_left ~init:0 ~f:(fun s l -> s + String.length l)
+    |> fun lines ->
+    List.take lines pos.line |> List.fold_left ~init:0 ~f:(fun s l -> s + String.length l)
   in
   line_offset + pos.line (* account for line endings *) + pos.character
 ;;
@@ -380,10 +344,12 @@ let apply_edits src edits =
     List.map edits ~f:(fun (e : TextEdit.t) ->
       e.newText, offset_of_position src e.range.start, offset_of_position src e.range.end_)
     (* update the offsets to account for preceding edits *)
-    |> List.fold_left_map ~init:0 ~f:(fun offset (new_text, start, end_) ->
-      if end_ < start then failwith "invalid edit: end before start";
-      ( offset + (String.length new_text - (end_ - start))
-      , (new_text, start + offset, end_ + offset) ))
+    |> Stdlib.List.fold_left_map
+         (fun offset (new_text, start, end_) ->
+            if end_ < start then failwith "invalid edit: end before start";
+            ( offset + (String.length new_text - (end_ - start))
+            , (new_text, start + offset, end_ + offset) ))
+         0
   in
   (* apply edits *)
   List.fold_left edits ~init:src ~f:(fun src (new_text, start, end_) ->

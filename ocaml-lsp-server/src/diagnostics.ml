@@ -21,7 +21,7 @@ module Dune = struct
       }
 
     let compare x y =
-      match Int.compare (Pid.to_int x.pid) (Pid.to_int y.pid) with
+      match Int.compare (Pid.to_int x.pid) (Pid.to_int y.pid) |> Ordering.of_int with
       | Eq -> Id.compare x.id y.id
       | r -> r
     ;;
@@ -75,10 +75,10 @@ let equal_message =
 ;;
 
 type t =
-  { dune : (Dune.t, (Drpc.Diagnostic.Id.t, Uri.t * Diagnostic.t) Table.t) Table.t
-  ; merlin : (Uri.t, Diagnostic.t list) Table.t
+  { dune : (Dune.t, (Drpc.Diagnostic.Id.t, Uri.t * Diagnostic.t) Hashtbl.t) Hashtbl.t
+  ; merlin : (Uri.t, Diagnostic.t list) Hashtbl.t
   ; send : PublishDiagnosticsParams.t list -> unit Fiber.t
-  ; mutable dirty_uris : (Uri.t, Uri.comparator_witness) Base.Set.t
+  ; mutable dirty_uris : (Uri.t, Uri.comparator_witness) Set.t
   ; related_information : bool
   ; tags : DiagnosticTag.t list
   ; mutable report_dune_diagnostics : bool
@@ -100,9 +100,9 @@ let create
          | None -> []
          | Some { valueSet } -> valueSet) )
   in
-  { dune = Table.create (module Dune)
-  ; merlin = Table.create (module Uri)
-  ; dirty_uris = Base.Set.empty (module Uri)
+  { dune = Hashtbl.create (module Dune)
+  ; merlin = Hashtbl.create (module Uri)
+  ; dirty_uris = Set.empty (module Uri)
   ; send
   ; related_information
   ; tags
@@ -112,7 +112,7 @@ let create
 ;;
 
 let send =
-  let module Range_map = Map.Make (struct
+  let module Range_map = Stdlib.MoreLabels.Map.Make (struct
       include Range
 
       let compare = Lsp.Range.compare
@@ -121,7 +121,7 @@ let send =
   (* TODO deduplicate related errors as well *)
   let add_dune_diagnostic pending uri (diagnostic : Diagnostic.t) =
     let value =
-      match Table.find pending uri with
+      match Hashtbl.find pending uri with
       | None -> Range_map.singleton diagnostic.range [ diagnostic ]
       | Some map ->
         Range_map.update map ~key:diagnostic.range ~f:(fun diagnostics ->
@@ -144,7 +144,7 @@ let send =
                then diagnostics
                else diagnostic :: diagnostics))
     in
-    Table.set pending ~key:uri ~data:value
+    Hashtbl.set pending ~key:uri ~data:value
   in
   let range_map_of_unduplicated_diagnostics diagnostics =
     List.rev_map diagnostics ~f:(fun (d : Diagnostic.t) -> d.range, d)
@@ -158,17 +158,17 @@ let send =
       let dirty_uris =
         match which with
         | `All -> t.dirty_uris
-        | `One uri -> Base.Set.singleton (module Uri) uri
+        | `One uri -> Set.singleton (module Uri) uri
       in
-      let pending = Table.create (module Uri) in
-      Base.Set.iter dirty_uris ~f:(fun uri ->
-        let diagnostics = Table.Multi.find t.merlin uri in
-        Table.set
+      let pending = Hashtbl.create (module Uri) in
+      Set.iter dirty_uris ~f:(fun uri ->
+        let diagnostics = Hashtbl.find_multi t.merlin uri in
+        Hashtbl.set
           pending
           ~key:uri
           ~data:(range_map_of_unduplicated_diagnostics diagnostics));
       let set_dune_source =
-        let annotate_dune_pid = Table.length t.dune > 1 in
+        let annotate_dune_pid = Hashtbl.length t.dune > 1 in
         if annotate_dune_pid
         then
           fun pid (d : Diagnostic.t) ->
@@ -178,17 +178,17 @@ let send =
       in
       if t.report_dune_diagnostics
       then
-        Table.fold ~init:() t.dune ~f:(fun ~key:dune ~data:per_dune () ->
-          Table.iter per_dune ~f:(fun (uri, diagnostic) ->
-            if Base.Set.mem dirty_uris uri
+        Hashtbl.fold ~init:() t.dune ~f:(fun ~key:dune ~data:per_dune () ->
+          Hashtbl.iter per_dune ~f:(fun (uri, diagnostic) ->
+            if Set.mem dirty_uris uri
             then (
               let diagnostic = set_dune_source dune.pid diagnostic in
               add_dune_diagnostic pending uri diagnostic)));
       t.dirty_uris
       <- (match which with
-          | `All -> Base.Set.empty (module Uri)
-          | `One uri -> Base.Set.remove t.dirty_uris uri);
-      Table.fold pending ~init:[] ~f:(fun ~key:uri ~data:diagnostics acc ->
+          | `All -> Set.empty (module Uri)
+          | `One uri -> Set.remove t.dirty_uris uri);
+      Hashtbl.fold pending ~init:[] ~f:(fun ~key:uri ~data:diagnostics acc ->
         let diagnostics = Range_map.to_list diagnostics |> List.concat_map ~f:snd in
         (* we don't include a version because some of the diagnostics might
            come from dune which reads from the file system and not from the
@@ -203,35 +203,35 @@ let set t what =
     | `Dune (_, _, uri, _) -> uri
     | `Merlin (uri, _) -> uri
   in
-  t.dirty_uris <- Base.Set.add t.dirty_uris uri;
+  t.dirty_uris <- Set.add t.dirty_uris uri;
   match what with
-  | `Merlin (uri, diagnostics) -> Table.set t.merlin ~key:uri ~data:diagnostics
+  | `Merlin (uri, diagnostics) -> Hashtbl.set t.merlin ~key:uri ~data:diagnostics
   | `Dune (dune, id, uri, diagnostics) ->
     let dune_table =
-      Table.find_or_add t.dune dune ~default:(fun _ -> Table.create (module Id))
+      Hashtbl.find_or_add t.dune dune ~default:(fun _ -> Hashtbl.create (module Id))
     in
-    Table.set dune_table ~key:id ~data:(uri, diagnostics)
+    Hashtbl.set dune_table ~key:id ~data:(uri, diagnostics)
 ;;
 
 let remove t = function
   | `Dune (dune, diagnostic) ->
-    Table.find t.dune dune
+    Hashtbl.find t.dune dune
     |> Option.iter ~f:(fun dune ->
-      Table.find dune diagnostic
+      Hashtbl.find dune diagnostic
       |> Option.iter ~f:(fun (uri, _) ->
-        Table.remove dune diagnostic;
-        t.dirty_uris <- Base.Set.add t.dirty_uris uri))
+        Hashtbl.remove dune diagnostic;
+        t.dirty_uris <- Set.add t.dirty_uris uri))
   | `Merlin uri ->
-    t.dirty_uris <- Base.Set.add t.dirty_uris uri;
-    Table.remove t.merlin uri
+    t.dirty_uris <- Set.add t.dirty_uris uri;
+    Hashtbl.remove t.merlin uri
 ;;
 
 let disconnect t dune =
-  Table.find t.dune dune
+  Hashtbl.find t.dune dune
   |> Option.iter ~f:(fun dune_diagnostics ->
-    Table.iter dune_diagnostics ~f:(fun (uri, _) ->
-      t.dirty_uris <- Base.Set.add t.dirty_uris uri);
-    Table.remove t.dune dune)
+    Hashtbl.iter dune_diagnostics ~f:(fun (uri, _) ->
+      t.dirty_uris <- Set.add t.dirty_uris uri);
+    Hashtbl.remove t.dune dune)
 ;;
 
 let tags_of_message =
@@ -251,7 +251,7 @@ let tags_of_message =
 let extract_related_errors uri raw_message =
   match Ocamlc_loc.parse_raw raw_message with
   | `Message message :: related ->
-    let string_of_message message = String.trim message in
+    let string_of_message message = String.strip message in
     let related =
       let rec loop acc = function
         | `Loc loc :: `Message m :: xs -> loop ((loc, m) :: acc) xs
@@ -321,7 +321,7 @@ let error_to_diagnostics ~diagnostics ~merlin error =
     | Warning -> DiagnosticSeverity.Warning
     | _ -> DiagnosticSeverity.Error
   in
-  let make_message ppf m = String.trim (Format.asprintf "%a@." ppf m) in
+  let make_message ppf m = String.strip (Format.asprintf "%a@." ppf m) in
   let message = make_message Loc.print_main error in
   let message, related_information =
     match diagnostics.related_information with
@@ -407,7 +407,7 @@ let merlin_diagnostics diagnostics merlin =
         (* Can we use [List.merge] instead? *)
         List.rev_append holes_as_err_diags merlin_diagnostics
         |> List.sort ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
-          Lsp.Range.compare d1.range d2.range |> Ordering.of_int))
+          Lsp.Range.compare d1.range d2.range))
   in
   set diagnostics (`Merlin (uri, all_diagnostics))
 ;;
@@ -417,9 +417,9 @@ let set_report_dune_diagnostics t ~report_dune_diagnostics =
   then Fiber.return ()
   else (
     t.report_dune_diagnostics <- report_dune_diagnostics;
-    Table.iter t.dune ~f:(fun per_dune ->
-      Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
-        t.dirty_uris <- Base.Set.add t.dirty_uris uri));
+    Hashtbl.iter t.dune ~f:(fun per_dune ->
+      Hashtbl.iter per_dune ~f:(fun (uri, _diagnostic) ->
+        t.dirty_uris <- Set.add t.dirty_uris uri));
     send t `All)
 ;;
 
@@ -428,8 +428,8 @@ let set_shorten_merlin_diagnostics t ~shorten_merlin_diagnostics =
   then Fiber.return ()
   else (
     t.shorten_merlin_diagnostics <- shorten_merlin_diagnostics;
-    Table.iter t.dune ~f:(fun per_dune ->
-      Table.iter per_dune ~f:(fun (uri, _diagnostic) ->
-        t.dirty_uris <- Base.Set.add t.dirty_uris uri));
+    Hashtbl.iter t.dune ~f:(fun per_dune ->
+      Hashtbl.iter per_dune ~f:(fun (uri, _diagnostic) ->
+        t.dirty_uris <- Set.add t.dirty_uris uri));
     send t `All)
 ;;

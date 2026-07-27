@@ -159,7 +159,7 @@ let b_main_ml =
 |workspace_symbol}
 ;;
 
-let mkdir path = if not (Stdlib.Sys.file_exists path) then Unix.mkdir path 0o700
+let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o700
 
 type workspace =
   { name : string
@@ -168,7 +168,7 @@ type workspace =
   }
 
 let create_workspace root name =
-  let path = Stdlib.Filename.concat root name in
+  let path = Filename.concat root name in
   mkdir path;
   let uri = DocumentUri.of_path path in
   { name; path; folder = WorkspaceFolder.create ~name ~uri }
@@ -179,11 +179,11 @@ let setup_workspaces () =
   let workspace_a = create_workspace root "workspace_symbol_A" in
   let workspace_b = create_workspace root "workspace_symbol_B" in
   let write workspace rel content =
-    Test.write_file (Stdlib.Filename.concat workspace.path rel) content
+    Test.write_file (Filename.concat workspace.path rel) content
   in
-  mkdir (Stdlib.Filename.concat workspace_a.path "bin");
-  mkdir (Stdlib.Filename.concat workspace_a.path "lib");
-  mkdir (Stdlib.Filename.concat workspace_a.path "vendor");
+  mkdir (Filename.concat workspace_a.path "bin");
+  mkdir (Filename.concat workspace_a.path "lib");
+  mkdir (Filename.concat workspace_a.path "vendor");
   write workspace_a "dune-project" "(lang dune 2.5)\n";
   write workspace_a "lib.opam" "";
   write workspace_a "main.opam" "";
@@ -227,7 +227,7 @@ let to_test_result workspaces (symbol : SymbolInformation.t) =
     match workspace_path with
     | None -> path
     | Some workspace_path ->
-      let parent = Stdlib.Filename.dirname workspace_path in
+      let parent = Filename.dirname workspace_path in
       String.drop_prefix path (String.length parent)
   in
   Printf.sprintf
