@@ -422,7 +422,7 @@ struct
 
   let submit (t : _ t) (batch : Batch.t) =
     Fiber.of_thunk (fun () ->
-      check_accepting_requests t;
+      check_running t;
       let pending = !batch in
       batch := [];
       let pending, ivars =
@@ -431,6 +431,7 @@ struct
           | `Request ((r : Request.t), ivar) ->
             Jsonrpc.Packet.Request r :: pending, (r.id, ivar) :: ivars)
       in
+      if not (List.is_empty ivars) then check_accepting_requests t;
       List.iter ivars ~f:(fun (id, ivar) -> register_request_ivar t id ivar);
       Chan.send t.chan pending)
   ;;
