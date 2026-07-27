@@ -64,9 +64,8 @@ let%expect_test "completion resolve after its document changes" =
       | Some (`CompletionList { items; _ } | `List items) -> items
     in
     let item =
-      List.find items ~f:(fun (item : CompletionItem.t) ->
+      List.find_exn items ~f:(fun (item : CompletionItem.t) ->
         String.equal item.label "old_value")
-      |> Option.value_exn
     in
     print_endline "Completion item before document update:";
     print_completion_item item;

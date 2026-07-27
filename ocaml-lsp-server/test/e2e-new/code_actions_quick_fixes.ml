@@ -564,9 +564,7 @@ let f (x:bool) =
       in
       let* arguments = command.arguments in
       match arguments with
-      | [ `Assoc fields ] ->
-        List.find_map fields ~f:(fun (name, value) ->
-          Option.some_if (String.equal name "inRange") value)
+      | [ `Assoc fields ] -> List.Assoc.find fields "inRange" ~equal:String.equal
       | _ -> None
     in
     Option.iter in_range ~f:Test.print_result;

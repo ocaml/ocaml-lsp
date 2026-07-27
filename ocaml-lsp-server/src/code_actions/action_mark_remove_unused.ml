@@ -46,7 +46,7 @@ let find_unused_diagnostic pos ds =
     in
     let+ kind =
       List.find_map diagnostic_regex_marks ~f:(fun (m, k) ->
-        if Re.Mark.test group m then Some k else None)
+        Option.some_if (Re.Mark.test group m) k)
     in
     kind, d)
 ;;

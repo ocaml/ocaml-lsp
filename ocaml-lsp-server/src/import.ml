@@ -110,7 +110,6 @@ include struct
 
     include Uri
     include Comparator.Make (Uri)
-    module Map = Stdlib.Map.Make (Uri)
   end
 end
 

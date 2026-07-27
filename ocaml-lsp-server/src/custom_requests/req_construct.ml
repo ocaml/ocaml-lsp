@@ -24,12 +24,7 @@ module Request_params = struct
   let yojson_of_t { text_document; position; with_values; depth } =
     match TextDocumentIdentifier.yojson_of_t text_document with
     | `Assoc assoc ->
-      let depth =
-        ( "depth"
-        , match depth with
-          | None -> `Null
-          | Some x -> `Int x )
-      in
+      let depth = "depth", Option.value_map depth ~default:`Null ~f:(fun x -> `Int x) in
       let with_values = "withValues", yojson_of_with_values with_values in
       let position = "position", Position.yojson_of_t position in
       `Assoc (depth :: with_values :: position :: assoc)

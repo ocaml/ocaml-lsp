@@ -25,9 +25,7 @@ let resize_for_edit { TextEdit.range; newText } =
       let start = range.start in
       let line = start.line + List.length several_lines - 1 in
       let character =
-        let last_line_len =
-          List.last several_lines |> Option.value_exn |> String.length
-        in
+        let last_line_len = List.last_exn several_lines |> String.length in
         if line = start.line then start.character + last_line_len else last_line_len
       in
       { Position.line; character }

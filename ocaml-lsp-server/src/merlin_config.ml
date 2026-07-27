@@ -305,7 +305,7 @@ let get_config (p : Process.t) ~workdir path_abs =
       (* We need to remove the leading path separator after chopping. There
          is one case where no separator is left: when [initial_cwd] was the
          root of the filesystem *)
-      if String.length path > 0 && path.[0] = Filename.dir_sep.[0]
+      if (not (String.is_empty path)) && path.[0] = Filename.dir_sep.[0]
       then String.drop_prefix path 1
       else path)
   in
@@ -370,7 +370,7 @@ let find_dune_project_context start_dir =
     | None ->
       (* XXX what's ["dune-file"]? *)
       let fnames = List.map ~f:(Filename.concat dir) [ "dune"; "dune-file" ] in
-      if List.exists ~f:file_exists fnames then Some dir else None
+      Option.some_if (List.exists ~f:file_exists fnames) dir
   in
   let rec loop ~workdir ~dir =
     match

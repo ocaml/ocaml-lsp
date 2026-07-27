@@ -27,10 +27,7 @@ module Request_params = struct
              | `Declaration -> "declaration"
              | `Definition -> "definition") )
       and prefix =
-        ( "prefix"
-        , match prefix with
-          | None -> `Null
-          | Some p -> `String p )
+        "prefix", Option.value_map prefix ~default:`Null ~f:(fun prefix -> `String prefix)
       in
       `Assoc (position :: prefix :: kind :: assoc)
     | _ -> (* unreachable *) assert false

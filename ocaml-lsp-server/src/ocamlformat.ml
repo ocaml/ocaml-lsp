@@ -229,7 +229,7 @@ let ( let++ ) x f = Fiber.map x ~f:(Result.map ~f)
     - stitch everything back together. *)
 let format_snippet ~start ~stop ~padding formatter binary cancel contents =
   let prefix, to_format, suffix =
-    ( String.sub contents ~pos:0 ~len:start
+    ( String.prefix contents start
     , String.sub contents ~pos:start ~len:(stop - start)
     , String.drop_prefix contents stop )
   in

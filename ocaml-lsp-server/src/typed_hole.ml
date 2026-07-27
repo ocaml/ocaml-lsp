@@ -1,9 +1,8 @@
 open Import
 
 let in_range range holes =
-  match range with
-  | None -> holes
-  | Some range -> List.filter ~f:(Lsp.Range.contains range) holes
+  Option.value_map range ~default:holes ~f:(fun range ->
+    List.filter ~f:(Lsp.Range.contains range) holes)
 ;;
 
 let find_prev ~range ~position holes =

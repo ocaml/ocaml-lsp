@@ -22,49 +22,50 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     let version = Document.version doc in
     let uri = Document.uri doc in
     let edits =
-      List.fold_left locs ~init:Uri.Map.empty ~f:(fun acc (loc : Warnings.loc) ->
-        let range = Range.of_loc loc in
-        let edit = TextEdit.create ~range ~newText:newName in
-        let uri =
-          match loc.loc_start.pos_fname with
-          | "" -> uri
-          | path -> Uri.of_path path
-        in
-        Uri.Map.add_to_list uri edit acc)
+      List.fold_left
+        locs
+        ~init:(Map.empty (module Uri))
+        ~f:(fun acc (loc : Warnings.loc) ->
+          let range = Range.of_loc loc in
+          let edit = TextEdit.create ~range ~newText:newName in
+          let uri =
+            match loc.loc_start.pos_fname with
+            | "" -> uri
+            | path -> Uri.of_path path
+          in
+          Map.add_multi acc ~key:uri ~data:edit)
     in
     let edits =
-      Uri.Map.mapi
-        (fun doc_uri edits ->
-           let source =
-             match Document_store.get_opt state.store doc_uri with
-             | Some doc when DocumentUri.equal doc_uri (Document.uri doc) ->
-               Document.source doc
-             | Some _ | None ->
-               let source_path = Uri.to_path doc_uri in
-               In_channel.with_open_text source_path In_channel.input_all |> Msource.make
-           in
-           List.map edits ~f:(fun (edit : TextEdit.t) ->
-             let start_position = edit.range.start in
-             match start_position with
-             | { character = 0; _ } -> edit
-             | pos ->
-               let mpos = Position.logical pos in
-               let (`Offset index) = Msource.get_offset source mpos in
-               assert (index > 0)
-               (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
+      Map.mapi edits ~f:(fun ~key:doc_uri ~data:edits ->
+        let source =
+          match Document_store.get_opt state.store doc_uri with
+          | Some doc when DocumentUri.equal doc_uri (Document.uri doc) ->
+            Document.source doc
+          | Some _ | None ->
+            let source_path = Uri.to_path doc_uri in
+            In_channel.with_open_text source_path In_channel.input_all |> Msource.make
+        in
+        List.map edits ~f:(fun (edit : TextEdit.t) ->
+          let start_position = edit.range.start in
+          match start_position with
+          | { character = 0; _ } -> edit
+          | pos ->
+            let mpos = Position.logical pos in
+            let (`Offset index) = Msource.get_offset source mpos in
+            assert (index > 0)
+            (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
                  when [character = 0] in a separate matching branch *);
-               let source_txt = Msource.text source in
-               (* TODO: handle record field puning *)
-               (match source_txt.[index - 1] with
-                | '~' (* the occurrence is a named argument *)
-                | '?' (* is an optional argument *) ->
-                  let empty_range_at_occur_end =
-                    let occur_end_pos = edit.range.end_ in
-                    { edit.range with start = occur_end_pos }
-                  in
-                  TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
-                | _ -> edit)))
-        edits
+            let source_txt = Msource.text source in
+            (* TODO: handle record field puning *)
+            (match source_txt.[index - 1] with
+             | '~' (* the occurrence is a named argument *)
+             | '?' (* is an optional argument *) ->
+               let empty_range_at_occur_end =
+                 let occur_end_pos = edit.range.end_ in
+                 { edit.range with start = occur_end_pos }
+               in
+               TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
+             | _ -> edit)))
     in
     let workspace_edits =
       let documentChanges =
@@ -79,7 +80,7 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
       if documentChanges
       then (
         let documentChanges =
-          Uri.Map.to_list edits
+          Map.to_alist edits
           |> List.map ~f:(fun (uri, edits) ->
             let textDocument =
               OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
@@ -89,7 +90,7 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
         in
         WorkspaceEdit.create ~documentChanges ())
       else (
-        let changes = Uri.Map.to_list edits in
+        let changes = Map.to_alist edits in
         WorkspaceEdit.create ~changes ())
     in
     workspace_edits

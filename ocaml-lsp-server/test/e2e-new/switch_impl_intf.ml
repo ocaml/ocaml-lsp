@@ -91,10 +91,7 @@ let run_switch_request uri =
 let%expect_test "can switch from file URI with non-file scheme" =
   let dir = setup_files [ "ml"; "mli" ] in
   let mli_file_uri = uri_of_ext dir "mli" |> DocumentUri.to_string in
-  let mli_uri =
-    "untitled" ^ Stdlib.String.sub mli_file_uri 4 (Stdlib.String.length mli_file_uri - 4)
-    |> DocumentUri.of_string
-  in
+  let mli_uri = "untitled" ^ String.drop_prefix mli_file_uri 4 |> DocumentUri.of_string in
   run_switch_request mli_uri;
   [%expect {| test.ml |}]
 ;;

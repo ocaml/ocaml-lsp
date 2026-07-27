@@ -15,7 +15,7 @@ let apply_inlay_hints
     | None ->
       let end_pos =
         let lines = String.split source ~on:'\n' in
-        let last_line = Option.value_exn (List.last lines) in
+        let last_line = List.last_exn lines in
         Position.create ~line:(List.length lines - 1) ~character:(String.length last_line)
       in
       Range.create ~start:(Position.create ~character:0 ~line:0) ~end_:end_pos

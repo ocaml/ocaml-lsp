@@ -119,7 +119,7 @@ let get_query_range (code : string) (kind : statement_kind) (range : Range.t) : 
     | MatchWithLine -> strip_head_and_tail code ~head_offset:5 ~tail_offset:4
     | CaseLine ->
       let len = String.substr_index_exn code ~pattern:"->" in
-      let expr = String.sub code ~pos:0 ~len in
+      let expr = String.prefix code len in
       strip_head_and_tail expr ~head_offset:1 ~tail_offset:0
     | Hole | OffsetHole _ -> ""
   in
@@ -219,7 +219,7 @@ let format_merlin_reply ~(statement : destructable_statement) (new_code : string
   let indent =
     match String.lfindi statement.code ~f:(fun _ c -> not (Char.is_whitespace c)) with
     | None -> ""
-    | Some i -> String.sub statement.code ~pos:0 ~len:i
+    | Some i -> String.prefix statement.code i
   in
   match statement.kind with
   | MatchLine | MatchWithLine ->
