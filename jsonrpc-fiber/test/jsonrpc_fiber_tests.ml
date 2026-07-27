@@ -108,11 +108,13 @@ module Lifecycle_chan = struct
     ; mutable write_closed : bool
     ; mutable fail_sends : bool
     ; mutable send_attempts : int
+    ; mutable sent : Jsonrpc.Packet.t list list
     }
 
-  let send t _ =
+  let send t packets =
     Fiber.of_thunk (fun () ->
       t.send_attempts <- t.send_attempts + 1;
+      t.sent <- packets :: t.sent;
       if t.fail_sends then failwith "transport send attempted" else Fiber.return ())
   ;;
 
@@ -141,6 +143,7 @@ let lifecycle_channel () =
   ; write_closed = false
   ; fail_sends = false
   ; send_attempts = 0
+  ; sent = []
   }
 ;;
 
@@ -213,32 +216,115 @@ let%expect_test "cleanup precedes explicit output close" =
     <opaque> |}]
 ;;
 
-let%expect_test "requests may reach the transport after stop" =
+let%expect_test "stopped sessions drain notifications but send requests" =
   let channel = lifecycle_channel () in
   let session = Lifecycle_jrpc.create ~name:"test" channel () in
   let classify = function
+    | Ok _ -> "accepted"
     | Error [ _ ] -> "error"
-    | Ok _ | Error _ -> "unexpected"
+    | Error _ -> "unexpected"
   in
   let operations () =
-    let notification = Jsonrpc.Notification.create ~method_:"started" () in
-    let* () = Lifecycle_jrpc.notification session notification in
+    let started = Jsonrpc.Notification.create ~method_:"started" () in
+    let* () = Lifecycle_jrpc.notification session started in
     channel.send_attempts <- 0;
-    channel.fail_sends <- true;
+    channel.sent <- [];
     let* () = Lifecycle_jrpc.stop session in
+    let notification = Jsonrpc.Notification.create ~method_:"draining" () in
+    let* notification_result =
+      Fiber.collect_errors (fun () -> Lifecycle_jrpc.notification session notification)
+    in
+    let batch = Lifecycle_jrpc.Batch.create () in
+    Lifecycle_jrpc.Batch.notification batch notification;
+    let* notification_batch =
+      Fiber.collect_errors (fun () -> Lifecycle_jrpc.submit session batch)
+    in
+    channel.fail_sends <- true;
     let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"stopped" () in
-    let+ result =
+    let* request_result =
       Fiber.collect_errors (fun () -> Lifecycle_jrpc.request session request)
     in
-    Printf.printf "request: %s\n" (classify result);
+    let request = Jsonrpc.Request.create ~id:(`Int 2) ~method_:"cancel-stopped" () in
+    let _, response = Lifecycle_jrpc.request_with_cancel session request in
+    let+ cancellable = Fiber.collect_errors (fun () -> response) in
+    Printf.printf "notification: %s\n" (classify notification_result);
+    Printf.printf "notification batch: %s\n" (classify notification_batch);
+    Printf.printf "request: %s\n" (classify request_result);
+    Printf.printf "cancellable request: %s\n" (classify cancellable);
     Printf.printf "transport attempts: %d\n" channel.send_attempts
   in
   Fiber_test.test Dyn.opaque (fun () ->
-    Fiber.fork_and_join_unit (fun () -> Lifecycle_jrpc.run session) operations);
+    let* () =
+      Fiber.fork_and_join_unit
+        (fun () -> Lifecycle_jrpc.run_until_stopped session)
+        operations
+    in
+    Lifecycle_jrpc.close session);
   [%expect
     {|
+    notification: accepted
+    notification batch: accepted
     request: error
-    transport attempts: 1
+    cancellable request: error
+    transport attempts: 4
+    <opaque> |}]
+;;
+
+let%expect_test "a request batch rejected while draining is consumed" =
+  let stopped_channel = lifecycle_channel () in
+  let stopped = Lifecycle_jrpc.create ~name:"stopped" stopped_channel () in
+  let retry_channel = lifecycle_channel () in
+  let retry = Lifecycle_jrpc.create ~name:"retry" retry_channel () in
+  let classify = function
+    | Ok () -> "accepted"
+    | Error [ _ ] -> "error"
+    | Error _ -> "unexpected"
+  in
+  let operations () =
+    let started = Jsonrpc.Notification.create ~method_:"started" () in
+    let* () = Lifecycle_jrpc.notification stopped started in
+    let* () = Lifecycle_jrpc.notification retry started in
+    stopped_channel.send_attempts <- 0;
+    stopped_channel.sent <- [];
+    retry_channel.send_attempts <- 0;
+    retry_channel.sent <- [];
+    let* () = Lifecycle_jrpc.stop stopped in
+    stopped_channel.fail_sends <- true;
+    let batch = Lifecycle_jrpc.Batch.create () in
+    let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"batched" () in
+    let (_ : Lifecycle_jrpc.Batch.response) =
+      Lifecycle_jrpc.Batch.request batch request
+    in
+    let* stopped_submit =
+      Fiber.collect_errors (fun () -> Lifecycle_jrpc.submit stopped batch)
+    in
+    let* retry_submit =
+      Fiber.collect_errors (fun () -> Lifecycle_jrpc.submit retry batch)
+    in
+    Printf.printf "stopped submit: %s\n" (classify stopped_submit);
+    Printf.printf "stopped transport attempts: %d\n" stopped_channel.send_attempts;
+    Printf.printf "retry submit: %s\n" (classify retry_submit);
+    print_packet_groups "retry wire packets" (List.rev retry_channel.sent);
+    Lifecycle_jrpc.stop retry
+  in
+  Fiber_test.test Dyn.opaque (fun () ->
+    let* () =
+      Fiber.all_concurrently_unit
+        [ Lifecycle_jrpc.run_until_stopped stopped
+        ; Lifecycle_jrpc.run_until_stopped retry
+        ; operations ()
+        ]
+    in
+    Fiber.fork_and_join_unit
+      (fun () -> Lifecycle_jrpc.close stopped)
+      (fun () -> Lifecycle_jrpc.close retry));
+  [%expect
+    {|
+    stopped submit: error
+    stopped transport attempts: 1
+    retry submit: accepted
+    retry wire packets:
+    [ [] ]
     <opaque> |}]
 ;;
 
@@ -246,7 +332,7 @@ let%expect_test "notifications are rejected before reaching the transport after 
   let channel = lifecycle_channel () in
   let session = Lifecycle_jrpc.create ~name:"test" channel () in
   let classify = function
-    | Ok () -> "accepted"
+    | Ok _ -> "accepted"
     | Error [ _ ] -> "rejected"
     | Error _ -> "unexpected"
   in
@@ -256,10 +342,34 @@ let%expect_test "notifications are rejected before reaching the transport after 
     channel.send_attempts <- 0;
     let* () = Lifecycle_jrpc.close session in
     let notification = Jsonrpc.Notification.create ~method_:"closed" () in
-    let+ result =
+    let* notification_result =
       Fiber.collect_errors (fun () -> Lifecycle_jrpc.notification session notification)
     in
-    Printf.printf "notification: %s\n" (classify result);
+    let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"closed" () in
+    let* request_result =
+      Fiber.collect_errors (fun () -> Lifecycle_jrpc.request session request)
+    in
+    let request = Jsonrpc.Request.create ~id:(`Int 2) ~method_:"cancel-closed" () in
+    let _, response = Lifecycle_jrpc.request_with_cancel session request in
+    let* cancellable_result = Fiber.collect_errors (fun () -> response) in
+    let notification_batch = Lifecycle_jrpc.Batch.create () in
+    Lifecycle_jrpc.Batch.notification notification_batch notification;
+    let* notification_batch_result =
+      Fiber.collect_errors (fun () -> Lifecycle_jrpc.submit session notification_batch)
+    in
+    let request_batch = Lifecycle_jrpc.Batch.create () in
+    let request = Jsonrpc.Request.create ~id:(`Int 3) ~method_:"batch-closed" () in
+    let (_ : Lifecycle_jrpc.Batch.response) =
+      Lifecycle_jrpc.Batch.request request_batch request
+    in
+    let+ request_batch_result =
+      Fiber.collect_errors (fun () -> Lifecycle_jrpc.submit session request_batch)
+    in
+    Printf.printf "notification: %s\n" (classify notification_result);
+    Printf.printf "request: %s\n" (classify request_result);
+    Printf.printf "cancellable request: %s\n" (classify cancellable_result);
+    Printf.printf "notification batch: %s\n" (classify notification_batch_result);
+    Printf.printf "request batch: %s\n" (classify request_batch_result);
     Printf.printf "transport attempts: %d\n" channel.send_attempts
   in
   Fiber_test.test Dyn.opaque (fun () ->
@@ -267,6 +377,10 @@ let%expect_test "notifications are rejected before reaching the transport after 
   [%expect
     {|
     notification: rejected
+    request: rejected
+    cancellable request: rejected
+    notification batch: rejected
+    request batch: rejected
     transport attempts: 0
     <opaque> |}]
 ;;
