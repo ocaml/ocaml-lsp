@@ -300,6 +300,62 @@ let%expect_test "server enforces initialization ordering" =
     notification handled: workspace/didChangeConfiguration |}]
 ;;
 
+let%expect_test "remote request cancellation raises" =
+  let make_server io =
+    let on_request =
+      let on_request
+        : type response.
+          unit Server.t
+          -> response Client_request.t
+          -> (response Rpc.Reply.t * unit) Fiber.t
+        =
+        fun _ request ->
+        match request with
+        | Initialize _ ->
+          let capabilities = ServerCapabilities.create () in
+          let result = InitializeResult.create ~capabilities () in
+          Fiber.return (Rpc.Reply.now result, ())
+        | ExecuteCommand _ ->
+          Jsonrpc.Response.Error.raise
+            (Jsonrpc.Response.Error.make
+               ~message:"cancelled remotely"
+               ~code:RequestCancelled
+               ())
+        | _ ->
+          Jsonrpc.Response.Error.raise
+            (Jsonrpc.Response.Error.make ~message:"unexpected" ~code:InternalError ())
+      in
+      { Server.Handler.on_request }
+    in
+    let _, running = Test.Server.run ~on_request () io in
+    running
+  in
+  let make_client io =
+    let client, running = Test.Client.run () io in
+    let request () =
+      let* (_ : InitializeResult.t) = Client.initialized client in
+      let command = ExecuteCommandParams.create ~command:"cancel" () in
+      let cancel = Fiber.Cancel.create () in
+      let* result =
+        Fiber.collect_errors (fun () ->
+          Client.request_with_cancel client cancel (Client_request.ExecuteCommand command))
+      in
+      (match result with
+       | Error [ _ ] -> print_endline "request_with_cancel: raised"
+       | Ok `Cancelled -> print_endline "request_with_cancel: cancelled"
+       | Ok (`Ok _) | Error _ -> print_endline "request_with_cancel: unexpected");
+      Client.notification client Exit
+    in
+    Fiber.fork_and_join_unit (fun () -> running) request
+  in
+  test make_client make_server;
+  [%expect
+    {|
+    request_with_cancel: raised
+    Successful termination of test
+    [TEST] finished |}]
+;;
+
 let%expect_test "forcing a lazy fiber twice may run it twice" =
   Printexc.record_backtrace false;
   let run () =
