@@ -479,6 +479,31 @@ let%expect_test "forcing a lazy fiber twice may run it twice" =
 [@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
 ;;
 
+let%expect_test "concurrent failing lazy fibers run the computation twice" =
+  let run () =
+    let runs = ref 0 in
+    let lazy_fiber =
+      Lazy_fiber.create (fun () ->
+        incr runs;
+        failwith "failure")
+    in
+    let first = Lazy_fiber.force lazy_fiber in
+    let second = Lazy_fiber.force lazy_fiber in
+    let+ first, second =
+      Fiber.fork_and_join
+        (fun () -> Fiber.collect_errors (fun () -> first))
+        (fun () -> Fiber.collect_errors (fun () -> second))
+    in
+    let classify = function
+      | Error [ _ ] -> "error"
+      | Ok _ | Error _ -> "unexpected"
+    in
+    Printf.printf "results: %s, %s; runs: %d\n" (classify first) (classify second) !runs
+  in
+  Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
+  [%expect {| results: error, error; runs: 2 |}]
+;;
+
 let%expect_test "end to end run of lsp tests" =
   test End_to_end_client.run End_to_end_server.run;
   [%expect
