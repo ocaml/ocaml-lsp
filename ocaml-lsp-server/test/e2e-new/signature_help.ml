@@ -502,16 +502,7 @@ let%expect_test "signature help after expression boundaries" =
   [%expect
     {|
     after toplevel terminator
-    {
-      "activeParameter": 1,
-      "activeSignature": 0,
-      "signatures": [
-        {
-          "label": "add : int -> int -> int",
-          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
-        }
-      ]
-    }
+    { "signatures": [] }
     |}];
   check
     "after local binding"
@@ -547,13 +538,7 @@ let%expect_test "signature help after expression boundaries" =
   [%expect
     {|
     after else
-    {
-      "activeParameter": 0,
-      "activeSignature": 0,
-      "signatures": [
-        { "label": "_ : int -> int", "parameters": [ { "label": [ 4, 7 ] } ] }
-      ]
-    }
+    { "signatures": [] }
     |}];
   check
     "after match scrutinee"
@@ -571,13 +556,7 @@ let%expect_test "signature help after expression boundaries" =
   [%expect
     {|
     after next match case
-    {
-      "activeParameter": 0,
-      "activeSignature": 0,
-      "signatures": [
-        { "label": "_ : int -> int", "parameters": [ { "label": [ 4, 7 ] } ] }
-      ]
-    }
+    { "signatures": [] }
     |}]
 ;;
 

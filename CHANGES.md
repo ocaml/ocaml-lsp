@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Stop stale signature help at expression boundaries. (#1987, fixes #1162,
+  @rgrinberg)
 - Suppress signature help for completed applications. (#1982, #1162, @rgrinberg)
 - Encode remove-unused code-action edits using the client's negotiated position
   encoding. (#1969, @rgrinberg)
