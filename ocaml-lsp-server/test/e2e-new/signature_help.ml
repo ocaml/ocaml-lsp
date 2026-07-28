@@ -419,3 +419,69 @@ let _ = div 1
     }
     |}]
 ;;
+
+let%expect_test "signature help after a completed application or closed scope" =
+  let source = "let add a b = a + b in \n \nadd 1 1;; \n " in
+  let check description position =
+    print_endline description;
+    test source position
+  in
+  check "after in" (Position.create ~line:0 ~character:23);
+  [%expect
+    {|
+    after in
+    {
+      "activeParameter": 1,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}];
+  check "on blank line before application" (Position.create ~line:1 ~character:1);
+  [%expect
+    {|
+    on blank line before application
+    {
+      "activeParameter": 1,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}];
+  check "after completed application" (Position.create ~line:2 ~character:10);
+  [%expect
+    {|
+    after completed application
+    {
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}];
+  check "on blank line after terminator" (Position.create ~line:3 ~character:1);
+  [%expect
+    {|
+    on blank line after terminator
+    {
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}]
+;;
