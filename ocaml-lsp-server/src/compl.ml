@@ -105,6 +105,13 @@ module For_tests = struct
   ;;
 end
 
+let reindex_sortText completion_items =
+  let width = sortText_width (List.length completion_items) in
+  List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
+    let sortText = Some (sortText_of_index ~width idx) in
+    { ci with sortText })
+;;
+
 module Complete_by_prefix = struct
   let completionItem_of_completion_entry
         idx
@@ -258,6 +265,7 @@ module Complete_by_prefix = struct
         doc
         pos
         completion
+    |> reindex_sortText
   ;;
 end
 
@@ -405,12 +413,6 @@ let complete
                ~supports_enum_member
                ~resolve
            else (
-             let reindex_sortText completion_items =
-               let width = sortText_width (List.length completion_items) in
-               List.mapi completion_items ~f:(fun idx (ci : CompletionItem.t) ->
-                 let sortText = Some (sortText_of_index ~width idx) in
-                 { ci with sortText })
-             in
              let preselect_first =
                match
                  let open Option.O in
