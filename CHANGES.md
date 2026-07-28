@@ -2,6 +2,8 @@
 
 ## Features
 
+- Support `textDocument/onTypeFormatting` through the optional, persistent
+  `ocp-indent-rpc` helper. (#1986, @rgrinberg)
 - Report Dune RPC, build progress, and Merlin configuration process activity
   through LSP trace notifications. (#1899, @rgrinberg)
 - Add a code action to open the closest Dune file for the current document.

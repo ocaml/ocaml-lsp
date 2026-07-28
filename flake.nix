@@ -108,6 +108,21 @@
             propagatedBuildInputs = [ pkgs.ocamlPackages.merlin-lib ];
           };
 
+          ocp-indent-rpc =
+            with pkgs.ocamlPackages;
+            buildDunePackage (
+              basePackage
+              // {
+                pname = "ocp-indent-rpc";
+                doCheck = false;
+                checkInputs = [ ppx_expect ];
+                propagatedBuildInputs = [
+                  csexp
+                  ocp-indent
+                ];
+              }
+            );
+
           ocaml-lsp =
             with pkgs.ocamlPackages;
             buildDunePackage (
@@ -125,6 +140,7 @@
                     p.ppx_sexp_conv
                     p.ppx_yojson_conv
                     ocaml-index
+                    ocp-indent-rpc
                     (ocamlformat pkgs)
                   ];
                 buildInputs = [

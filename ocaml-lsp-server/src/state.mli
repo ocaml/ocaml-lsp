@@ -28,6 +28,7 @@ type t =
   ; configuration : Configuration.t
   ; trace : TraceValue.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
+  ; ocp_indent : Ocp_indent.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   ; hover_extended : hover_extended
@@ -39,6 +40,7 @@ val create
   -> detached:Fiber.Pool.t
   -> configuration:Configuration.t
   -> ocamlformat_rpc:Ocamlformat_rpc.t
+  -> ocp_indent:Ocp_indent.t
   -> symbols_thread:Lev_fiber.Thread.t Lazy_fiber.t
   -> wheel:Lev_fiber.Timer.Wheel.t
   -> trace:(message:(unit -> string) -> verbose:(unit -> string) -> unit Fiber.t)
