@@ -1154,6 +1154,11 @@ let x = { M . foo = 0 ; bar = "bar"}
     |}]
 ;;
 
+let%expect_test "parenthesized operator with spaces (#1533)" =
+  test_semantic_tokens_full "let add = ( + )";
+  [%expect {| let <variable|-0>add</0> = ( <operator|-1>+</1> ) |}]
+;;
+
 let%expect_test "operators" =
   test_semantic_tokens_full
   @@ String.strip
