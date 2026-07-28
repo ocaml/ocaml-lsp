@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Exclude surrounding parentheses from infix operator rename placeholders and
+  edits. (#1966, fixes #1190, @rgrinberg)
 - Use each document's current version in multi-file rename edits. (#1958, @rgrinberg)
 - Handle zero-work Dune build progress updates. (#1896, @rgrinberg)
 - Reject negative JSON-RPC `Content-Length` headers. (#1873, @rgrinberg)

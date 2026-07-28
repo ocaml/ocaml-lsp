@@ -249,6 +249,7 @@ include struct
   module OptionalVersionedTextDocumentIdentifier = OptionalVersionedTextDocumentIdentifier
   module ParameterInformation = ParameterInformation
   module PositionEncodingKind = PositionEncodingKind
+  module PrepareRenameParams = PrepareRenameParams
   module ProgressParams = ProgressParams
   module ProgressToken = ProgressToken
   module PublishDiagnosticsParams = PublishDiagnosticsParams
