@@ -2,6 +2,10 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:NixOS/nixpkgs";
+    ocaml-overlays = {
+      url = "github:nix-ocaml/nix-overlays";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     merlin = {
       url = "github:ocaml/merlin";
       flake = false;
@@ -100,14 +104,6 @@
             }
           );
 
-          ocaml-index = buildDunePackage {
-            pname = "ocaml-index";
-            src = pkgs.ocamlPackages.merlin-lib.src;
-            version = pkgs.ocamlPackages.merlin-lib.version;
-            doCheck = false;
-            propagatedBuildInputs = [ pkgs.ocamlPackages.merlin-lib ];
-          };
-
           ocp-indent-rpc =
             with pkgs.ocamlPackages;
             buildDunePackage (
@@ -190,7 +186,10 @@
     // (flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgsWithoutOverlays = (import nixpkgs { inherit system; });
+        pkgsWithoutOverlays = import nixpkgs {
+          inherit system;
+          overlays = [ inputs.ocaml-overlays.overlays.default ];
+        };
         # The project uses Dune language 3.24, which is newer than the Dune in
         # the current Nixpkgs snapshot.
         # 3.24.1 ships an inverted RPC registry mtime skip (ocaml/dune#15630).
@@ -243,7 +242,7 @@
           nixpkgs.mkShell {
             buildInputs = [
               nixpkgs.ocamlPackages.utop
-              localPackages.ocaml-index
+              nixpkgs.ocamlPackages.ocaml-index
             ];
             inputsFrom = builtins.map (x: x.overrideAttrs (p: n: { doCheck = true; })) (
               builtins.attrValues localPackages
@@ -282,7 +281,7 @@
               base_quickcheck
               ppx_expect
               ppx_sexp_conv
-              checkPackages.ocaml-index
+              ocaml-index
               (ocamlformat checkPkgs)
             ];
             # Keep Dune RPC Unix socket paths below the platform limit.
