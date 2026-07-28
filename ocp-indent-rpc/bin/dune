@@ -1,0 +1,10 @@
+(executable
+ (name main)
+ (public_name ocp-indent-rpc)
+ (package ocp-indent-rpc)
+ (libraries
+  csexp
+  ocp-indent.lib
+  ocp-indent.utils
+  ocp-indent.lexer
+  ocp-indent.dynlink))

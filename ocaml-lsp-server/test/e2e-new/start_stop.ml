@@ -130,6 +130,7 @@ let%expect_test "start/stop" =
         "definitionProvider": true,
         "documentFormattingProvider": true,
         "documentHighlightProvider": true,
+        "documentOnTypeFormattingProvider": { "firstTriggerCharacter": "\n" },
         "documentRangeFormattingProvider": true,
         "documentSymbolProvider": true,
         "executeCommandProvider": {

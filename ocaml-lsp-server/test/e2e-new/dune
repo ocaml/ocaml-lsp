@@ -12,6 +12,7 @@
   (deps
    %{bin:ocaml-index}
    %{bin:ocamlformat-rpc}
+   %{bin:ocp-indent-rpc}
    for_ppx.ml
    for_pp.ml
    (package ocaml-lsp-server)))
@@ -86,6 +87,7 @@
     dune_promotion_open
     dune_workspace_removal
     metrics
+    on_type_formatting
     refactor_extract
     registration_order
     semantic_hl_data

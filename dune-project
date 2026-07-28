@@ -81,6 +81,16 @@ possible and does not make any assumptions about IO.
   (ppx_yojson_conv :with-dev-setup)))
 
 (package
+ (name ocp-indent-rpc)
+ (synopsis "Persistent RPC server for ocp-indent")
+ (description
+  "A small RPC server that exposes ocp-indent as a persistent process for editor integrations.")
+ (depends
+  (csexp (>= 1.5))
+  (ocaml (>= 4.14))
+  (ocp-indent (>= 1.6.1))))
+
+(package
  (name jsonrpc)
  (synopsis "Jsonrpc protocol implementation")
  (description "See https://www.jsonrpc.org/specification")

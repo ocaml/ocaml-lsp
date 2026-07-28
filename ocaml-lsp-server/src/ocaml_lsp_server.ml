@@ -178,6 +178,8 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
       ~documentRangeFormattingProvider:(`Bool true)
+      ~documentOnTypeFormattingProvider:
+        (Lsp.Types.DocumentOnTypeFormattingOptions.create ~firstTriggerCharacter:"\n" ())
       ~selectionRangeProvider:(`Bool true)
       ~documentSymbolProvider:(`Bool true)
       ~workspaceSymbolProvider:(`Bool true)
@@ -408,6 +410,75 @@ module Formatter = struct
     | Dune | Cram -> Fiber.return None
     | Ocaml | Reason | Mlx | Ocamllex | Menhir ->
       run_ocamlformat rpc (Ocamlformat.run_on_range doc range)
+  ;;
+
+  let line source target =
+    let length = String.length source in
+    let rec loop current start offset =
+      if offset = length
+      then
+        Option.some_if
+          (current = target)
+          (String.sub source ~pos:start ~len:(offset - start))
+      else if Char.equal source.[offset] '\n'
+      then
+        if current = target
+        then Some (String.sub source ~pos:start ~len:(offset - start))
+        else loop (current + 1) (offset + 1) (offset + 1)
+      else loop current start (offset + 1)
+    in
+    if target < 0 then None else loop 0 0 0
+  ;;
+
+  let leading_whitespace_length line =
+    let rec loop offset =
+      if offset = String.length line
+      then offset
+      else (
+        match line.[offset] with
+        | ' ' | '\t' -> loop (offset + 1)
+        | _ -> offset)
+    in
+    loop 0
+  ;;
+
+  let run_on_type rpc doc (position : Position.t) =
+    let syntaxes =
+      match Document.syntax doc with
+      | Ocaml -> Some []
+      | Ocamllex -> Some [ "mll" ]
+      | Cram | Dune | Menhir | Mlx | Reason -> None
+    in
+    match syntaxes with
+    | None -> Fiber.return None
+    | Some syntaxes ->
+      let state : State.t = Server.state rpc in
+      let source = Document.text doc in
+      let path = Document.uri doc |> Uri.to_path in
+      let* indentation =
+        Ocp_indent_rpc.indentation
+          state.ocp_indent_rpc
+          ~path
+          ~line:(position.line + 1)
+          ~source
+          ~syntaxes
+      in
+      (match indentation, line source position.line with
+       | Error _, _ | _, None -> Fiber.return None
+       | Ok indentation, Some line ->
+         let whitespace_length = leading_whitespace_length line in
+         let range =
+           Range.create
+             ~start:(Position.create ~line:position.line ~character:0)
+             ~end_:(Position.create ~line:position.line ~character:whitespace_length)
+         in
+         let newText = String.make indentation ' ' in
+         let edits =
+           if String.equal newText (String.prefix line whitespace_length)
+           then []
+           else [ TextEdit.create ~range ~newText ]
+         in
+         Fiber.return (Some edits))
   ;;
 end
 
@@ -747,7 +818,15 @@ let on_request
          let doc = Document_store.get store uri in
          Formatter.run_on_range rpc doc range)
       ()
-  | TextDocumentOnTypeFormatting _ -> now None
+  | TextDocumentOnTypeFormatting { textDocument = { uri }; position; ch; _ } ->
+    if not (String.equal ch "\n")
+    then now (Some [])
+    else
+      later
+        (fun _ () ->
+           let doc = Document_store.get store uri in
+           Formatter.run_on_type rpc doc position)
+        ()
   | SelectionRange req -> later selection_range req
   | TextDocumentImplementation _ -> not_supported ()
   | SemanticTokensFull p -> later Semantic_highlighting.on_request_full p
@@ -875,6 +954,7 @@ let start stream =
     Server.Handler.make ~on_request ~on_notification ()
   in
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
+  let ocp_indent_rpc = Ocp_indent_rpc.create () in
   let* configuration = Configuration.default () in
   let wheel = Configuration.wheel configuration in
   let* merlin = Lev_fiber.Thread.create () in
@@ -889,6 +969,7 @@ let start stream =
             ~store
             ~merlin
             ~ocamlformat_rpc
+            ~ocp_indent_rpc
             ~configuration
             ~detached
             ~symbols_thread
@@ -938,6 +1019,7 @@ let start stream =
         [ Document_store.close_all store
         ; Fiber.Pool.stop detached
         ; Ocamlformat_rpc.stop ocamlformat_rpc
+        ; Ocp_indent_rpc.stop ocp_indent_rpc
         ; Lev_fiber.Timer.Wheel.stop wheel
         ; Merlin_config.DB.stop state.merlin_config
         ; Fiber.of_thunk (fun () ->
