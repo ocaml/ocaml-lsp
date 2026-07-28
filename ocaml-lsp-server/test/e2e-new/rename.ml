@@ -60,6 +60,33 @@ let%expect_test "allows valid rename request" =
     |}]
 ;;
 
+let%expect_test "prepare rename includes operator parentheses (#1190)" =
+  let source =
+    {ocaml|let (^*$) a = a + 1
+let b = (^*$) 1
+|ocaml}
+  in
+  run source (fun client ->
+    let* response = prepare_rename client (Position.create ~line:0 ~character:6) in
+    print_prepare_rename response;
+    (match response with
+     | None -> ()
+     | Some { Range.start; end_ } ->
+       let placeholder =
+         String.sub source ~pos:start.character ~len:(end_.character - start.character)
+       in
+       Printf.printf "placeholder: %s\n" placeholder);
+    Fiber.return ());
+  [%expect
+    {|
+    {
+      "end": { "character": 9, "line": 0 },
+      "start": { "character": 4, "line": 0 }
+    }
+    placeholder: (^*$)
+    |}]
+;;
+
 let%expect_test "rename value in a file without documentChanges capability" =
   run rename_source (fun client ->
     let* response = rename client (Position.create ~line:0 ~character:4) in
