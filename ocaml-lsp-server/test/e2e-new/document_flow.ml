@@ -86,30 +86,42 @@ let%expect_test "it should allow double opening the same document" =
     |}]
 ;;
 
-let%expect_test "missing dune is reported as a diagnostic (#1417)" =
+let%expect_test "missing dune diagnostic is cleared after dune is found (#1417)" =
   let dir = Test.temp_dir "ocamllsp-missing-dune-" in
+  let bin_dir = Filename.concat dir "bin" in
+  Unix.mkdir bin_dir 0o700;
+  let dune = Bin.which "dune" |> Option.value_exn in
+  let search_path =
+    let path =
+      Sys.getenv_opt "PATH"
+      |> Option.value ~default:""
+      |> String.split ~on:':'
+      |> List.filter ~f:(fun dir -> not (Sys.file_exists (Filename.concat dir "dune")))
+    in
+    String.concat ~sep:":" (bin_dir :: path)
+  in
   let source = "let answer = 42\n" in
   let path = Filename.concat dir "main.ml" in
   Test.write_file (Filename.concat dir "dune-project") "(lang dune 3.24)\n";
   Test.write_file (Filename.concat dir "dune") "(executable (name main))\n";
   Test.write_file path source;
+  Test.run_command ~cwd:dir (Filename.quote dune ^ " build");
   let uri = DocumentUri.of_path path in
   let workspace = WorkspaceFolder.create ~uri:(DocumentUri.of_path dir) ~name:"test" in
-  let diagnostics = Fiber.Ivar.create () in
+  let diagnostics = Fiber.Mvar.create () in
   let handler =
     Client.Handler.make
       ~on_notification:(fun _ -> function
-         | PublishDiagnostics params ->
-           let* filled = Fiber.Ivar.peek diagnostics in
-           (match filled with
-            | Some _ -> Fiber.return ()
-            | None -> Fiber.Ivar.fill diagnostics params)
+         | PublishDiagnostics params -> Fiber.Mvar.write diagnostics params
          | _ -> Fiber.return ())
       ()
   in
+  let print_diagnostics (params : PublishDiagnosticsParams.t) =
+    `List (List.map params.diagnostics ~f:Diagnostic.yojson_of_t) |> Test.print_result
+  in
   let stderr = Unix.openfile Test.null_device [ O_WRONLY ] 0 in
   (Test.run_initialized
-     ~extra_env:[ "PATH=" ]
+     ~extra_env:[ "PATH=" ^ search_path ]
      ~workspaceFolders:(Some [ workspace ])
      ~handler
      ~stderr
@@ -126,9 +138,25 @@ let%expect_test "missing dune is reported as a diagnostic (#1417)" =
        client
        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
    in
-   let* diagnostics = Fiber.Ivar.read diagnostics in
-   List.iter diagnostics.diagnostics ~f:(fun diagnostic ->
-     Diagnostic.yojson_of_t diagnostic |> Test.print_result);
+   let* initial_diagnostics = Fiber.Mvar.read diagnostics in
+   print_endline "before dune is found:";
+   print_diagnostics initial_diagnostics;
+   Unix.symlink dune (Filename.concat bin_dir "dune");
+   let textDocument = VersionedTextDocumentIdentifier.create ~uri ~version:1 in
+   let contentChanges =
+     [ `TextDocumentContentChangeWholeDocument
+         (TextDocumentContentChangeWholeDocument.create ~text:source)
+     ]
+   in
+   let* () =
+     Client.notification
+       client
+       (TextDocumentDidChange
+          (DidChangeTextDocumentParams.create ~textDocument ~contentChanges))
+   in
+   let* updated_diagnostics = Fiber.Mvar.read diagnostics in
+   print_endline "after dune is found:";
+   print_diagnostics updated_diagnostics;
    let textDocument = TextDocumentIdentifier.create ~uri in
    let position = Position.create ~line:0 ~character:4 in
    let* result =
@@ -162,15 +190,20 @@ let%expect_test "missing dune is reported as a diagnostic (#1417)" =
   Unix.close stderr;
   [%expect
     {|
-    {
-      "message": "dune binary not found",
-      "range": {
-        "end": { "character": 0, "line": 1 },
-        "start": { "character": 0, "line": 0 }
-      },
-      "severity": 1,
-      "source": "ocamllsp"
-    }
+    before dune is found:
+    [
+      {
+        "message": "dune binary not found",
+        "range": {
+          "end": { "character": 0, "line": 1 },
+          "start": { "character": 0, "line": 0 }
+        },
+        "severity": 1,
+        "source": "ocamllsp"
+      }
+    ]
+    after dune is found:
+    []
     hover succeeded
     |}]
 ;;
