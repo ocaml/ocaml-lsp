@@ -217,6 +217,35 @@ let%expect_test "can start completion at arbitrary position 2" =
     } |}]
 ;;
 
+let%expect_test "completion with an incorrect identifier suffix" =
+  let source =
+    {ocaml|module String = struct let is_prefix = () end
+let _ = String.is_prword|ocaml}
+  in
+  let position = Position.create ~line:1 ~character:20 in
+  let only_is_prefix =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "is_prefix")
+  in
+  print_completions ~pre_print:only_is_prefix source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "unit",
+      "kind": 12,
+      "label": "is_prefix",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "is_prefix",
+        "range": {
+          "end": { "character": 20, "line": 1 },
+          "start": { "character": 15, "line": 1 }
+        }
+      }
+    }
+    |}]
+;;
+
 let%expect_test "can start completion after operator without space" =
   let source = {ocaml|[1;2]|>List.ma|ocaml} in
   let position = Position.create ~line:0 ~character:14 in
