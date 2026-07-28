@@ -155,6 +155,8 @@
             dune_3 = duneLatest;
             # OUnit2's process signal test is flaky under GitHub Actions.
             ounit2 = osuper.ounit2.overrideAttrs (_: { doCheck = false; });
+            # cppo's expected error paths differ under OCaml 5.5.
+            cppo = osuper.cppo.overrideAttrs (_: { doCheck = false; });
           });
         };
         makeNixpkgs = ocaml: merlin:
