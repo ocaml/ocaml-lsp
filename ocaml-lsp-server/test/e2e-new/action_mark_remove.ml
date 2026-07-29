@@ -178,13 +178,57 @@ let f = function
      | 0 -> 0 |}]
 ;;
 
-let%expect_test "remove rec flag" =
-  remove_test
-    `Rec
+let%expect_test "remove rec flag after Unicode" =
+  let source, range =
+    Code_actions.parse_selection
+      {|
+let café = let rec $f$ = 0 in f
+|}
+  in
+  let diagnostics =
+    [ Diagnostic.create ~message:(`String "unused rec flag") ~range () ]
+  in
+  Code_actions.print_code_actions
+    ~diagnostics
+    ~filter:(function
+      | `CodeAction { title; _ } -> String.equal title "Remove unused rec"
+      | `Command _ -> false)
+    source
+    range;
+  [%expect
     {|
-let rec $f$ = 0
-|};
-  [%expect {| let  f = 0 |}]
+    Code actions:
+    {
+      "diagnostics": [
+        {
+          "message": "unused rec flag",
+          "range": {
+            "end": { "character": 20, "line": 1 },
+            "start": { "character": 19, "line": 1 }
+          }
+        }
+      ],
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "",
+                "range": {
+                  "end": { "character": 19, "line": 1 },
+                  "start": { "character": 16, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "quickfix",
+      "title": "Remove unused rec"
+    }
+    |}]
 ;;
 
 let%expect_test "remove constructor" =
