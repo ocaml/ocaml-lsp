@@ -49,7 +49,15 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
           let typer = Mpipeline.typer_result pipeline in
           let pos = Mpipeline.get_lexing_pos pipeline pos in
           let node = Mtyper.node_at typer pos in
-          Merlin_analysis.Signature_help.application_signature node ~prefix ~cursor:pos)
+          match
+            Merlin_analysis.Signature_help.application_signature node ~prefix ~cursor:pos
+          with
+          | None -> None
+          | Some signature ->
+            let function_position =
+              Mpipeline.get_lexing_pos pipeline signature.function_position
+            in
+            if pos.pos_cnum < function_position.pos_cnum then None else Some signature)
     in
     (match application_signature with
      | None ->
