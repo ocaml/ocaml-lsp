@@ -485,3 +485,42 @@ let%expect_test "signature help after a completed application or closed scope" =
     }
     |}]
 ;;
+
+let rec censor_backtraces = function
+  | `Assoc fields ->
+    `Assoc
+      (List.map fields ~f:(fun (name, value) ->
+         if String.equal name "backtrace"
+         then name, `String "<censored>"
+         else name, censor_backtraces value))
+  | `List values -> `List (List.map values ~f:censor_backtraces)
+  | json -> json
+;;
+
+let%expect_test "malformed Unicode application returns an internal error" =
+  Helpers.test "a>😀" (fun client ->
+    let* result =
+      Fiber.collect_errors (fun () ->
+        signature_help client (Position.create ~line:0 ~character:1))
+    in
+    match result with
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+      ->
+      Jsonrpc.Response.Error.yojson_of_t error |> censor_backtraces |> Test.print_result;
+      Fiber.return ()
+    | Error errors -> Fiber.reraise_all errors
+    | Ok response ->
+      print_signature_help response;
+      Fiber.return ());
+  [%expect
+    {|
+    {
+      "data": {
+        "exn": "Ocaml_preprocess.Lexer_raw.Error(_, _)",
+        "backtrace": "<censored>"
+      },
+      "code": -32603,
+      "message": "uncaught exception"
+    }
+    |}]
+;;
