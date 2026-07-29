@@ -19,6 +19,11 @@ let print_locations = function
       Range.yojson_of_t location.range
       |> Yojson.Safe.pretty_to_string ~std:false
       |> print_endline)
+  | Some (`SingleLocation (location : Location.t)) ->
+    DocumentUri.to_path location.uri |> Filename.basename |> print_endline;
+    Range.yojson_of_t location.range
+    |> Yojson.Safe.pretty_to_string ~std:false
+    |> print_endline
   | Some (`LocationLink links) ->
     List.iter links ~f:(fun (location : LocationLink.t) ->
       print_endline (DocumentUri.to_path location.targetUri |> Filename.basename);

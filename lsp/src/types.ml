@@ -57492,17 +57492,19 @@ module Locations = struct
   type t =
     [ `Location of Location.t list
     | `LocationLink of LocationLink.t list
+    | `SingleLocation of Location.t
     ]
 
   let yojson_of_t (t : t) : Json.t =
     match t with
     | `Location xs -> `List (List.map ~f:Location.yojson_of_t xs)
     | `LocationLink l -> `List (List.map ~f:LocationLink.yojson_of_t l)
+    | `SingleLocation location -> Location.yojson_of_t location
   ;;
 
   let t_of_yojson (json : Json.t) : t =
     match json with
-    | `Assoc _ -> `Location [ Location.t_of_yojson json ]
+    | `Assoc _ -> `SingleLocation (Location.t_of_yojson json)
     | `List [] -> `Location []
     | `List (x :: xs) ->
       (match Location.t_of_yojson x with
