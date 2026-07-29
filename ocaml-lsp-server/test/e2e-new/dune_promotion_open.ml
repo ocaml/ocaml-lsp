@@ -71,9 +71,7 @@ let%expect_test "promotion removal while its document is open" =
           "method": "textDocument/codeAction",
           "registerOptions": {
             "codeActionKinds": [ "quickfix" ],
-            "documentSelector": [
-              { "language": null, "scheme": null, "pattern": "<document-path>" }
-            ]
+            "documentSelector": [ { "pattern": "<document-path>" } ]
           }
         }
       ]

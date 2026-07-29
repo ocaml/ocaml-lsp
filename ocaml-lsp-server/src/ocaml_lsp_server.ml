@@ -240,7 +240,8 @@ let register_dune_and_cram_text_document_sync server (capabilities : ClientCapab
     let documentSelector =
       [ "cram"; "dune"; "dune-project"; "dune-workspace" ]
       |> List.map ~f:(fun language ->
-        `TextDocumentFilter (TextDocumentFilter.create ~language ()))
+        `TextDocumentFilter
+          (`TextDocumentFilterLanguage (TextDocumentFilterLanguage.create ~language ())))
     in
     let registerOptions =
       TextDocumentRegistrationOptions.create ~documentSelector ()

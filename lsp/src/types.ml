@@ -189,131 +189,6 @@ module ProgressParams = struct
   let create ~(token : ProgressToken.t) ~value = { token; value }
 end
 
-module TextDocumentFilter = struct
-  type t =
-    { language : string option
-    ; scheme : string option
-    ; pattern : string option
-    }
-  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
-
-  let _ = fun (_ : t) -> ()
-
-  let t_of_yojson =
-    (let _tp_loc = "lsp/src/types.ml.TextDocumentFilter.t" in
-     function
-     | `Assoc field_yojsons as yojson ->
-       let language_field = ref Ppx_yojson_conv_lib.Option.None
-       and scheme_field = ref Ppx_yojson_conv_lib.Option.None
-       and pattern_field = ref Ppx_yojson_conv_lib.Option.None
-       and duplicates = ref []
-       and extra = ref [] in
-       let rec iter = function
-         | (field_name, _field_yojson) :: tail ->
-           (match field_name with
-            | "language" ->
-              (match Ppx_yojson_conv_lib.( ! ) language_field with
-               | Ppx_yojson_conv_lib.Option.None ->
-                 let fvalue = option_of_yojson string_of_yojson _field_yojson in
-                 language_field := Ppx_yojson_conv_lib.Option.Some fvalue
-               | Ppx_yojson_conv_lib.Option.Some _ ->
-                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-            | "scheme" ->
-              (match Ppx_yojson_conv_lib.( ! ) scheme_field with
-               | Ppx_yojson_conv_lib.Option.None ->
-                 let fvalue = option_of_yojson string_of_yojson _field_yojson in
-                 scheme_field := Ppx_yojson_conv_lib.Option.Some fvalue
-               | Ppx_yojson_conv_lib.Option.Some _ ->
-                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-            | "pattern" ->
-              (match Ppx_yojson_conv_lib.( ! ) pattern_field with
-               | Ppx_yojson_conv_lib.Option.None ->
-                 let fvalue = option_of_yojson string_of_yojson _field_yojson in
-                 pattern_field := Ppx_yojson_conv_lib.Option.Some fvalue
-               | Ppx_yojson_conv_lib.Option.Some _ ->
-                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
-            | _ -> ());
-           iter tail
-         | [] -> ()
-       in
-       iter field_yojsons;
-       (match Ppx_yojson_conv_lib.( ! ) duplicates with
-        | _ :: _ ->
-          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
-            _tp_loc
-            (Ppx_yojson_conv_lib.( ! ) duplicates)
-            yojson
-        | [] ->
-          (match Ppx_yojson_conv_lib.( ! ) extra with
-           | _ :: _ ->
-             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
-               _tp_loc
-               (Ppx_yojson_conv_lib.( ! ) extra)
-               yojson
-           | [] ->
-             (match
-                ( Ppx_yojson_conv_lib.( ! ) language_field
-                , Ppx_yojson_conv_lib.( ! ) scheme_field
-                , Ppx_yojson_conv_lib.( ! ) pattern_field )
-              with
-              | ( Ppx_yojson_conv_lib.Option.Some language_value
-                , Ppx_yojson_conv_lib.Option.Some scheme_value
-                , Ppx_yojson_conv_lib.Option.Some pattern_value ) ->
-                { language = language_value
-                ; scheme = scheme_value
-                ; pattern = pattern_value
-                }
-              | _ ->
-                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
-                  _tp_loc
-                  yojson
-                  [ ( Ppx_yojson_conv_lib.poly_equal
-                        (Ppx_yojson_conv_lib.( ! ) language_field)
-                        Ppx_yojson_conv_lib.Option.None
-                    , "language" )
-                  ; ( Ppx_yojson_conv_lib.poly_equal
-                        (Ppx_yojson_conv_lib.( ! ) scheme_field)
-                        Ppx_yojson_conv_lib.Option.None
-                    , "scheme" )
-                  ; ( Ppx_yojson_conv_lib.poly_equal
-                        (Ppx_yojson_conv_lib.( ! ) pattern_field)
-                        Ppx_yojson_conv_lib.Option.None
-                    , "pattern" )
-                  ])))
-     | _ as yojson ->
-       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
-     : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-  ;;
-
-  let _ = t_of_yojson
-
-  let yojson_of_t =
-    (function
-     | { language = v_language; scheme = v_scheme; pattern = v_pattern } ->
-       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
-       let bnds =
-         let arg = yojson_of_option yojson_of_string v_pattern in
-         ("pattern", arg) :: bnds
-       in
-       let bnds =
-         let arg = yojson_of_option yojson_of_string v_scheme in
-         ("scheme", arg) :: bnds
-       in
-       let bnds =
-         let arg = yojson_of_option yojson_of_string v_language in
-         ("language", arg) :: bnds
-       in
-       `Assoc bnds
-     : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-  ;;
-
-  let _ = yojson_of_t
-
-  [@@@end]
-
-  let create ?language ?scheme ?pattern () = { language; scheme; pattern }
-end
-
 (*$ Lsp_gen.print_ml () *)
 module ApplyKind = struct
   type t =
@@ -5571,8 +5446,28 @@ module WorkspaceFolder = struct
 end
 
 module RelativePattern = struct
+  type baseUri_pvar =
+    [ `WorkspaceFolder of WorkspaceFolder.t
+    | `DocumentUri of DocumentUri.t
+    ]
+
+  let baseUri_pvar_of_yojson (json : Json.t) : baseUri_pvar =
+    Json.Of.untagged_union
+      "baseUri_pvar"
+      [ (fun json -> `WorkspaceFolder (WorkspaceFolder.t_of_yojson json))
+      ; (fun json -> `DocumentUri (DocumentUri.t_of_yojson json))
+      ]
+      json
+  ;;
+
+  let yojson_of_baseUri_pvar (baseUri_pvar : baseUri_pvar) : Json.t =
+    match baseUri_pvar with
+    | `WorkspaceFolder s -> WorkspaceFolder.yojson_of_t s
+    | `DocumentUri s -> DocumentUri.yojson_of_t s
+  ;;
+
   type t =
-    { baseUri : unit
+    { baseUri : baseUri_pvar
     ; pattern : Pattern.t
     }
   [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
@@ -5593,7 +5488,7 @@ module RelativePattern = struct
             | "baseUri" ->
               (match Ppx_yojson_conv_lib.( ! ) baseUri_field with
                | Ppx_yojson_conv_lib.Option.None ->
-                 let fvalue = unit_of_yojson _field_yojson in
+                 let fvalue = baseUri_pvar_of_yojson _field_yojson in
                  baseUri_field := Ppx_yojson_conv_lib.Option.Some fvalue
                | Ppx_yojson_conv_lib.Option.Some _ ->
                  duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
@@ -5659,7 +5554,7 @@ module RelativePattern = struct
          ("pattern", arg) :: bnds
        in
        let bnds =
-         let arg = yojson_of_unit v_baseUri in
+         let arg = yojson_of_baseUri_pvar v_baseUri in
          ("baseUri", arg) :: bnds
        in
        `Assoc bnds
@@ -5670,7 +5565,7 @@ module RelativePattern = struct
 
   [@@@end]
 
-  let create ~(baseUri : unit) ~(pattern : Pattern.t) : t = { baseUri; pattern }
+  let create ~(baseUri : baseUri_pvar) ~(pattern : Pattern.t) : t = { baseUri; pattern }
 end
 
 module GlobPattern = struct
@@ -6700,6 +6595,34 @@ module TextDocumentFilterLanguage = struct
     : t
     =
     { language; pattern; scheme }
+  ;;
+end
+
+module TextDocumentFilter = struct
+  type t =
+    [ `TextDocumentFilterLanguage of TextDocumentFilterLanguage.t
+    | `TextDocumentFilterScheme of TextDocumentFilterScheme.t
+    | `TextDocumentFilterPattern of TextDocumentFilterPattern.t
+    ]
+
+  let t_of_yojson (json : Json.t) : t =
+    Json.Of.untagged_union
+      "t"
+      [ (fun json ->
+          `TextDocumentFilterLanguage (TextDocumentFilterLanguage.t_of_yojson json))
+      ; (fun json ->
+          `TextDocumentFilterScheme (TextDocumentFilterScheme.t_of_yojson json))
+      ; (fun json ->
+          `TextDocumentFilterPattern (TextDocumentFilterPattern.t_of_yojson json))
+      ]
+      json
+  ;;
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | `TextDocumentFilterLanguage s -> TextDocumentFilterLanguage.yojson_of_t s
+    | `TextDocumentFilterScheme s -> TextDocumentFilterScheme.yojson_of_t s
+    | `TextDocumentFilterPattern s -> TextDocumentFilterPattern.yojson_of_t s
   ;;
 end
 

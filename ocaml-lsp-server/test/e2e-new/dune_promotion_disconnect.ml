@@ -76,9 +76,7 @@ let%expect_test "promotion registrations when Dune disconnects" =
           "method": "textDocument/codeAction",
           "registerOptions": {
             "codeActionKinds": [ "quickfix" ],
-            "documentSelector": [
-              { "language": null, "scheme": null, "pattern": "<document-path>" }
-            ]
+            "documentSelector": [ { "pattern": "<document-path>" } ]
           }
         }
       ]
@@ -119,9 +117,7 @@ let%expect_test "promotion registrations when Dune disconnects" =
           "method": "textDocument/codeAction",
           "registerOptions": {
             "codeActionKinds": [ "quickfix" ],
-            "documentSelector": [
-              { "language": null, "scheme": null, "pattern": "<document-path>" }
-            ]
+            "documentSelector": [ { "pattern": "<document-path>" } ]
           }
         }
       ]
