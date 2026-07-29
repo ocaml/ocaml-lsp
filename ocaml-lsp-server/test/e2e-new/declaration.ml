@@ -54,9 +54,10 @@ let%expect_test "returns location of a declaration" =
      Client.request
        client
        (TextDocumentDeclaration
-          (TextDocumentPositionParams.create
+          (DeclarationParams.create
              ~textDocument
-             ~position:(Position.create ~line:0 ~character:13)))
+             ~position:(Position.create ~line:0 ~character:13)
+             ()))
    in
    print_locations response;
    let* () = Client.request client Shutdown in

@@ -105,8 +105,10 @@ let%expect_test "declaration request round trip" =
     {
       "method": "textDocument/declaration",
       "params": {
+        "partialResultToken": "partial",
         "position": { "character": 4, "line": 2 },
-        "textDocument": { "uri": "file:///workspace/test.ml" }
+        "textDocument": { "uri": "file:///workspace/test.ml" },
+        "workDoneToken": "work"
       }
     }
     |}]
@@ -139,8 +141,8 @@ let%expect_test "prepare rename result decoding" =
   [%expect
     {|
     range: accepted
-    placeholder: rejected
-    default behavior: rejected
+    placeholder: accepted
+    default behavior: accepted
     null: accepted
     |}]
 ;;

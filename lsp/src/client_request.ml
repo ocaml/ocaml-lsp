@@ -7,7 +7,7 @@ type _ t =
   | Initialize : InitializeParams.t -> InitializeResult.t t
   | TextDocumentHover : HoverParams.t -> Hover.t option t
   | TextDocumentDefinition : DefinitionParams.t -> Locations.t option t
-  | TextDocumentDeclaration : TextDocumentPositionParams.t -> Locations.t option t
+  | TextDocumentDeclaration : DeclarationParams.t -> Locations.t option t
   | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
   | TextDocumentImplementation : ImplementationParams.t -> Locations.t option t
   | TextDocumentCompletion :
@@ -32,7 +32,7 @@ type _ t =
   | TextDocumentPrepareTypeHierarchy :
       TypeHierarchyPrepareParams.t
       -> TypeHierarchyItem.t list option t
-  | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
+  | TextDocumentPrepareRename : PrepareRenameParams.t -> PrepareRenameResult.t option t
   | TextDocumentRangeFormatting :
       DocumentRangeFormattingParams.t
       -> TextEdit.t list option t
@@ -164,7 +164,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentPrepareTypeHierarchy _, result ->
     Json.Option.yojson_of_t (Json.To.list TypeHierarchyItem.yojson_of_t) result
   | TextDocumentPrepareRename _, result ->
-    Json.Option.yojson_of_t Range.yojson_of_t result
+    Json.Option.yojson_of_t PrepareRenameResult.yojson_of_t result
   | TextDocumentRangeFormatting _, result ->
     Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result
   | TextDocumentRangesFormatting _, result ->
@@ -334,7 +334,7 @@ let of_jsonrpc (r : Jsonrpc.Request.t) =
     let+ params = parse DocumentColorParams.t_of_yojson in
     E (TextDocumentColor params)
   | "textDocument/declaration" ->
-    let+ params = parse TextDocumentPositionParams.t_of_yojson in
+    let+ params = parse DeclarationParams.t_of_yojson in
     E (TextDocumentDeclaration params)
   | "textDocument/selectionRange" ->
     let+ params = parse SelectionRangeParams.t_of_yojson in
@@ -510,8 +510,7 @@ let params =
     | TextDocumentColorPresentation params ->
       ret (ColorPresentationParams.yojson_of_t params)
     | TextDocumentColor params -> ret (DocumentColorParams.yojson_of_t params)
-    | TextDocumentDeclaration params ->
-      ret (TextDocumentPositionParams.yojson_of_t params)
+    | TextDocumentDeclaration params -> ret (DeclarationParams.yojson_of_t params)
     | SelectionRange params -> ret (SelectionRangeParams.yojson_of_t params)
     | ExecuteCommand params -> ret (ExecuteCommandParams.yojson_of_t params)
     | SemanticTokensFull params -> ret (SemanticTokensParams.yojson_of_t params)
@@ -573,7 +572,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   | TextDocumentCodeLensResolve _ -> CodeLens.t_of_yojson json
   | TextDocumentPrepareCallHierarchy _ ->
     option_of_yojson (list_of_yojson CallHierarchyItem.t_of_yojson) json
-  | TextDocumentPrepareRename _ -> option_of_yojson Range.t_of_yojson json
+  | TextDocumentPrepareRename _ -> option_of_yojson PrepareRenameResult.t_of_yojson json
   | TextDocumentRangeFormatting _ ->
     option_of_yojson (list_of_yojson TextEdit.t_of_yojson) json
   | TextDocumentRangesFormatting _ ->

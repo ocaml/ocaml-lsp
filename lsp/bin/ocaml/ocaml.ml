@@ -19,7 +19,6 @@ let skipped_ts_decls =
   ; "ProgressToken"
   ; "ProgressParams"
   ; "TextDocumentFilter"
-  ; "PrepareRenameResult"
   ; "LSPAny"
   ; "LSPObject"
   ; "LSPArray"

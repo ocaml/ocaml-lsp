@@ -5382,6 +5382,16 @@ module PrepareRenamePlaceholder : sig
   include Json.Jsonable.S with type t := t
 end
 
+module PrepareRenameResult : sig
+  type t =
+    [ `Range of Range.t
+    | `PrepareRenamePlaceholder of PrepareRenamePlaceholder.t
+    | `PrepareRenameDefaultBehavior of PrepareRenameDefaultBehavior.t
+    ]
+
+  include Json.Jsonable.S with type t := t
+end
+
 module PreviousResultId : sig
   type t =
     { uri : DocumentUri.t
