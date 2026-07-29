@@ -214,6 +214,21 @@ end|ocaml}
     |}]
 ;;
 
+let%expect_test "comment-only document without a trailing newline" =
+  test "(* comment *)" [ Position.create ~line:0 ~character:7 ];
+  [%expect
+    {|
+    [
+      [
+        {
+          "end": { "character": 0, "line": 1 },
+          "start": { "character": 0, "line": 0 }
+        }
+      ]
+    ]
+    |}]
+;;
+
 let%expect_test "returns a reasonable selection range in the presence of syntax errors" =
   let source =
     {ocaml|module M = struct
