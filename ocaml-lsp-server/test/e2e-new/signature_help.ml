@@ -524,3 +524,103 @@ let%expect_test "malformed Unicode application returns an internal error" =
     }
     |}]
 ;;
+
+let%expect_test "signature help after expression boundaries" =
+  let check description source position =
+    print_endline description;
+    test source position
+  in
+  check
+    "after sequence separator"
+    "let add a b = a + b\nlet _ = add 1; "
+    (Position.create ~line:1 ~character:15);
+  [%expect
+    {|
+    after sequence separator
+    { "signatures": [] }
+    |}];
+  check
+    "after toplevel terminator"
+    "let add a b = a + b\nlet _ = add 1;; "
+    (Position.create ~line:1 ~character:16);
+  [%expect
+    {|
+    after toplevel terminator
+    {
+      "activeParameter": 1,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}];
+  check
+    "after local binding"
+    "let add a b = a + b\nlet _ =\n  let partial = add 1 in "
+    (Position.create ~line:2 ~character:25);
+  [%expect
+    {|
+    after local binding
+    { "signatures": [] }
+    |}];
+  check
+    "after tuple separator"
+    "let add a b = a + b\nlet _ = add 1, "
+    (Position.create ~line:1 ~character:15);
+  [%expect
+    {|
+    after tuple separator
+    { "signatures": [] }
+    |}];
+  check
+    "after then"
+    "let add a b = a + b\nlet _ = if add 1 then "
+    (Position.create ~line:1 ~character:22);
+  [%expect
+    {|
+    after then
+    { "signatures": [] }
+    |}];
+  check
+    "after else"
+    "let add a b = a + b\nlet _ = if true then add 1 else "
+    (Position.create ~line:1 ~character:32);
+  [%expect
+    {|
+    after else
+    {
+      "activeParameter": 0,
+      "activeSignature": 0,
+      "signatures": [
+        { "label": "_ : int -> int", "parameters": [ { "label": [ 4, 7 ] } ] }
+      ]
+    }
+    |}];
+  check
+    "after match scrutinee"
+    "let add a b = a + b\nlet _ = match add 1 with "
+    (Position.create ~line:1 ~character:25);
+  [%expect
+    {|
+    after match scrutinee
+    { "signatures": [] }
+    |}];
+  check
+    "after next match case"
+    "let add a b = a + b\nlet _ =\n  match () with\n  | () -> add 1\n  | _ -> "
+    (Position.create ~line:4 ~character:9);
+  [%expect
+    {|
+    after next match case
+    {
+      "activeParameter": 0,
+      "activeSignature": 0,
+      "signatures": [
+        { "label": "_ : int -> int", "parameters": [ { "label": [ 4, 7 ] } ] }
+      ]
+    }
+    |}]
+;;
