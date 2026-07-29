@@ -442,29 +442,13 @@ let%expect_test "signature help after a completed application or closed scope" =
   [%expect
     {|
     after completed application
-    {
-      "activeSignature": 0,
-      "signatures": [
-        {
-          "label": "add : int -> int -> int",
-          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
-        }
-      ]
-    }
+    { "signatures": [] }
     |}];
   check "on blank line after terminator" (Position.create ~line:3 ~character:1);
   [%expect
     {|
     on blank line after terminator
-    {
-      "activeSignature": 0,
-      "signatures": [
-        {
-          "label": "add : int -> int -> int",
-          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
-        }
-      ]
-    }
+    { "signatures": [] }
     |}]
 ;;
 
