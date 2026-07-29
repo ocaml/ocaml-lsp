@@ -15,7 +15,8 @@ let%expect_test "missing build directories return empty results without notifica
   let workspaces = [ workspace_a; workspace_b ] in
   let print_response label = function
     | None -> Printf.printf "%s: null\n" label
-    | Some symbols ->
+    | Some (`WorkspaceSymbol _) -> failwith "unexpected resolvable workspace symbols"
+    | Some (`SymbolInformation symbols) ->
       Printf.printf "%s: " label;
       symbols
       |> List.map ~f:(fun symbol -> `String (to_test_result workspaces symbol))
@@ -99,8 +100,13 @@ let relative_path ~root path =
 let%expect_test "generated source has an existing workspace-symbol location" =
   let workspace = setup_generated_workspace () in
   run [ workspace ] (fun client ->
-    let* symbols = workspace_symbol client "generated_workspace_symbol" in
-    let symbols = Option.value symbols ~default:[] in
+    let* result = workspace_symbol client "generated_workspace_symbol" in
+    let symbols =
+      match result with
+      | None -> []
+      | Some (`SymbolInformation symbols) -> symbols
+      | Some (`WorkspaceSymbol _) -> failwith "unexpected resolvable workspace symbols"
+    in
     (match
        List.find symbols ~f:(fun (symbol : SymbolInformation.t) ->
          String.equal symbol.name "generated_workspace_symbol")

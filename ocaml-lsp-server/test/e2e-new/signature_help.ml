@@ -31,50 +31,57 @@ let make_capabilities
 
 let capabilities = make_capabilities ~labelOffsetSupport:true ()
 
-let signature_help ?context client position =
+let signature_help_nullable ?context client position =
   let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
   Client.request
     client
     (SignatureHelp (SignatureHelpParams.create ?context ~textDocument ~position ()))
 ;;
 
-let print_signature_help signature_help =
-  let json = SignatureHelp.yojson_of_t signature_help in
-  let documentation =
-    List.find_map
-      signature_help.signatures
-      ~f:(fun (signature : SignatureInformation.t) ->
-        match signature.documentation with
-        | None -> None
-        | Some (`String value | `MarkupContent { value; _ }) -> Some value)
-  in
-  let output =
-    match documentation with
-    | None -> Yojson.Safe.pretty_to_string ~std:false json
-    | Some documentation ->
-      let placeholder = "__SIGNATURE_HELP_DOCUMENTATION__" in
-      let rec replace_documentation = function
-        | `String value when String.equal value documentation -> `String placeholder
-        | `Assoc fields ->
-          `Assoc
-            (List.map fields ~f:(fun (name, value) -> name, replace_documentation value))
-        | `List values -> `List (List.map values ~f:replace_documentation)
-        | json -> json
-      in
-      let output =
-        replace_documentation json |> Yojson.Safe.pretty_to_string ~std:false
-      in
-      Re.replace_string
-        (Re.compile (Re.str ("\"" ^ placeholder ^ "\"")))
-        ~by:("\"" ^ documentation ^ "\"")
-        output
-  in
-  print_endline output
+let signature_help ?context client position =
+  let+ help = signature_help_nullable ?context client position in
+  Option.value_exn help
+;;
+
+let print_signature_help = function
+  | None -> print_endline "null"
+  | Some signature_help ->
+    let json = SignatureHelp.yojson_of_t signature_help in
+    let documentation =
+      List.find_map
+        signature_help.signatures
+        ~f:(fun (signature : SignatureInformation.t) ->
+          match signature.documentation with
+          | None -> None
+          | Some (`String value | `MarkupContent { value; _ }) -> Some value)
+    in
+    let output =
+      match documentation with
+      | None -> Yojson.Safe.pretty_to_string ~std:false json
+      | Some documentation ->
+        let placeholder = "__SIGNATURE_HELP_DOCUMENTATION__" in
+        let rec replace_documentation = function
+          | `String value when String.equal value documentation -> `String placeholder
+          | `Assoc fields ->
+            `Assoc
+              (List.map fields ~f:(fun (name, value) -> name, replace_documentation value))
+          | `List values -> `List (List.map values ~f:replace_documentation)
+          | json -> json
+        in
+        let output =
+          replace_documentation json |> Yojson.Safe.pretty_to_string ~std:false
+        in
+        Re.replace_string
+          (Re.compile (Re.str ("\"" ^ placeholder ^ "\"")))
+          ~by:("\"" ^ documentation ^ "\"")
+          output
+    in
+    print_endline output
 ;;
 
 let test ?(capabilities = capabilities) source position =
   Helpers.test ~capabilities source (fun client ->
-    let* response = signature_help client position in
+    let* response = signature_help_nullable client position in
     print_signature_help response;
     Fiber.return ())
 ;;
@@ -745,7 +752,7 @@ let%expect_test "malformed Unicode application returns no signature help" =
   Helpers.test "a>😀" (fun client ->
     let* result =
       Fiber.collect_errors (fun () ->
-        signature_help client (Position.create ~line:0 ~character:1))
+        signature_help_nullable client (Position.create ~line:0 ~character:1))
     in
     match result with
     | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]

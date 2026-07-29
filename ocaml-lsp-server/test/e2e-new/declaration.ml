@@ -11,15 +11,26 @@ let setup_workspace () =
   dir
 ;;
 
+let print_location (location : Location.t) =
+  print_endline (DocumentUri.to_path location.uri |> Filename.basename);
+  Range.yojson_of_t location.range
+  |> Yojson.Safe.pretty_to_string ~std:false
+  |> print_endline
+;;
+
 let print_locations = function
   | None -> print_endline "[]"
-  | Some (`Location locations) ->
-    List.iter locations ~f:(fun (location : Location.t) ->
-      print_endline (DocumentUri.to_path location.uri |> Filename.basename);
-      Range.yojson_of_t location.range
+  | Some (`Definition (`Location location)) -> print_location location
+  | Some (`Definition (`List locations)) -> List.iter locations ~f:print_location
+  | Some (`DefinitionLink links) ->
+    List.iter links ~f:(fun (location : LocationLink.t) ->
+      print_endline (DocumentUri.to_path location.targetUri |> Filename.basename);
+      Range.yojson_of_t location.targetRange
       |> Yojson.Safe.pretty_to_string ~std:false
       |> print_endline)
-  | Some (`LocationLink links) ->
+  | Some (`Declaration (`Location location)) -> print_location location
+  | Some (`Declaration (`List locations)) -> List.iter locations ~f:print_location
+  | Some (`DeclarationLink links) ->
     List.iter links ~f:(fun (location : LocationLink.t) ->
       print_endline (DocumentUri.to_path location.targetUri |> Filename.basename);
       Range.yojson_of_t location.targetRange

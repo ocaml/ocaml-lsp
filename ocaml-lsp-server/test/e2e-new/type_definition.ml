@@ -1,6 +1,10 @@
 open Test.Import
 
-let print_locations = Test.print_option Locations.yojson_of_t
+let print_locations =
+  Test.print_option (function
+    | `Definition definition -> Definition.yojson_of_t definition
+    | `DefinitionLink links -> `List (List.map links ~f:DefinitionLink.yojson_of_t))
+;;
 
 let iter_type_definition source position k =
   let makeRequest textDocument =
