@@ -47,6 +47,12 @@ val absolute_position : t -> Position.t -> int
    absolute_position t range.end_)] but possibly faster *)
 val absolute_range : t -> Range.t -> int * int
 
+(** [range_of_utf8_offsets t ~start_offset ~end_offset] converts the half-open
+    UTF-8 byte offsets [[start_offset, end_offset)] in [text t] to a range in the
+    document's position encoding. Raises [Invalid_argument] if the offsets are
+    unordered, out of bounds, or not UTF-8 character boundaries. *)
+val range_of_utf8_offsets : t -> start_offset:int -> end_offset:int -> Range.t
+
 (** [substring t range] returns the text within [range], interpreted using the
     document's position encoding. Returns [None] when the range's start follows
     its end. *)

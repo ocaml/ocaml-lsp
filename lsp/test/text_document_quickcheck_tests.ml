@@ -142,6 +142,13 @@ let apply_operation state = function
     let actual_start, actual_stop = Text_document.absolute_range state.document range in
     if actual_start <> first.byte_offset || actual_stop <> second.byte_offset
     then fail state "absolute range differs";
+    let round_trip =
+      Text_document.range_of_utf8_offsets
+        state.document
+        ~start_offset:first.byte_offset
+        ~end_offset:second.byte_offset
+    in
+    if not (Poly.equal round_trip range) then fail state "UTF-8 offset range differs";
     state
   | Set_version version ->
     let version = normalized_version version in

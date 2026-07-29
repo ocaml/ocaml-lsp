@@ -11,6 +11,8 @@
 ## Fixes
 
 - Suppress signature help for completed applications. (#1982, #1162, @rgrinberg)
+- Encode remove-unused code-action edits using the client's negotiated position
+  encoding. (#1969, @rgrinberg)
 - Exclude surrounding parentheses from infix operator rename placeholders and
   edits. (#1966, fixes #1190, @rgrinberg)
 - Suppress signature help for applications after the cursor. (#1965, #1162,
