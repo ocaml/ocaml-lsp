@@ -550,11 +550,8 @@ let%expect_test "does not advertise or send unsupported semantic token modifiers
   [%expect
     {|
     semanticTokensProvider.legend.tokenModifiers:
-    [
-      "declaration", "definition", "readonly", "static", "deprecated",
-      "abstract", "async", "modification", "documentation", "defaultLibrary"
-    ]
-    let <function|definition-0>f</0> () = <number|-1>0</1>
+    []
+    let <function|-0>f</0> () = <number|-1>0</1>
     |}]
 ;;
 
@@ -580,8 +577,8 @@ let%expect_test "remaps supported semantic token modifiers" =
        Fiber.return ());
   [%expect
     {|
-    modifiers: declaration, definition, readonly, static, deprecated, abstract, async, modification, documentation, defaultLibrary
-    first token modifiers: 2
+    modifiers: definition
+    first token modifiers: 1
     |}]
 ;;
 

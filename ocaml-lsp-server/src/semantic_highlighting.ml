@@ -143,41 +143,80 @@ end
 
 (** [token_type_indices] is indexed by the server's token type index. Each entry
     contains the corresponding index in the negotiated legend, or [None] when
-    the client does not support that token type. *)
+    the client does not support that token type.
+
+    [token_modifier_bits] is indexed by the server's token modifier index. Each
+    entry contains the corresponding bit in the negotiated legend, or [None]
+    when the client does not support that modifier. *)
 type config =
   { legend : SemanticTokensLegend.t
   ; token_type_indices : int option array
+  ; token_modifier_bits : int option array
   }
 
-let negotiate_token_type_indices negotiated_token_types =
+let negotiate_token_type_indices ~token_types =
   Token_type.tokenTypes
   |> Array.of_list
   |> Array.map ~f:(fun server_token_type ->
-    List.find_mapi negotiated_token_types ~f:(fun index negotiated_token_type ->
+    List.find_mapi token_types ~f:(fun index negotiated_token_type ->
       Option.some_if (String.equal server_token_type negotiated_token_type) index))
 ;;
 
-let make_config token_types =
+let negotiate_token_modifier_bits ~token_modifiers =
+  Token_modifiers_set.list
+  |> Array.of_list
+  |> Array.map ~f:(fun server_modifier ->
+    List.find_mapi token_modifiers ~f:(fun index negotiated_modifier ->
+      Option.some_if (String.equal server_modifier negotiated_modifier) (1 lsl index)))
+;;
+
+let make_config ~token_types ~token_modifiers =
   let legend =
-    SemanticTokensLegend.create
-      ~tokenTypes:token_types
-      ~tokenModifiers:Token_modifiers_set.list
+    SemanticTokensLegend.create ~tokenTypes:token_types ~tokenModifiers:token_modifiers
   in
-  let token_type_indices = negotiate_token_type_indices token_types in
-  { legend; token_type_indices }
+  let token_type_indices = negotiate_token_type_indices ~token_types in
+  let token_modifier_bits = negotiate_token_modifier_bits ~token_modifiers in
+  { legend; token_type_indices; token_modifier_bits }
 ;;
 
 let create_config (semantic_tokens : SemanticTokensClientCapabilities.t) =
-  List.filter Token_type.tokenTypes ~f:(fun value ->
-    List.mem semantic_tokens.tokenTypes value ~equal:String.equal)
-  |> make_config
+  let token_types =
+    List.filter Token_type.tokenTypes ~f:(fun value ->
+      List.mem semantic_tokens.tokenTypes value ~equal:String.equal)
+  in
+  let token_modifiers =
+    List.filter Token_modifiers_set.list ~f:(fun value ->
+      List.mem semantic_tokens.tokenModifiers value ~equal:String.equal)
+  in
+  make_config ~token_types ~token_modifiers
 ;;
 
-let default_config = make_config Token_type.tokenTypes
+let default_config =
+  make_config ~token_types:Token_type.tokenTypes ~token_modifiers:Token_modifiers_set.list
+;;
+
 let legend config = config.legend
 
 let token_type_index config token_type =
   config.token_type_indices.(Token_type.to_int token_type)
+;;
+
+let token_modifiers_bitset config token_modifiers =
+  let rec loop server_index encoded result =
+    if Int.equal encoded 0
+    then result
+    else (
+      let result =
+        if Int.equal (encoded land 1) 0
+        then result
+        else (
+          match config.token_modifier_bits.(server_index) with
+          | None -> result
+          | Some client_bit -> result lor client_bit)
+      in
+      loop (server_index + 1) (encoded lsr 1) result)
+  in
+  loop 0 (Token_modifiers_set.to_int token_modifiers) 0
 ;;
 
 (** Represents a collection of semantic tokens. *)
@@ -249,7 +288,7 @@ end = struct
     arr.(delta_line_index + 1) <- delta_start;
     arr.(delta_line_index + 2) <- length;
     arr.(delta_line_index + 3) <- token_type;
-    arr.(delta_line_index + 4) <- Token_modifiers_set.to_int token_modifiers
+    arr.(delta_line_index + 4) <- token_modifiers
   ;;
 
   let yojson_of_token { start; length; token_type; token_modifiers } =
@@ -284,7 +323,7 @@ end = struct
           ~delta_start:start.character
           ~length
           ~token_type
-          ~token_modifiers
+          ~token_modifiers:(token_modifiers_bitset config token_modifiers)
       | previous :: rest ->
         (match token_type_index config previous.token_type with
          | None -> encode_tokens index current token_type rest
@@ -303,7 +342,7 @@ end = struct
              ~delta_start
              ~length
              ~token_type
-             ~token_modifiers;
+             ~token_modifiers:(token_modifiers_bitset config token_modifiers);
            encode_tokens (index - 1) previous previous_token_type rest)
     in
     let rec encode_first_supported = function
