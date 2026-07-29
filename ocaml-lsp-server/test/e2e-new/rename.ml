@@ -60,14 +60,15 @@ let%expect_test "allows valid rename request" =
     |}]
 ;;
 
-let%expect_test "prepare rename includes operator parentheses (#1190)" =
+let%expect_test "rename excludes operator parentheses (#1190)" =
   let source =
     {ocaml|let (^*$) a = a + 1
 let b = (^*$) 1
 |ocaml}
   in
   run source (fun client ->
-    let* response = prepare_rename client (Position.create ~line:0 ~character:6) in
+    let position = Position.create ~line:0 ~character:6 in
+    let* response = prepare_rename client position in
     print_prepare_rename response;
     (match response with
      | None -> ()
@@ -76,14 +77,36 @@ let b = (^*$) 1
          String.sub source ~pos:start.character ~len:(end_.character - start.character)
        in
        Printf.printf "placeholder: %s\n" placeholder);
+    let* response = rename ~newName:"^+$" client position in
+    print_workspace_edit response;
     Fiber.return ());
   [%expect
     {|
     {
-      "end": { "character": 9, "line": 0 },
-      "start": { "character": 4, "line": 0 }
+      "end": { "character": 8, "line": 0 },
+      "start": { "character": 5, "line": 0 }
     }
-    placeholder: (^*$)
+    placeholder: ^*$
+    {
+      "changes": {
+        "file:///test.ml": [
+          {
+            "newText": "^+$",
+            "range": {
+              "end": { "character": 12, "line": 1 },
+              "start": { "character": 9, "line": 1 }
+            }
+          },
+          {
+            "newText": "^+$",
+            "range": {
+              "end": { "character": 8, "line": 0 },
+              "start": { "character": 5, "line": 0 }
+            }
+          }
+        ]
+      }
+    }
     |}]
 ;;
 

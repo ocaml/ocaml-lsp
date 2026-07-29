@@ -17,9 +17,7 @@ include struct
     Re.seq [ name_char; white_space |> rep; char '.'; white_space |> rep ]
   ;;
 
-  let core_operator_str = {|$&*+-/=>@^||}
-  let operator = core_operator_str ^ {|~!?%<:.|}
-  let infix = set (operator ^ "#")
+  let infix = set Ocaml_operator.symbolic_characters
 
   let name_or_label =
     let name = alt [ name_char; name_with_dot ] in
