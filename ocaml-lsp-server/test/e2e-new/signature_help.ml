@@ -624,3 +624,158 @@ let%expect_test "signature help after expression boundaries" =
     }
     |}]
 ;;
+
+let%expect_test "signature help remains relevant around nested syntax" =
+  let check description source position =
+    print_endline description;
+    test source position
+  in
+  check
+    "after separator-like comment"
+    "let add a b = a + b\nlet _ = add 1 (* ; ;; *) "
+    (Position.create ~line:1 ~character:25);
+  [%expect
+    {|
+    after separator-like comment
+    {
+      "activeParameter": 1,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}];
+  check
+    "after nested sequence argument"
+    "let take3 a b c = a + b + c\nlet _ = take3 (let x = 1 in x; x) 2 "
+    (Position.create ~line:1 ~character:36);
+  [%expect
+    {|
+    after nested sequence argument
+    {
+      "activeParameter": 2,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "take3 : int -> int -> int -> int",
+          "parameters": [
+            { "label": [ 8, 11 ] },
+            { "label": [ 15, 18 ] },
+            { "label": [ 22, 25 ] }
+          ]
+        }
+      ]
+    }
+    |}];
+  check
+    "before closing parenthesis"
+    "let add a b = a + b\nlet _ = (add 1 )"
+    (Position.create ~line:1 ~character:15);
+  [%expect
+    {|
+    before closing parenthesis
+    {
+      "activeParameter": 1,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}];
+  check
+    "after closing parenthesis"
+    "let add a b = a + b\nlet _ = (add 1) "
+    (Position.create ~line:1 ~character:16);
+  [%expect
+    {|
+    after closing parenthesis
+    {
+      "activeParameter": 0,
+      "activeSignature": 0,
+      "signatures": [
+        { "label": "_ : int -> int", "parameters": [ { "label": [ 4, 7 ] } ] }
+      ]
+    }
+    |}];
+  check
+    "inside nested application"
+    "let add a b = a + b\nlet _ = add 1 (add 2 )"
+    (Position.create ~line:1 ~character:21);
+  [%expect
+    {|
+    inside nested application
+    {
+      "activeParameter": 1,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}];
+  check
+    "after completed nested application"
+    "let add a b = a + b\nlet take3 a b c = a + b + c\nlet _ = take3 1 (add 2 3) "
+    (Position.create ~line:2 ~character:26);
+  [%expect
+    {|
+    after completed nested application
+    {
+      "activeParameter": 2,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "take3 : int -> int -> int -> int",
+          "parameters": [
+            { "label": [ 8, 11 ] },
+            { "label": [ 15, 18 ] },
+            { "label": [ 22, 25 ] }
+          ]
+        }
+      ]
+    }
+    |}];
+  check
+    "after infix operator"
+    "let ( ++ ) a b = a + b\nlet _ = 1 ++ "
+    (Position.create ~line:1 ~character:13);
+  [%expect
+    {|
+    after infix operator
+    {
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "(++) : int -> int -> int",
+          "parameters": [ { "label": [ 7, 10 ] }, { "label": [ 14, 17 ] } ]
+        }
+      ]
+    }
+    |}];
+  check
+    "between existing arguments"
+    "let add a b = a + b\nlet _ = add 1 2"
+    (Position.create ~line:1 ~character:14);
+  [%expect
+    {|
+    between existing arguments
+    {
+      "activeParameter": 1,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}]
+;;
