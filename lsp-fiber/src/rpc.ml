@@ -275,10 +275,7 @@ struct
     in
     match cancel_status with
     | Cancelled () -> `Cancelled
-    | Not_cancelled ->
-      (match resp with
-       | `Ok resp -> `Ok resp
-       | `Cancelled -> assert false)
+    | Not_cancelled -> resp
   ;;
 
   let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
