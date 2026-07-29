@@ -727,7 +727,9 @@ let on_request
     later (fun state () -> Definition_query.run `Definition state uri position) ()
   | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
     later (fun state () -> Definition_query.run `Type_definition state uri position) ()
-  | TextDocumentCompletion params -> later (fun _ () -> Compl.complete state params) ()
+  | TextDocumentCompletion ({ textDocument = { uri }; _ } as params) ->
+    let doc = Document_store.get store uri in
+    later (fun _ () -> Compl.complete state doc params) ()
   | TextDocumentPrepareRename req ->
     later
       (fun state req ->

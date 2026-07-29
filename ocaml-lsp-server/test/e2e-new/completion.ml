@@ -1729,3 +1729,69 @@ let%expect_test "construct completion edit stays on the request line" =
     }
     |}]
 ;;
+
+let%expect_test "completion raced with a document change keeps valid ranges" =
+  Helpers.test "\nx" (fun client ->
+    let position = Position.create ~line:1 ~character:0 in
+    let version = ref 0 in
+    let change_document text =
+      incr version;
+      let textDocument =
+        VersionedTextDocumentIdentifier.create ~uri:Helpers.uri ~version:!version
+      in
+      let contentChanges =
+        [ `TextDocumentContentChangeWholeDocument
+            (TextDocumentContentChangeWholeDocument.create ~text)
+        ]
+      in
+      Client.notification
+        client
+        (TextDocumentDidChange
+           (DidChangeTextDocumentParams.create ~textDocument ~contentChanges))
+    in
+    let operator_items
+          (response :
+            [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ]
+              option)
+      =
+      match response with
+      | None -> []
+      | Some (`CompletionList { items; _ } | `List items) ->
+        List.filter items ~f:(fun (item : CompletionItem.t) ->
+          String.equal item.label "|>" || String.equal item.label "||")
+    in
+    let has_negative_range (item : CompletionItem.t) =
+      match item.textEdit with
+      | Some (`TextEdit { range = { start; _ }; _ }) -> start.character < 0
+      | Some (`InsertReplaceEdit _) | None -> false
+    in
+    let synchronize_document () =
+      let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
+      let position = Position.create ~line:0 ~character:0 in
+      let+ (_ : string option) =
+        Client.request
+          client
+          (DebugTextDocumentGet
+             (TextDocumentPositionParams.create ~textDocument ~position))
+      in
+      ()
+    in
+    let rec check attempts =
+      let* response, () =
+        Fiber.fork_and_join
+          (fun () -> request_completions client position)
+          (fun () -> change_document "|")
+      in
+      let items = operator_items response in
+      if List.exists items ~f:has_negative_range
+      then failwith "completion returned a negative edit range"
+      else if attempts = 1
+      then Fiber.return ()
+      else
+        let* () = change_document "\nx" in
+        let* () = synchronize_document () in
+        check (attempts - 1)
+    in
+    check 20);
+  [%expect {| |}]
+;;
