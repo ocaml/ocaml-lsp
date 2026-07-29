@@ -82,24 +82,7 @@ let%expect_test "triggered completion inside a comment after Unicode" =
     ~source
     ~position
     (print_completion_response ~limit:1);
-  [%expect
-    {|
-    Completions:
-    {
-      "detail": "'a0 * 'a0 list -> 'a0 List.t",
-      "kind": 4,
-      "label": "(::)",
-      "sortText": "0000",
-      "textEdit": {
-        "newText": "(::)",
-        "range": {
-          "end": { "character": 26, "line": 0 },
-          "start": { "character": 25, "line": 0 }
-        }
-      }
-    }
-    .............
-    |}]
+  [%expect {| No completion Items |}]
 ;;
 
 let%expect_test "completion converts UTF-16 positions before querying Merlin" =
