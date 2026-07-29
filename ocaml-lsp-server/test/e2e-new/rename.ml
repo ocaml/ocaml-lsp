@@ -314,7 +314,7 @@ let%expect_test "rename a symbol across open and closed files" =
   Unix.close stderr;
   [%expect
     {|
-    lib.ml (version 3)
+    lib.ml (version 7)
     {
       "newText": "renamed",
       "range": {
@@ -330,7 +330,7 @@ let%expect_test "rename a symbol across open and closed files" =
         "start": { "character": 17, "line": 0 }
       }
     }
-    other.ml (version 3)
+    other.ml (version null)
     {
       "newText": "renamed",
       "range": {

@@ -19,7 +19,6 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
         | true -> None
         | false -> Some occurrence.loc)
     in
-    let version = Document.version doc in
     let uri = Document.uri doc in
     let edits =
       List.fold_left
@@ -82,8 +81,11 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
         let documentChanges =
           Map.to_alist edits
           |> List.map ~f:(fun (uri, edits) ->
+            let version =
+              Document_store.get_opt state.store uri |> Option.map ~f:Document.version
+            in
             let textDocument =
-              OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+              OptionalVersionedTextDocumentIdentifier.create ~uri ?version ()
             in
             let edits = List.map edits ~f:(fun e -> `TextEdit e) in
             `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits))
