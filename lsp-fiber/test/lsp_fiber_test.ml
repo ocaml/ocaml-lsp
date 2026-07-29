@@ -451,8 +451,7 @@ let%expect_test "duplicate incoming request IDs are both handled" =
   [%expect {| responses: ok, ok |}]
 ;;
 
-let%expect_test "forcing a lazy fiber twice may run it twice" =
-  Printexc.record_backtrace false;
+let%expect_test "concurrent lazy fibers share the computation" =
   let run () =
     let runs = ref 0 in
     let lazy_fiber =
@@ -469,17 +468,17 @@ let%expect_test "forcing a lazy fiber twice may run it twice" =
     in
     let result =
       match result with
+      | Ok () -> "ok"
       | Error [ _ ] -> "error"
-      | Ok () | Error _ -> "unexpected"
+      | Error _ -> "unexpected"
     in
     Printf.printf "result: %s; runs: %d\n" result !runs
   in
   Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
-  [%expect.unreachable]
-[@@expect.uncaught_exn {| (Failure Fiber.Ivar.fill) |}]
+  [%expect {| result: ok; runs: 1 |}]
 ;;
 
-let%expect_test "concurrent failing lazy fibers run the computation twice" =
+let%expect_test "concurrent failing lazy fibers share the computation" =
   let run () =
     let runs = ref 0 in
     let lazy_fiber =
@@ -501,7 +500,7 @@ let%expect_test "concurrent failing lazy fibers run the computation twice" =
     Printf.printf "results: %s, %s; runs: %d\n" (classify first) (classify second) !runs
   in
   Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
-  [%expect {| results: error, error; runs: 2 |}]
+  [%expect {| results: error, error; runs: 1 |}]
 ;;
 
 let%expect_test "end to end run of lsp tests" =
