@@ -1,6 +1,9 @@
 open Import
 
-val legend : SemanticTokensLegend.t
+type config
+
+val create_config : SemanticTokensClientCapabilities.t -> config
+val legend : config -> SemanticTokensLegend.t
 val on_request_full : State.t -> SemanticTokensParams.t -> SemanticTokens.t option Fiber.t
 
 module For_tests : sig
