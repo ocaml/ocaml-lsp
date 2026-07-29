@@ -63,18 +63,26 @@ let find_action action_name action =
 let find_annotate_action action = find_action "type-annotate" action
 let find_remove_annotation_action action = find_action "remove type annotation" action
 
-let position_of_offset src x =
-  assert (0 <= x && x < String.length src);
-  let cnum = ref 0
-  and lnum = ref 0 in
-  for i = 0 to x - 1 do
-    if Char.equal src.[i] '\n'
-    then (
-      Int.incr lnum;
-      cnum := 0)
-    else Int.incr cnum
-  done;
-  Position.create ~character:!cnum ~line:!lnum
+let position_of_offset src target =
+  assert (0 <= target && target < String.length src);
+  let rec loop offset line character =
+    if offset = target
+    then Position.create ~line ~character
+    else (
+      let decoded = Stdlib.String.get_utf_8_uchar src offset in
+      assert (Stdlib.Uchar.utf_decode_is_valid decoded);
+      let uchar = Stdlib.Uchar.utf_decode_uchar decoded in
+      let byte_length = Stdlib.Uchar.utf_decode_length decoded in
+      assert (offset + byte_length <= target);
+      if Stdlib.Uchar.equal uchar (Stdlib.Uchar.of_char '\n')
+      then loop (offset + byte_length) (line + 1) 0
+      else
+        loop
+          (offset + byte_length)
+          line
+          (character + (Stdlib.Uchar.utf_16_byte_length uchar / 2)))
+  in
+  loop 0 0 0
 ;;
 
 let parse_selection src =
