@@ -430,31 +430,13 @@ let%expect_test "signature help after a completed application or closed scope" =
   [%expect
     {|
     after in
-    {
-      "activeParameter": 1,
-      "activeSignature": 0,
-      "signatures": [
-        {
-          "label": "add : int -> int -> int",
-          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
-        }
-      ]
-    }
+    { "signatures": [] }
     |}];
   check "on blank line before application" (Position.create ~line:1 ~character:1);
   [%expect
     {|
     on blank line before application
-    {
-      "activeParameter": 1,
-      "activeSignature": 0,
-      "signatures": [
-        {
-          "label": "add : int -> int -> int",
-          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
-        }
-      ]
-    }
+    { "signatures": [] }
     |}];
   check "after completed application" (Position.create ~line:2 ~character:10);
   [%expect
@@ -497,7 +479,7 @@ let rec censor_backtraces = function
   | json -> json
 ;;
 
-let%expect_test "malformed Unicode application returns an internal error" =
+let%expect_test "malformed Unicode application returns no signature help" =
   Helpers.test "a>😀" (fun client ->
     let* result =
       Fiber.collect_errors (fun () ->
@@ -512,17 +494,7 @@ let%expect_test "malformed Unicode application returns an internal error" =
     | Ok response ->
       print_signature_help response;
       Fiber.return ());
-  [%expect
-    {|
-    {
-      "data": {
-        "exn": "Ocaml_preprocess.Lexer_raw.Error(_, _)",
-        "backtrace": "<censored>"
-      },
-      "code": -32603,
-      "message": "uncaught exception"
-    }
-    |}]
+  [%expect {| { "signatures": [] } |}]
 ;;
 
 let%expect_test "signature help after expression boundaries" =
