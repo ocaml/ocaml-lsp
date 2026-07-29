@@ -104,7 +104,7 @@ let%expect_test "completion converts UTF-16 positions before querying Merlin" =
         "newText": "map",
         "range": {
           "end": { "character": 18, "line": 0 },
-          "start": { "character": 17, "line": 0 }
+          "start": { "character": 16, "line": 0 }
         }
       }
     }
@@ -1063,7 +1063,23 @@ let%expect_test "construct completion converts Merlin ranges to UTF-16" =
     List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "0")
   in
   print_completions ~pre_print:only_zero source position;
-  [%expect {| No completions |}]
+  [%expect
+    {|
+    Completions:
+    {
+      "filterText": "_0",
+      "kind": 1,
+      "label": "0",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "0",
+        "range": {
+          "end": { "character": 18, "line": 0 },
+          "start": { "character": 17, "line": 0 }
+        }
+      }
+    }
+    |}]
 ;;
 
 let%expect_test "completes identifier at top level" =

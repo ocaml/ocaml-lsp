@@ -29,6 +29,8 @@
   error. (#2038, @rgrinberg)
 - Respect client support for signature-help parameter-label offsets. (#2009,
   @rgrinberg)
+- Respect the negotiated position encoding in completion requests and edit ranges.
+  (#2011, @rgrinberg)
 - Keep Merlin diagnostic ranges within document bounds. (#2008, @rgrinberg)
 - Suppress triggered completion and signature help inside comments after Unicode.
   (#1994, @rgrinberg)

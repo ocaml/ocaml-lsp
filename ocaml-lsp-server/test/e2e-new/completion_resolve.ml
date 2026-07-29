@@ -239,7 +239,13 @@ let%expect_test "completion resolve converts UTF-16 positions for Merlin" =
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {| { "label": "map2" } |}]
+  [%expect
+    {|
+    {
+      "documentation": "[map2 f [a1; ...; an] [b1; ...; bn]] is\n   [[f a1 b1; ...; f an bn]].\n   @raise Invalid_argument if the two lists are determined\n   to have different lengths.",
+      "label": "map2"
+    }
+    |}]
 ;;
 
 let%expect_test "can get documentation at arbitrary position (before dot)" =
