@@ -558,6 +558,33 @@ let%expect_test "does not advertise or send unsupported semantic token modifiers
     |}]
 ;;
 
+let%expect_test "remaps supported semantic token modifiers" =
+  let capabilities =
+    semantic_tokens_client_capabilities
+      ~full:(`Bool true)
+      ~token_types:[ "function"; "number" ]
+      ~token_modifiers:[ "definition" ]
+      ()
+  in
+  test
+    ~capabilities
+    ~src:"let f () = 0\n"
+    (fun params -> SemanticTokensFull params)
+    (fun { initializeResult; resp } ->
+       let legend = semantic_tokens_legend initializeResult in
+       Printf.printf "modifiers: %s\n" (String.concat ~sep:", " legend.tokenModifiers);
+       (match resp with
+        | None -> print_endline "empty response"
+        | Some { SemanticTokens.data; _ } ->
+          Printf.printf "first token modifiers: %d\n" data.(4));
+       Fiber.return ());
+  [%expect
+    {|
+    modifiers: declaration, definition, readonly, static, deprecated, abstract, async, modification, documentation, defaultLibrary
+    first token modifiers: 2
+    |}]
+;;
+
 let%expect_test "semantic tokens use UTF-16 positions" =
   let src = "let café = 1\n" in
   test
