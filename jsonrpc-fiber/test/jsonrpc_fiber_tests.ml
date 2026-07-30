@@ -216,7 +216,7 @@ let%expect_test "cleanup precedes explicit output close" =
     <opaque> |}]
 ;;
 
-let%expect_test "stopped sessions drain notifications but send requests" =
+let%expect_test "stopped sessions drain notifications and reject requests" =
   let channel = lifecycle_channel () in
   let session = Lifecycle_jrpc.create ~name:"test" channel () in
   let classify = function
@@ -266,11 +266,11 @@ let%expect_test "stopped sessions drain notifications but send requests" =
     notification batch: accepted
     request: error
     cancellable request: error
-    transport attempts: 4
+    transport attempts: 2
     <opaque> |}]
 ;;
 
-let%expect_test "a request batch rejected while draining is consumed" =
+let%expect_test "a request batch rejected while draining is not consumed" =
   let stopped_channel = lifecycle_channel () in
   let stopped = Lifecycle_jrpc.create ~name:"stopped" stopped_channel () in
   let retry_channel = lifecycle_channel () in
@@ -321,10 +321,10 @@ let%expect_test "a request batch rejected while draining is consumed" =
   [%expect
     {|
     stopped submit: error
-    stopped transport attempts: 1
+    stopped transport attempts: 0
     retry submit: accepted
     retry wire packets:
-    [ [] ]
+    [ [ { "id": 1, "method": "batched", "jsonrpc": "2.0" } ] ]
     <opaque> |}]
 ;;
 

@@ -65,17 +65,23 @@ module Make (Chan : sig
     val close : t -> [ `Read | `Write ] -> unit Fiber.t
   end) =
 struct
+  type phase =
+    | Created
+    | Running
+    | Draining
+    | Closing
+    | Closed
+
   type 'state t =
     { chan : Chan.t
     ; on_request : ('state, Request.t) context -> (Reply.t * 'state) Fiber.t
     ; on_notification : ('state, Notification.t) context -> (Notify.t * 'state) Fiber.t
     ; pending : (Response.t, [ `Stopped | `Cancelled ]) result Fiber.Ivar.t Id.Table.t
     ; name : string
-    ; mutable running : bool
+    ; mutable phase : phase
     ; mutable tick : int
     ; mutable state : 'state
     ; mutable pending_requests_stopped : bool
-    ; mutable closing : bool
     ; close_result : (unit, Exn_with_backtrace.t list) result Fiber.Ivar.t
     }
 
@@ -150,11 +156,10 @@ struct
     ; on_notification
     ; pending
     ; name
-    ; running = false
+    ; phase = Created
     ; tick = 0
     ; state
     ; pending_requests_stopped = false
-    ; closing = false
     ; close_result = Fiber.Ivar.create ()
     }
   ;;
@@ -166,10 +171,31 @@ struct
     ()
   ;;
 
+  let begin_draining t =
+    match t.phase with
+    | Created | Running -> t.phase <- Draining
+    | Draining | Closing | Closed -> ()
+  ;;
+
+  let check_sending t =
+    match t.phase with
+    | Running | Draining -> ()
+    | Created | Closing | Closed -> Code_error.raise "jsonrpc must be running" []
+  ;;
+
+  let check_accepting_requests t =
+    match t.phase with
+    | Running -> ()
+    | Draining -> Code_error.raise "jsonrpc is not accepting requests" []
+    | Created | Closing | Closed -> Code_error.raise "jsonrpc must be running" []
+  ;;
+
   let stop t =
-    Fiber.fork_and_join_unit
-      (fun () -> Chan.close t.chan `Read)
-      (fun () -> stop_pending_requests t)
+    Fiber.of_thunk (fun () ->
+      begin_draining t;
+      Fiber.fork_and_join_unit
+        (fun () -> Chan.close t.chan `Read)
+        (fun () -> stop_pending_requests t))
   ;;
 
   let await_close t =
@@ -181,24 +207,24 @@ struct
 
   let close t =
     Fiber.of_thunk (fun () ->
-      if t.closing
-      then await_close t
-      else (
-        t.closing <- true;
-        let* () =
-          let* result =
-            Fiber.collect_errors (fun () ->
-              Fiber.fork_and_join_unit
-                (fun () -> stop t)
-                (fun () -> Chan.close t.chan `Write))
-          in
-          Fiber.Ivar.fill t.close_result result
+      match t.phase with
+      | Closing | Closed -> await_close t
+      | Created | Running | Draining ->
+        t.phase <- Closing;
+        let* result =
+          Fiber.collect_errors (fun () ->
+            Fiber.fork_and_join_unit
+              (fun () -> stop t)
+              (fun () -> Chan.close t.chan `Write))
         in
-        await_close t))
+        t.phase <- Closed;
+        let* () = Fiber.Ivar.fill t.close_result result in
+        await_close t)
   ;;
 
   let run_until_stopped t =
     let send_response resp =
+      check_sending t;
       log t (fun () ->
         Log.msg "sending response" [ "response", Response.yojson_of_t resp ]);
       Chan.send t.chan [ Response resp ]
@@ -293,11 +319,16 @@ struct
         loop ()
     in
     Fiber.of_thunk (fun () ->
-      t.running <- true;
+      (match t.phase with
+       | Created -> t.phase <- Running
+       | Draining -> ()
+       | Running | Closing | Closed ->
+         Code_error.raise "jsonrpc session cannot be started" []);
       let* () =
         Fiber.fork_and_join_unit
           (fun () ->
              let* () = loop () in
+             begin_draining t;
              Fiber.Pool.stop later)
           (fun () -> Fiber.Pool.run later)
       in
@@ -306,13 +337,9 @@ struct
 
   let run t = Fiber.finalize (fun () -> run_until_stopped t) ~finally:(fun () -> close t)
 
-  let check_running t =
-    if (not t.running) || t.closing then Code_error.raise "jsonrpc must be running" []
-  ;;
-
   let notification t (n : Notification.t) =
     Fiber.of_thunk (fun () ->
-      check_running t;
+      check_sending t;
       Chan.send t.chan [ Notification n ])
   ;;
 
@@ -356,7 +383,7 @@ struct
 
   let request t (req : Request.t) =
     Fiber.of_thunk (fun () ->
-      check_running t;
+      check_accepting_requests t;
       let ivar = Fiber.Ivar.create () in
       Fiber.finalize
         (fun () ->
@@ -388,7 +415,7 @@ struct
     in
     let resp =
       Fiber.of_thunk (fun () ->
-        check_running t;
+        check_accepting_requests t;
         let* cancelled = Fiber.Ivar.peek ivar in
         match cancelled with
         | Some (Error `Cancelled) -> Fiber.return `Cancelled
@@ -422,7 +449,12 @@ struct
 
   let submit (t : _ t) (batch : Batch.t) =
     Fiber.of_thunk (fun () ->
-      check_running t;
+      let has_requests =
+        List.exists !batch ~f:(function
+          | `Request _ -> true
+          | `Notification _ -> false)
+      in
+      if has_requests then check_accepting_requests t else check_sending t;
       let pending = !batch in
       batch := [];
       let pending, ivars =
