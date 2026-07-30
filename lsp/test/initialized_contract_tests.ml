@@ -3,7 +3,7 @@ open Lsp
 let print_json json = Yojson.Safe.pretty_to_string json |> Stdlib.print_endline
 
 let%expect_test "initialized notification params" =
-  let encoded = Client_notification.to_jsonrpc Client_notification.Initialized in
+  let encoded = Client_notification.to_jsonrpc (Client_notification.Initialized []) in
   (match encoded.params with
    | None -> Stdlib.print_endline "encoded params: omitted"
    | Some params -> print_json (params :> Yojson.Safe.t));
@@ -18,8 +18,8 @@ let%expect_test "initialized notification params" =
   check "array params" (`List []);
   [%expect
     {|
-    encoded params: omitted
+    {}
     object params: accepted
-    array params: accepted
+    array params: rejected
     |}]
 ;;

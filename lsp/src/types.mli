@@ -4959,6 +4959,12 @@ module InitializeResult : sig
   include Json.Jsonable.S with type t := t
 end
 
+module InitializedParams : sig
+  type t = Json.Object.t
+
+  include Json.Jsonable.S with type t := t
+end
+
 module InitializedParams_ : sig
   type t =
     { capabilities : ClientCapabilities.t

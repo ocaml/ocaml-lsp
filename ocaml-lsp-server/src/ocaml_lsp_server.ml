@@ -845,7 +845,7 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
     in
     Dune.update_workspaces (State.dune state) (State.workspaces state);
     Fiber.return state
-  | Initialized ->
+  | Initialized _ ->
     let+ () =
       task_if_running state.detached ~f:(fun () ->
         register_dune_and_cram_text_document_sync server (State.client_capabilities state))

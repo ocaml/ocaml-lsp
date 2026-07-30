@@ -310,7 +310,7 @@ let%expect_test "Dune success refreshes load paths in every Merlin state" =
          ~workspaceFolders:(Some [ workspace ])
          ~trace:Messages
        @@ fun client ->
-       let* () = Client.notification client Initialized in
+       let* () = Client.notification client (Initialized []) in
        (* The blocked initial build makes Dune RPC connection deterministic. *)
        let* () = Signal.wait events.dune_connected in
        let* () = Signal.wait events.dune_connection_traced in

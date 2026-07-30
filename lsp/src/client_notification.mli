@@ -13,7 +13,7 @@ type t =
   | DidRenameFiles of RenameFilesParams.t
   | ChangeWorkspaceFolders of DidChangeWorkspaceFoldersParams.t
   | ChangeConfiguration of DidChangeConfigurationParams.t
-  | Initialized
+  | Initialized of InitializedParams.t
   | Exit
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
