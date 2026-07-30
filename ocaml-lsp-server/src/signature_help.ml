@@ -57,7 +57,17 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
             let function_position =
               Mpipeline.get_lexing_pos pipeline signature.function_position
             in
-            if pos.pos_cnum < function_position.pos_cnum then None else Some signature)
+            let has_unassigned_parameter =
+              List.exists signature.parameters ~f:(fun parameter ->
+                match parameter.argument with
+                | Omitted _ -> true
+                | Arg argument -> argument.exp_loc.loc_ghost)
+            in
+            if
+              pos.pos_cnum < function_position.pos_cnum
+              || (Option.is_none signature.active_param && not has_unassigned_parameter)
+            then None
+            else Some signature)
     in
     (match application_signature with
      | None ->
