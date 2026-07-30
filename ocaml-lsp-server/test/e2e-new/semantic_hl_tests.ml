@@ -461,7 +461,7 @@ let test_semantic_tokens_full src =
   test ~src (fun p -> SemanticTokensFull p) print_resp
 ;;
 
-let%expect_test "typed value binding produces a negative semantic-token delta" =
+let%expect_test "typed value binding produces ordered semantic tokens" =
   test
     ~src:"let a:b=0"
     (fun params -> SemanticTokensFull params)
@@ -471,7 +471,7 @@ let%expect_test "typed value binding produces a negative semantic-token delta" =
         | Some { SemanticTokens.data; _ } ->
           semantic_token_data_json data |> Test.print_result);
        Fiber.return ());
-  [%expect {| [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 0, -2, 1, 1, 0 ] |}]
+  [%expect {| [ 0, 4, 1, 8, 0, 0, 2, 1, 1, 0, 0, 2, 1, 19, 0 ] |}]
 ;;
 
 let%expect_test "tokens are single-line and non-overlapping when required" =
@@ -1311,32 +1311,32 @@ end
       |};
   [%expect
     {|
-    let <function|definition-0>f</0> ~<variable|-1>labeled</1> ?(optional = <number|-2>1</2>) unlabeled ~renamed:local (left, right) =
-      labeled + optional + unlabeled + local + left + right
+    let <function|definition-0>f</0> ~<variable|-1>labeled</1> ?(<variable|-2>optional</2> = <number|-3>1</3>) <variable|-4>unlabeled</4> ~renamed:<variable|-5>local</5> (<variable|-6>left</6>, <variable|-7>right</7>) =
+      <variable|-8>labeled</8> <operator|-9>+</9> <variable|-10>optional</10> <operator|-11>+</11> <variable|-12>unlabeled</12> <operator|-13>+</13> <variable|-14>local</14> <operator|-15>+</15> <variable|-16>left</16> <operator|-17>+</17> <variable|-18>right</18>
 
-    let g = function
-      | Some value -> value
-      | None -> 0
+    let <function|definition-19>g</19> = function
+      | <enumMember|-20>Some</20> <variable|-21>value</21> -> <variable|-22>value</22>
+      | <enumMember|-23>None</23> -> <number|-24>0</24>
 
-    let h (type item) (value : item) = value
+    let <function|definition-25>h</25> (type item) (<variable|-26>value</26> : <type|-27>item</27>) = <variable|-28>value</28>
 
-    let apply continuation value = continuation value
+    let <function|definition-29>apply</29> <variable|-30>continuation</30> <variable|-31>value</31> = <function|-32>continuation</32> <variable|-33>value</33>
 
-    let capture parameter =
-      let nested () = parameter in
-      nested ()
+    let <function|definition-34>capture</34> <variable|-35>parameter</35> =
+      let <function|definition-36>nested</36> () = <variable|-37>parameter</37> in
+      <function|-38>nested</38> ()
 
-    let shadow parameter =
-      let before = parameter in
-      let parameter = 0 in
-      before + parameter
+    let <function|definition-39>shadow</39> <variable|-40>parameter</40> =
+      let <variable|-41>before</41> = <variable|-42>parameter</42> in
+      let <variable|-43>parameter</43> = <number|-44>0</44> in
+      <variable|-45>before</45> <operator|-46>+</46> <variable|-47>parameter</47>
 
-    let alias ((left, right) as pair) = left, right, pair
+    let <function|definition-48>alias</48> ((<variable|-49>left</49>, <variable|-50>right</50>) as <variable|-51>pair</51>) = <variable|-52>left</52>, <variable|-53>right</53>, <variable|-54>pair</54>
 
-    let constrained parameter : int = parameter
+    let <function|definition-55>constrained</55> <variable|-56>parameter</56> : <type|-57>int</57> = <variable|-58>parameter</58>
 
-    module type S = sig
-      val f : labeled:int -> ?optional:string -> float -> unit
+    module type <interface|-59>S</59> = sig
+      val <function|definition-60>f</60> : labeled:<type|-61>int</61> -> ?optional:<type|-62>string</62> -> <type|-63>float</63> -> <type|-64>unit</64>
     end
     |}]
 ;;
