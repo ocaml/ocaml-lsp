@@ -1165,9 +1165,8 @@ let%expect_test "cancelled request IDs stay reserved for late responses" =
     {|
     wire request: cancelled
     cancelled request outcome: cancelled
-    wire request: replacement
     wire response: late response for cancelled request
-    replacement outcome: late response for cancelled request
+    replacement outcome: duplicate ID retained
     <opaque> |}]
 ;;
 
@@ -1215,7 +1214,7 @@ let%expect_test "cancelled request IDs remain registered" =
   [%expect
     {|
     first: cancelled
-    second: cancelled
+    second: duplicate ID retained
     <opaque> |}]
 ;;
 
