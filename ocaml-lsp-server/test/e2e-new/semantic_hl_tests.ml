@@ -1436,6 +1436,40 @@ type builtin_after_error = string
     |}]
 ;;
 
+let%expect_test "semantic tokens for GADTs, objects, fields, and functors" =
+  test_semantic_tokens_full
+    {ocaml|type 'a cell = { mutable field : 'a }
+type packed = Pack : 'a * ('a -> string) -> packed
+class virtual base = object (self)
+  method virtual value : int
+  method get = self#value
+end
+class child = object
+  inherit base
+  method value = 1
+end
+let update cell = cell.field <- cell.field
+let use_object object_ = object_#get; new child
+module type S = functor (M : sig type t end) -> sig type u = M.t end
+|ocaml};
+  [%expect
+    {|
+    type <typeParameter|-0>'a</0> <struct|definition-1>cell</1> = { mutable <property|-2>field</2> : <typeParameter|-3>'a</3> }
+    type <enum|definition-4>packed</4> = <enumMember|definition-5>Pack</5> : <typeParameter|-6>'a</6> * (<typeParameter|-7>'a</7> -> <type|-8>string</8>) -> <type|-9>packed</9>
+    class virtual base = object (<variable|-10>self</10>)
+      method virtual value : <type|-11>int</11>
+      method get = <variable|-12>self</12>#<method|-13>value</13>
+    end
+    class child = object
+      inherit base
+      method value = <number|-14>1</14>
+    end
+    let <function|definition-15>update</15> <variable|-16>cell</16> = <variable|-17>cell</17>.<variable|-18>field</18> <- <variable|-19>cell</19>.<property|-20>field</20>
+    let <function|definition-21>use_object</21> <variable|-22>object_</22> = <variable|-23>object_</23>#<method|-24>get</24>; new <class|-25>child</25>
+    module type <interface|-26>S</26> = functor (<namespace|-27>M</27> : sig type <type|definition-28>t</28> end) -> sig type <type|definition-29>u</29> = <namespace|-30>M</30>.<type|-31>t</31> end
+    |}]
+;;
+
 let%expect_test "comment in unit" =
   test_semantic_tokens_full
   @@ String.strip
