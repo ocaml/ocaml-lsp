@@ -216,7 +216,7 @@ let f = function
               {
                 "newText": "",
                 "range": {
-                  "end": { "character": 14, "line": 3 },
+                  "end": { "character": 12, "line": 3 },
                   "start": { "character": 1, "line": 3 }
                 }
               }
@@ -269,8 +269,8 @@ let café = let rec $f$ = 0 in f
               {
                 "newText": "",
                 "range": {
-                  "end": { "character": 19, "line": 1 },
-                  "start": { "character": 16, "line": 1 }
+                  "end": { "character": 18, "line": 1 },
+                  "start": { "character": 15, "line": 1 }
                 }
               }
             ],

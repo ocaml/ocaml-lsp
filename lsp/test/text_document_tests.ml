@@ -333,6 +333,30 @@ let%expect_test "substring uses the document's position encoding" =
     |}]
 ;;
 
+let%expect_test "range_of_utf8_offsets rejects invalid offsets" =
+  let doc = make_document ~position_encoding:`UTF16 (Uri.of_path "foo.ml") ~text:"a😀b" in
+  let print_exception f =
+    match f () with
+    | exception exn -> Printexc.to_string exn |> print_endline
+    | _ -> print_endline "<no exception>"
+  in
+  print_exception (fun () ->
+    Text_document.range_of_utf8_offsets doc ~start_offset:(-1) ~end_offset:0);
+  print_exception (fun () ->
+    Text_document.range_of_utf8_offsets doc ~start_offset:0 ~end_offset:7);
+  print_exception (fun () ->
+    Text_document.range_of_utf8_offsets doc ~start_offset:5 ~end_offset:1);
+  print_exception (fun () ->
+    Text_document.range_of_utf8_offsets doc ~start_offset:1 ~end_offset:2);
+  [%expect
+    {|
+    Invalid_argument("Text_document.range_of_utf8_offsets: offset out of bounds")
+    Invalid_argument("Text_document.range_of_utf8_offsets: offset out of bounds")
+    Invalid_argument("Text_document.range_of_utf8_offsets: start follows end")
+    Invalid_argument("Text_document.range_of_utf8_offsets: offset is not a UTF-8 boundary")
+    |}]
+;;
+
 let%expect_test "replace second line first line is \\n" =
   let range = tuple_range (1, 2) (1, 2) in
   let doc = make_document (Uri.of_path "foo.ml") ~text:"\nfoo\nbar\nbaz\n" in

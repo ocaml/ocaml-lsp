@@ -144,6 +144,43 @@ let absolute_range t (range : Range.t) =
   start, stop
 ;;
 
+let position_of_utf8_offset t target =
+  let text = text t in
+  if target < 0 || target > String.length text
+  then invalid_arg "Text_document.range_of_utf8_offsets: offset out of bounds";
+  let rec loop offset line character =
+    if offset = target
+    then Position.create ~line ~character
+    else (
+      let decoded = String.get_utf_8_uchar text offset in
+      if not (Uchar.utf_decode_is_valid decoded)
+      then raise (Invalid_utf (Malformed (String.make 1 (String.get text offset))));
+      let uchar = Uchar.utf_decode_uchar decoded in
+      let byte_length = Uchar.utf_decode_length decoded in
+      if offset + byte_length > target
+      then
+        invalid_arg "Text_document.range_of_utf8_offsets: offset is not a UTF-8 boundary";
+      if Uchar.equal uchar (Uchar.of_char '\n')
+      then loop (offset + byte_length) (line + 1) 0
+      else (
+        let width =
+          match t.position_encoding with
+          | `UTF8 -> byte_length
+          | `UTF16 -> Uchar.utf_16_byte_length uchar / 2
+        in
+        loop (offset + byte_length) line (character + width)))
+  in
+  loop 0 0 0
+;;
+
+let range_of_utf8_offsets t ~start_offset ~end_offset =
+  if start_offset > end_offset
+  then invalid_arg "Text_document.range_of_utf8_offsets: start follows end";
+  let start = position_of_utf8_offset t start_offset in
+  let end_ = position_of_utf8_offset t end_offset in
+  Range.create ~start ~end_
+;;
+
 let substring t range =
   let start, end_ = absolute_range t range in
   let text = text t in

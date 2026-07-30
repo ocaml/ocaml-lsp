@@ -258,27 +258,20 @@ let rec_regex =
     (Re.seq [ Re.bos; Re.rep Re.any; Re.group (Re.str "rec"); Re.rep Re.space; Re.stop ])
 ;;
 
-let find_preceding doc pos regex =
+let find_preceding text_document ~end_offset regex =
   let open Option.O in
-  let src = Document.source doc in
-  let (`Offset end_) = Msource.get_offset src @@ Position.logical pos in
-  let* groups = Re.exec_opt ~len:end_ regex (Msource.text src) in
-  let match_start, match_end = Re.Group.offset groups 1 in
-  let filename = Uri.to_path (Document.uri doc) in
-  let* start =
-    Msource.get_lexing_pos ~filename src (`Offset match_start)
-    |> Position.of_lexical_position
-  in
-  let+ end_ =
-    Msource.get_lexing_pos ~filename src (`Offset match_end)
-    |> Position.of_lexical_position
-  in
-  Range.create ~start ~end_
+  let+ groups = Re.exec_opt ~len:end_offset regex (Text_document.text text_document) in
+  Re.Group.offset groups 1
 ;;
 
 let action_remove_rec doc (d : Diagnostic.t) =
+  let text_document = Document.text_document doc in
   let open Option.O in
-  let+ rec_range = find_preceding doc d.range.start rec_regex in
+  let end_offset = Text_document.absolute_position text_document d.range.start in
+  let+ start_offset, end_offset = find_preceding text_document ~end_offset rec_regex in
+  let rec_range =
+    Text_document.range_of_utf8_offsets text_document ~start_offset ~end_offset
+  in
   code_action_remove_range ~title:"Remove unused rec" doc d rec_range
 ;;
 
@@ -301,14 +294,17 @@ let action_remove_case pipeline doc (d : Diagnostic.t) =
       | _ -> None)
   in
   let* case_start, case_end = case_range in
-  let* start = Position.of_lexical_position case_start in
-  let* end_ = Position.of_lexical_position case_end in
-  let+ preceding_bar = find_preceding doc start bar_regex in
-  let edit =
-    Text_document.workspace_edit
-      (Document.text_document doc)
-      [ { range = Range.create ~start:preceding_bar.start ~end_; newText = "" } ]
+  let text_document = Document.text_document doc in
+  let+ start_offset, _ =
+    find_preceding text_document ~end_offset:case_start.pos_cnum bar_regex
   in
+  let range =
+    Text_document.range_of_utf8_offsets
+      text_document
+      ~start_offset
+      ~end_offset:case_end.pos_cnum
+  in
+  let edit = Text_document.workspace_edit text_document [ { range; newText = "" } ] in
   CodeAction.create
     ~diagnostics:[ d ]
     ~title:"Remove unused case"
