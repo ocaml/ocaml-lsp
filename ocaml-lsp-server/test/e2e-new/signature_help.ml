@@ -68,6 +68,24 @@ let test source position =
     Fiber.return ())
 ;;
 
+let%expect_test "signature help inside a comment after Unicode" =
+  let source = "let add a b = a + b\nlet _ = \"😀😀\"; add 1 (* x *)" in
+  test source (Position.create ~line:1 ~character:24);
+  [%expect
+    {|
+    {
+      "activeParameter": 0,
+      "activeSignature": 0,
+      "signatures": [
+        {
+          "label": "add : int -> int -> int",
+          "parameters": [ { "label": [ 6, 9 ] }, { "label": [ 13, 16 ] } ]
+        }
+      ]
+    }
+    |}]
+;;
+
 let%expect_test "can provide signature help after a function-type value" =
   let source =
     {ocaml|let map = ListLabels.map
