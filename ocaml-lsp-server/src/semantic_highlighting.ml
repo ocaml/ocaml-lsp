@@ -306,8 +306,14 @@ end = struct
   let yojson_of_t t = Json.Conv.yojson_of_list yojson_of_token (List.rev t.tokens)
 
   let encode (t : t) (config : config) : int array =
+    (* The parsetree traversal does not always visit nodes in source order. This
+       encoder works backwards, so put the latest token first. *)
+    let tokens =
+      List.sort t.tokens ~compare:(fun left right ->
+        Lsp.Position.compare right.start left.start)
+    in
     let supported_token_count =
-      List.fold_left t.tokens ~init:0 ~f:(fun count token ->
+      List.fold_left tokens ~init:0 ~f:(fun count token ->
         match token_type_index config token.token_type with
         | None -> count
         | Some _ -> count + 1)
@@ -352,7 +358,7 @@ end = struct
          | None -> encode_first_supported rest
          | Some token_type -> encode_tokens supported_token_count token token_type rest)
     in
-    encode_first_supported t.tokens;
+    encode_first_supported tokens;
     data
   ;;
 end

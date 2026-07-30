@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Emit semantic tokens in source order so their relative positions remain valid.
+  (#1992, @rgrinberg)
 - Stop stale signature help at expression boundaries. (#1987, fixes #1162,
   @rgrinberg)
 - Suppress signature help for completed applications. (#1982, #1162, @rgrinberg)
