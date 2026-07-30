@@ -51,6 +51,7 @@
 - Use constructor completion kinds when clients do not support enum members. (#1887, @rgrinberg)
 - Use completion deprecation tags when supported by the client. (#1903, @rgrinberg)
 - Keep completion sort keys lexically ordered beyond 9,999 items. (#1883, @rgrinberg)
+- Replace incorrect identifier suffixes when applying completions. (#1964, fixes #838, @rgrinberg)
 - Give synthetic completion items stable ordering metadata. (#1882, @rgrinberg)
 - Correct code-action ranges after multiline text insertions. (#1748, @rgrinberg)
 - Allow clients to add their first workspace folder dynamically. (#1747, @rgrinberg)

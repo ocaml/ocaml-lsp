@@ -175,7 +175,7 @@ let%expect_test "can start completion at arbitrary position" =
         "textEdit": {
           "newText": "String",
           "range": {
-            "end": { "character": 6, "line": 0 },
+            "end": { "character": 12, "line": 0 },
             "start": { "character": 0, "line": 0 }
           }
         }
@@ -188,7 +188,7 @@ let%expect_test "can start completion at arbitrary position" =
         "textEdit": {
           "newText": "StringLabels",
           "range": {
-            "end": { "character": 6, "line": 0 },
+            "end": { "character": 12, "line": 0 },
             "start": { "character": 0, "line": 0 }
           }
         }
@@ -210,7 +210,7 @@ let%expect_test "can start completion at arbitrary position 2" =
       "textEdit": {
         "newText": "StringLabels",
         "range": {
-          "end": { "character": 7, "line": 0 },
+          "end": { "character": 12, "line": 0 },
           "start": { "character": 0, "line": 0 }
         }
       }
@@ -238,7 +238,7 @@ let _ = String.is_prword|ocaml}
       "textEdit": {
         "newText": "is_prefix",
         "range": {
-          "end": { "character": 20, "line": 1 },
+          "end": { "character": 24, "line": 1 },
           "start": { "character": 15, "line": 1 }
         }
       }

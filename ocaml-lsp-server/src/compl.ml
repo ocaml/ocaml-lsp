@@ -164,10 +164,17 @@ module Complete_by_prefix = struct
         (completion : Query_protocol.completions)
     =
     let range =
+      let source = Document.Merlin.source doc in
       let logical_pos = Position.logical pos in
-      range_prefix
-        pos
-        (prefix_of_position ~short_path:true (Document.Merlin.source doc) logical_pos)
+      let range =
+        range_prefix pos (prefix_of_position ~short_path:true source logical_pos)
+      in
+      let suffix =
+        let text_document = Document.Merlin.to_doc doc |> Document.text_document in
+        let offset = Text_document.absolute_position text_document pos in
+        suffix_of_position source (`Offset offset)
+      in
+      { range with end_ = { pos with character = pos.character + String.length suffix } }
     in
     let completion_entries =
       match completion.context with
