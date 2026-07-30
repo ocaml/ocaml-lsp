@@ -69,7 +69,6 @@ struct
     | Created
     | Running
     | Draining
-    | Closing
     | Closed
 
   type 'state t =
@@ -174,20 +173,20 @@ struct
   let begin_draining t =
     match t.phase with
     | Created | Running -> t.phase <- Draining
-    | Draining | Closing | Closed -> ()
+    | Draining | Closed -> ()
   ;;
 
   let check_sending t =
     match t.phase with
     | Running | Draining -> ()
-    | Created | Closing | Closed -> Code_error.raise "jsonrpc must be running" []
+    | Created | Closed -> Code_error.raise "jsonrpc must be running" []
   ;;
 
   let check_accepting_requests t =
     match t.phase with
     | Running -> ()
     | Draining -> Code_error.raise "jsonrpc is not accepting requests" []
-    | Created | Closing | Closed -> Code_error.raise "jsonrpc must be running" []
+    | Created | Closed -> Code_error.raise "jsonrpc must be running" []
   ;;
 
   let stop t =
@@ -208,16 +207,15 @@ struct
   let close t =
     Fiber.of_thunk (fun () ->
       match t.phase with
-      | Closing | Closed -> await_close t
+      | Closed -> await_close t
       | Created | Running | Draining ->
-        t.phase <- Closing;
+        t.phase <- Closed;
         let* result =
           Fiber.collect_errors (fun () ->
             Fiber.fork_and_join_unit
               (fun () -> stop t)
               (fun () -> Chan.close t.chan `Write))
         in
-        t.phase <- Closed;
         let* () = Fiber.Ivar.fill t.close_result result in
         await_close t)
   ;;
@@ -322,8 +320,7 @@ struct
       (match t.phase with
        | Created -> t.phase <- Running
        | Draining -> ()
-       | Running | Closing | Closed ->
-         Code_error.raise "jsonrpc session cannot be started" []);
+       | Running | Closed -> Code_error.raise "jsonrpc session cannot be started" []);
       let* () =
         Fiber.fork_and_join_unit
           (fun () ->
