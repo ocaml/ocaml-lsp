@@ -356,7 +356,7 @@ let%expect_test "remote request cancellation returns Cancelled" =
     [TEST] finished |}]
 ;;
 
-let%expect_test "duplicate incoming request IDs are both handled" =
+let%expect_test "duplicate incoming request IDs are rejected" =
   let run () =
     let request_started = Fiber.Ivar.create () in
     let release_requests = Fiber.Ivar.create () in
@@ -432,15 +432,17 @@ let%expect_test "duplicate incoming request IDs are both handled" =
       let* () = send_request request in
       let* () = Fiber.Ivar.read request_started in
       let* () = send_request request in
+      let* duplicate = receive_response () in
       let* () = Fiber.Ivar.fill release_requests () in
-      let* first = receive_response () in
-      let* second = receive_response () in
+      let* original = receive_response () in
       let classify (response : Jsonrpc.Response.t) =
         match response.result with
         | Ok _ -> "ok"
         | Error error -> Jsonrpc.Response.Error.Code.to_string error.code
       in
-      let responses = List.sort String.compare [ classify first; classify second ] in
+      let responses =
+        List.sort String.compare [ classify duplicate; classify original ]
+      in
       Printf.printf "responses: %s\n" (String.concat ", " responses);
       let exit = Jsonrpc.Notification.create ~method_:"exit" () in
       Fiber_io.send client_io [ Jsonrpc.Packet.Notification exit ]
@@ -448,7 +450,7 @@ let%expect_test "duplicate incoming request IDs are both handled" =
     Fiber.all_concurrently_unit [ Server.start server; exchange () ]
   in
   Lev_fiber.run run |> Lev_fiber.Error.ok_exn;
-  [%expect {| responses: ok, ok |}]
+  [%expect {| responses: InvalidRequest, ok |}]
 ;;
 
 let%expect_test "concurrent lazy fibers share the computation" =
