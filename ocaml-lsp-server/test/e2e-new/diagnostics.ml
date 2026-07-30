@@ -5,7 +5,7 @@ let print_diagnostics params =
   PublishDiagnosticsParams.yojson_of_t params |> Test.print_result
 ;;
 
-let test source =
+let test ?(print = print_diagnostics) source =
   let diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
@@ -32,8 +32,38 @@ let test source =
         (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
     in
     let* params = Fiber.Ivar.read diagnostics in
-    print_diagnostics params;
+    print params;
     Test.shutdown_client client)
+;;
+
+let print_diagnostic expected_message params =
+  match
+    List.find params.PublishDiagnosticsParams.diagnostics ~f:(fun diagnostic ->
+      let message =
+        match diagnostic.Diagnostic.message with
+        | `String message -> message
+        | `MarkupContent { value; _ } -> value
+      in
+      String.equal message expected_message)
+  with
+  | None -> print_endline "diagnostic not found"
+  | Some diagnostic -> Diagnostic.yojson_of_t diagnostic |> Test.print_result
+;;
+
+let%expect_test "recovery diagnostic ends past EOF" =
+  test ~print:(print_diagnostic "Uninterpreted extension ''.") "(let";
+  [%expect
+    {|
+    {
+      "message": "Uninterpreted extension ''.",
+      "range": {
+        "end": { "character": 0, "line": 1 },
+        "start": { "character": 0, "line": 0 }
+      },
+      "severity": 1,
+      "source": "ocamllsp"
+    }
+    |}]
 ;;
 
 let%expect_test "has related diagnostics" =
