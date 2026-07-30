@@ -7,7 +7,7 @@ module Private = struct
   let win32 = ref Sys.win32
 end
 
-type t = Uri_lexer.t =
+type parsed = Uri_lexer.t =
   { scheme : string
   ; authority : string
   ; path : string
@@ -15,8 +15,13 @@ type t = Uri_lexer.t =
   ; fragment : string option
   }
 
-let query t = t.query
-let fragment t = t.fragment
+type t =
+  { parsed : parsed
+  ; original : string
+  }
+
+let query t = t.parsed.query
+let fragment t = t.parsed.fragment
 
 let backslash_to_slash =
   String.map ~f:(function
@@ -35,12 +40,7 @@ let is_drive_letter = function
   | _ -> false
 ;;
 
-let of_path path =
-  let path = if !Private.win32 then backslash_to_slash path else path in
-  Uri_lexer.of_path path
-;;
-
-let to_path { path; authority; scheme; _ } =
+let to_path { parsed = { path; authority; scheme; _ }; _ } =
   let len = String.length path in
   let path =
     if len = 0
@@ -55,8 +55,6 @@ let to_path { path; authority; scheme; _ } =
   in
   if !Private.win32 then slash_to_backslash path else path
 ;;
-
-let of_string = Uri_lexer.of_string
 
 let safe_chars =
   let a = Array.make 256 false in
@@ -92,7 +90,7 @@ let encode ?(allow_slash = false) s =
   Buffer.contents buf
 ;;
 
-let to_string { scheme; authority; path; query; fragment } =
+let canonical_string { scheme; authority; path; query; fragment } =
   let buff = Buffer.create 64 in
   if not (String.is_empty scheme)
   then (
@@ -141,8 +139,17 @@ let to_string { scheme; authority; path; query; fragment } =
   Buffer.contents buff
 ;;
 
+let of_string original = { parsed = Uri_lexer.of_string original; original }
+
+let of_path path =
+  let path = if !Private.win32 then backslash_to_slash path else path in
+  let parsed = Uri_lexer.of_path path in
+  { parsed; original = canonical_string parsed }
+;;
+
+let to_string t = t.original
 let yojson_of_t t = `String (to_string t)
 let t_of_yojson json = Json.Conv.string_of_yojson json |> of_string
-let equal = ( = )
-let compare (x : t) (y : t) = Stdlib.compare x y
-let hash = Hashtbl.hash
+let equal x y = String.equal x.original y.original
+let compare x y = String.compare x.original y.original
+let hash t = Hashtbl.hash t.original
