@@ -50,14 +50,14 @@ let print_diagnostic expected_message params =
   | Some diagnostic -> Diagnostic.yojson_of_t diagnostic |> Test.print_result
 ;;
 
-let%expect_test "recovery diagnostic ends past EOF" =
+let%expect_test "recovery diagnostic is clamped to EOF" =
   test ~print:(print_diagnostic "Uninterpreted extension ''.") "(let";
   [%expect
     {|
     {
       "message": "Uninterpreted extension ''.",
       "range": {
-        "end": { "character": 0, "line": 1 },
+        "end": { "character": 4, "line": 0 },
         "start": { "character": 0, "line": 0 }
       },
       "severity": 1,
