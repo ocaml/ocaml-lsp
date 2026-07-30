@@ -48972,6 +48972,33 @@ module PrepareRenamePlaceholder = struct
   let create ~(placeholder : string) ~(range : Range.t) : t = { placeholder; range }
 end
 
+module PrepareRenameResult = struct
+  type t =
+    [ `Range of Range.t
+    | `PrepareRenamePlaceholder of PrepareRenamePlaceholder.t
+    | `PrepareRenameDefaultBehavior of PrepareRenameDefaultBehavior.t
+    ]
+
+  let t_of_yojson (json : Json.t) : t =
+    Json.Of.untagged_union
+      "t"
+      [ (fun json -> `Range (Range.t_of_yojson json))
+      ; (fun json ->
+          `PrepareRenamePlaceholder (PrepareRenamePlaceholder.t_of_yojson json))
+      ; (fun json ->
+          `PrepareRenameDefaultBehavior (PrepareRenameDefaultBehavior.t_of_yojson json))
+      ]
+      json
+  ;;
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | `Range s -> Range.yojson_of_t s
+    | `PrepareRenamePlaceholder s -> PrepareRenamePlaceholder.yojson_of_t s
+    | `PrepareRenameDefaultBehavior s -> PrepareRenameDefaultBehavior.yojson_of_t s
+  ;;
+end
+
 module PreviousResultId = struct
   type t =
     { uri : DocumentUri.t

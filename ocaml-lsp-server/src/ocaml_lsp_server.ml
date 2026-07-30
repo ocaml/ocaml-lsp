@@ -721,14 +721,19 @@ let on_request
      | _ -> now [])
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
-  | TextDocumentDeclaration { textDocument = { uri }; position } ->
+  | TextDocumentDeclaration { textDocument = { uri }; position; _ } ->
     later (fun state () -> Definition_query.run `Declaration state uri position) ()
   | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
     later (fun state () -> Definition_query.run `Definition state uri position) ()
   | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
     later (fun state () -> Definition_query.run `Type_definition state uri position) ()
   | TextDocumentCompletion params -> later (fun _ () -> Compl.complete state params) ()
-  | TextDocumentPrepareRename req -> later Rename.prepare req
+  | TextDocumentPrepareRename req ->
+    later
+      (fun state req ->
+         let+ result = Rename.prepare state req in
+         Option.map result ~f:(fun range -> `Range range))
+      req
   | TextDocumentRename req -> later Rename.rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
   | SignatureHelp req -> later Signature_help.run req

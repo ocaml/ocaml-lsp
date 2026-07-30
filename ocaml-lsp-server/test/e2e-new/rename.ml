@@ -22,7 +22,7 @@ let rename ?(newName = "new_num") client position =
 
 let print_prepare_rename = function
   | None -> print_endline "null"
-  | Some range -> Range.yojson_of_t range |> Test.print_result
+  | Some result -> PrepareRenameResult.yojson_of_t result |> Test.print_result
 ;;
 
 let print_workspace_edit edit = WorkspaceEdit.yojson_of_t edit |> Test.print_result
@@ -111,11 +111,13 @@ let b = (^*$) 1
     print_prepare_rename response;
     (match response with
      | None -> ()
-     | Some { Range.start; end_ } ->
+     | Some (`Range { Range.start; end_ }) ->
        let placeholder =
          String.sub source ~pos:start.character ~len:(end_.character - start.character)
        in
-       Printf.printf "placeholder: %s\n" placeholder);
+       Printf.printf "placeholder: %s\n" placeholder
+     | Some (`PrepareRenamePlaceholder _ | `PrepareRenameDefaultBehavior _) ->
+       assert false);
     let* response = rename ~newName:"^+$" client position in
     print_workspace_edit response;
     Fiber.return ());

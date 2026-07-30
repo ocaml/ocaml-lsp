@@ -7,7 +7,7 @@ type _ t =
   | Initialize : InitializeParams.t -> InitializeResult.t t
   | TextDocumentHover : HoverParams.t -> Hover.t option t
   | TextDocumentDefinition : DefinitionParams.t -> Locations.t option t
-  | TextDocumentDeclaration : TextDocumentPositionParams.t -> Locations.t option t
+  | TextDocumentDeclaration : DeclarationParams.t -> Locations.t option t
   | TextDocumentTypeDefinition : TypeDefinitionParams.t -> Locations.t option t
   | TextDocumentImplementation : ImplementationParams.t -> Locations.t option t
   | TextDocumentCompletion :
@@ -32,7 +32,7 @@ type _ t =
   | TextDocumentPrepareTypeHierarchy :
       TypeHierarchyPrepareParams.t
       -> TypeHierarchyItem.t list option t
-  | TextDocumentPrepareRename : PrepareRenameParams.t -> Range.t option t
+  | TextDocumentPrepareRename : PrepareRenameParams.t -> PrepareRenameResult.t option t
   | TextDocumentRangeFormatting :
       DocumentRangeFormattingParams.t
       -> TextEdit.t list option t
