@@ -27,7 +27,7 @@ let print_locations = function
       |> print_endline)
 ;;
 
-let%expect_test "returns location of a declaration" =
+let%expect_test "distinguishes a definition from a declaration" =
   let dir = setup_workspace () in
   let path = Filename.concat dir "main.ml" in
   let uri = DocumentUri.of_path path in
@@ -50,22 +50,34 @@ let%expect_test "returns location of a declaration" =
        (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
    in
    let textDocument = TextDocumentIdentifier.create ~uri in
-   let* response =
+   let position = Position.create ~line:0 ~character:13 in
+   let* definition =
      Client.request
        client
-       (TextDocumentDeclaration
-          (DeclarationParams.create
-             ~textDocument
-             ~position:(Position.create ~line:0 ~character:13)
-             ()))
+       (TextDocumentDefinition (DefinitionParams.create ~textDocument ~position ()))
    in
-   print_locations response;
+   print_endline "definition:";
+   print_locations definition;
+   let* declaration =
+     Client.request
+       client
+       (TextDocumentDeclaration (DeclarationParams.create ~textDocument ~position ()))
+   in
+   print_endline "declaration:";
+   print_locations declaration;
    let* () = Client.request client Shutdown in
    let* () = Fiber.Ivar.read diagnostics in
    Client.stop client);
   Unix.close stderr;
   [%expect
     {|
+    definition:
+    lib.ml
+    {
+      "end": { "character": 4, "line": 0 },
+      "start": { "character": 4, "line": 0 }
+    }
+    declaration:
     lib.mli
     {
       "end": { "character": 4, "line": 0 },
