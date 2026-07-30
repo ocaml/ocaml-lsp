@@ -73,6 +73,35 @@ let request_completions client position =
           ()))
 ;;
 
+let%expect_test "triggered completion inside a comment after Unicode" =
+  let source = "let _ = \"😀😀\"; List. (* x *)" in
+  let position = Position.create ~line:0 ~character:25 in
+  iter_completions
+    ~triggerCharacter:"."
+    ~triggerKind:CompletionTriggerKind.TriggerCharacter
+    ~source
+    ~position
+    (print_completion_response ~limit:1);
+  [%expect
+    {|
+    Completions:
+    {
+      "detail": "'a0 * 'a0 list -> 'a0 List.t",
+      "kind": 4,
+      "label": "(::)",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "(::)",
+        "range": {
+          "end": { "character": 26, "line": 0 },
+          "start": { "character": 25, "line": 0 }
+        }
+      }
+    }
+    .............
+    |}]
+;;
+
 let%expect_test "completion converts UTF-16 positions before querying Merlin" =
   let source = "let café = List.ma" in
   let position = Position.create ~line:0 ~character:18 in
