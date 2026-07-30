@@ -27,6 +27,17 @@ let print_prepare_rename = function
 
 let print_workspace_edit edit = WorkspaceEdit.yojson_of_t edit |> Test.print_result
 
+let rec censor_backtraces = function
+  | `Assoc fields ->
+    `Assoc
+      (List.map fields ~f:(fun (name, value) ->
+         if String.equal name "backtrace"
+         then name, `String "<censored>"
+         else name, censor_backtraces value))
+  | `List values -> `List (List.map values ~f:censor_backtraces)
+  | json -> json
+;;
+
 let run ?(documentChanges = false) source f =
   Helpers.test ~capabilities:(capabilities ~documentChanges) source f
 ;;
@@ -44,6 +55,34 @@ let%expect_test "can reject invalid rename request" =
     print_prepare_rename response;
     Fiber.return ());
   [%expect {| null |}]
+;;
+
+let%expect_test "prepare rename leaks a lexer error on an astral character" =
+  run "😀" (fun client ->
+    let* result =
+      Fiber.collect_errors (fun () ->
+        prepare_rename client (Position.create ~line:0 ~character:0))
+    in
+    match result with
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+      ->
+      Jsonrpc.Response.Error.yojson_of_t error |> censor_backtraces |> Test.print_result;
+      Fiber.return ()
+    | Error errors -> Fiber.reraise_all errors
+    | Ok response ->
+      print_prepare_rename response;
+      Fiber.return ());
+  [%expect
+    {|
+    {
+      "data": {
+        "exn": "Ocaml_preprocess.Lexer_raw.Error(_, _)",
+        "backtrace": "<censored>"
+      },
+      "code": -32603,
+      "message": "uncaught exception"
+    }
+    |}]
 ;;
 
 let%expect_test "allows valid rename request" =
