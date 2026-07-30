@@ -19,6 +19,7 @@
   merlin-lib.analysis
   merlin-lib.kernel
   merlin-lib.ocaml_parsing
+  merlin-lib.ocaml_preprocess
   merlin-lib.query_commands
   merlin-lib.query_protocol
   merlin-lib.ocaml_merlin_specific

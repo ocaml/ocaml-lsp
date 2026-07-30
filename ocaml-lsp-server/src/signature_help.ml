@@ -1,5 +1,7 @@
 open Import
+module Lexer_raw = Ocaml_preprocess.Lexer_raw
 module Misc_utils = Merlin_analysis.Misc_utils
+module Parser_raw = Ocaml_preprocess.Parser_raw
 module Type_utils = Merlin_analysis.Type_utils
 
 open struct
@@ -7,6 +9,40 @@ open struct
   module Predef = Predef
   module Btype = Btype
 end
+
+(* Merlin may retain the nearest application after parsing has moved on to
+   another expression. Lexing this slice avoids treating separators in comments
+   or strings as boundaries. *)
+let contains_application_boundary source ~from ~to_ =
+  let source_length = String.length source in
+  let from = max 0 (min from source_length) in
+  let lexbuf =
+    let source =
+      let to_ = max 0 (min to_ source_length) in
+      String.prefix source to_
+    in
+    Lexing.from_string source
+  in
+  let state = Lexer_raw.make (Lexer_raw.keywords []) in
+  let rec loop ~last_was_boundary = function
+    | Lexer_raw.Fail _ -> false
+    | Return Parser_raw.EOF -> last_was_boundary
+    | Refill k -> loop ~last_was_boundary (k ())
+    | Return token ->
+      let is_boundary =
+        match token with
+        | Parser_raw.ELSE | MINUSGREATER | SEMI | SEMISEMI -> true
+        | _ -> false
+      in
+      if is_boundary && Lexing.lexeme_start lexbuf >= from
+      then true
+      else
+        loop
+          ~last_was_boundary:is_boundary
+          (Lexer_raw.token_without_comments state lexbuf)
+  in
+  loop ~last_was_boundary:false (Lexer_raw.token_without_comments state lexbuf)
+;;
 
 let format_doc ~markdown ~doc =
   `MarkupContent
@@ -57,15 +93,28 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
             let function_position =
               Mpipeline.get_lexing_pos pipeline signature.function_position
             in
-            let has_unassigned_parameter =
-              List.exists signature.parameters ~f:(fun parameter ->
-                match parameter.argument with
-                | Omitted _ -> true
-                | Arg argument -> argument.exp_loc.loc_ghost)
+            let application_end, has_unassigned_parameter =
+              List.fold_left
+                signature.parameters
+                ~init:(function_position.pos_cnum, false)
+                ~f:(fun (application_end, has_unassigned_parameter) parameter ->
+                  match parameter.argument with
+                  | Omitted _ -> application_end, true
+                  | Arg argument ->
+                    ( max application_end argument.exp_loc.loc_end.pos_cnum
+                    , has_unassigned_parameter || argument.exp_loc.loc_ghost ))
             in
+            let source = Msource.text (Mpipeline.input_source pipeline) in
+            (* Error recovery can make Merlin select an application after the
+               cursor. A completed application can also remain selected after
+               inserting whitespace, despite having no parameter left to edit. *)
             if
               pos.pos_cnum < function_position.pos_cnum
               || (Option.is_none signature.active_param && not has_unassigned_parameter)
+              || contains_application_boundary
+                   source
+                   ~from:application_end
+                   ~to_:pos.pos_cnum
             then None
             else Some signature)
     in
