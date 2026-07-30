@@ -1,101 +1,32 @@
 {
 
-open Import
-
+(* Components retain their encoded spelling. In particular, None and Some ""
+   distinguish an absent delimiter from a present but empty component. *)
 type t =
-  { scheme : string
-  ; authority : string
+  { scheme : string option
+  ; authority : string option
   ; path : string
-  ; query: string option
-  ; fragment: string option
+  ; query : string option
+  ; fragment : string option
   }
-
-let int_of_hex_char c =
-  let c = int_of_char (Char.uppercase_ascii c) - 48 in
-  if c > 9 then
-    if c > 16 && c < 23 then Some (c - 7) else None
-  else if c >= 0 then
-    Some c
-  else
-    None
-
-(* https://github.com/mirage/ocaml-uri/blob/master/lib/uri.ml#L318 *)
-let decode b =
-  let len = String.length b in
-  let buf = Buffer.create len in
-  let rec scan start cur =
-    if cur >= len then
-      Buffer.add_substring buf b start (cur - start)
-    else if b.[cur] = '%' then (
-      Buffer.add_substring buf b start (cur - start);
-      let cur = cur + 1 in
-      if cur >= len then
-        Buffer.add_char buf '%'
-      else
-        match int_of_hex_char b.[cur] with
-        | None ->
-          Buffer.add_char buf '%';
-          scan cur cur
-        | Some highbits ->
-          let cur = cur + 1 in
-          if cur >= len then (
-            Buffer.add_char buf '%';
-            Buffer.add_char buf b.[cur - 1])
-          else
-            let start_at =
-              match int_of_hex_char b.[cur] with
-              | Some lowbits ->
-                Buffer.add_char buf (Char.chr ((highbits lsl 4) + lowbits));
-                cur + 1
-              | None ->
-                Buffer.add_char buf '%';
-                Buffer.add_char buf b.[cur - 1];
-                cur
-            in
-            scan start_at start_at)
-    else
-      scan start (cur + 1)
-  in
-  scan 0 0;
-  Buffer.contents buf
 }
 
 rule uri = parse
 ([^':' '/' '?' '#']+ as scheme ':') ?
 ("//" ([^ '/' '?' '#']* as authority)) ?
 ([^ '?' '#']* as path)
-('?' ([^ '#']* as raw_query)) ?
+('?' ([^ '#']* as query)) ?
 ('#' (_ * as fragment)) ?
-{
-  let scheme = scheme |> Option.value ~default:"file" in
-  let authority =
-    authority |> Option.map decode |> Option.value ~default:""
-  in
-  let path =
-    let path = path |> decode in
-    match scheme with
-    | "http" | "https" | "file" ->
-      String.add_prefix_if_not_exists path ~prefix:"/"
-    | _ -> path
-  in
-  let query = raw_query |> Option.map decode in
-  let fragment = fragment |> Option.map decode in
-  { scheme; authority; path; query; fragment }
-}
+{ { scheme; authority; path; query; fragment } }
 
-and path = parse
-| "" { { scheme = "file"; authority = ""; path = "/"; query = None; fragment = None } }
-| "//" ([^ '/']* as authority) (['/']_* as path) { { scheme = "file"; authority; path ; query = None ; fragment = None } }
-| "//" ([^ '/']* as authority) { { scheme = "file"; authority; path = "/" ; query = None ; fragment = None } }
-| ("/" _* as path) { { scheme = "file"; authority = ""; path ; query = None ; fragment = None } }
-| (_* as path) { { scheme = "file"; authority = ""; path = "/" ^ path ; query = None ; fragment = None } }
+(* Filesystem paths are not URI syntax. Split only a leading UNC authority;
+   all data, including percent signs and relative paths, is left untouched. *)
+and unc_path = parse
+| "//" ([^ '/']* as authority) ('/' _* as path) { authority, path }
+| "//" ([^ '/']* as authority) { authority, "" }
+| (_* as path) { "", path }
 
 {
-  let of_string s =
-    let lexbuf = Lexing.from_string s in
-    uri lexbuf
-
-  let of_path s =
-    let lexbuf = Lexing.from_string s in
-    path lexbuf
+  let of_string s = uri (Lexing.from_string s)
+  let split_unc_path s = unc_path (Lexing.from_string s)
 }

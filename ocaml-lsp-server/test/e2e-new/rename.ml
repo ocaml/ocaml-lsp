@@ -13,8 +13,8 @@ let prepare_rename client position =
     (TextDocumentPrepareRename (PrepareRenameParams.create ~textDocument ~position ()))
 ;;
 
-let rename ?(newName = "new_num") client position =
-  let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
+let rename ?(newName = "new_num") ?(uri = Helpers.uri) client position =
+  let textDocument = TextDocumentIdentifier.create ~uri in
   let+ result =
     Client.request
       client
@@ -426,6 +426,54 @@ let test_project_rename ~newName ~request_file files =
    let* () = Client.request client Shutdown in
    Client.stop client);
   Unix.close stderr
+;;
+
+let%expect_test "rename uses open buffers with differently escaped file URIs" =
+  let dir = Test.temp_dir "ocamllsp-uri-rename-" in
+  let path = Filename.concat dir "probe.ml" in
+  let uri = Uri.of_path path in
+  let wire_uri =
+    String.substr_replace_all
+      (Uri.to_string uri)
+      ~pattern:"/probe.ml"
+      ~with_:"/%70robe.ml"
+  in
+  let source = "let f ~value = value\n" in
+  List.iter [ false; true ] ~f:(fun saved ->
+    print_endline (if saved then "saved:" else "missing:");
+    (* Reading this stale disk version would incorrectly rename the argument's
+       public label, instead of only renaming the local variable. *)
+    if saved then Test.write_file path "let f _value = 0    \n";
+    Helpers.test
+      ~uri
+      ~wire_uri
+      ~capabilities:(capabilities ~documentChanges:true)
+      source
+      (fun client ->
+         let+ edit =
+           rename ~uri ~newName:"renamed" client (Position.create ~line:0 ~character:8)
+         in
+         match edit.documentChanges with
+         | Some [ `TextDocumentEdit { textDocument; edits } ] ->
+           Printf.printf
+             "version: %s\n"
+             (Option.value_map textDocument.version ~default:"null" ~f:Int.to_string);
+           let edits =
+             List.map edits ~f:(function
+               | `TextEdit edit -> edit
+               | `AnnotatedTextEdit _ | `SnippetTextEdit _ -> failwith "unexpected edit")
+           in
+           Test.apply_edits source edits |> print_string
+         | _ -> failwith "expected edits for one open document"));
+  [%expect
+    {|
+    missing:
+    version: 0
+    let f ~value:renamed = renamed
+    saved:
+    version: 0
+    let f ~value:renamed = renamed
+    |}]
 ;;
 
 let%expect_test "rename a symbol across open and closed files" =

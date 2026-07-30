@@ -317,6 +317,26 @@ let open_document ?(language_id = "ocaml") ~client ~uri ~source () =
     (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
 ;;
 
+(* Send URI text without letting the test client's URI constructor normalize it.
+   This exercises normalization at the server's JSON boundary. *)
+let open_document_raw ?(language_id = "ocaml") ~client ~uri ~source () =
+  let params =
+    `Assoc
+      [ ( "textDocument"
+        , `Assoc
+            [ "uri", `String uri
+            ; "languageId", `String language_id
+            ; "version", `Int 0
+            ; "text", `String source
+            ] )
+      ]
+  in
+  Client.notification
+    client
+    (UnknownNotification
+       (Jsonrpc.Notification.create ~params ~method_:"textDocument/didOpen" ()))
+;;
+
 let position_of_offset src target =
   assert (0 <= target && target <= String.length src);
   let rec loop offset line character =
