@@ -1,15 +1,13 @@
 open Import
 
 let position_in_comment ~position ~merlin =
-  let loc_contains_position (_, (loc : Loc.t)) =
-    let start = Position.of_lexical_position loc.loc_start in
-    let end_ = Position.of_lexical_position loc.loc_end in
-    match Option.both start end_ with
-    | Some (start, end_) ->
-      let range = Range.create ~start ~end_ in
-      Lsp.Range.contains_position range position ~inclusive_end:true
-    | None -> false
+  let position =
+    Document.Merlin.to_doc merlin
+    |> Document.text_document
+    |> fun document -> Text_document.absolute_position document position
   in
   Document.Merlin.with_pipeline_exn ~name:"get-comments" merlin (fun pipeline ->
-    Mpipeline.reader_comments pipeline |> List.exists ~f:loc_contains_position)
+    Mpipeline.reader_comments pipeline
+    |> List.exists ~f:(fun (_, (loc : Loc.t)) ->
+      loc.loc_start.pos_cnum <= position && position <= loc.loc_end.pos_cnum))
 ;;

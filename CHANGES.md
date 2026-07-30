@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Suppress triggered completion and signature help inside comments after Unicode.
+  (#1994, @rgrinberg)
 - Emit semantic tokens in source order so their relative positions remain valid.
   (#1992, @rgrinberg)
 - Stop stale signature help at expression boundaries. (#1987, fixes #1162,
