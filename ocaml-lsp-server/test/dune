@@ -2,6 +2,7 @@
  (modules
   ocaml_lsp_tests
   position_prefix_tests
+  progress_tests
   semantic_tokens_quickcheck_tests)
  (name ocaml_lsp_tests)
  (enabled_if
@@ -17,6 +18,9 @@
   ;; in dune-project
   base
   base_quickcheck
+  dune-rpc
+  fiber
+  lev_fiber
   ppx_expect.config
   ppx_expect.config_types
   ppx_inline_test.config
