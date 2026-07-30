@@ -419,6 +419,99 @@ let x : foo = 1
     |}]
 ;;
 
+let%expect_test "syntax-aware hover dispatch covers structured declarations" =
+  let source =
+    {ocaml|type record = { field : int }
+let read ({ field } as record) =
+  let variant = `Tag field in
+  let packed = (module List : module type of List) in
+  record.field + (match variant with `Tag n -> n)
+module M = struct let value = 1 end
+module type S = sig val item : int end
+class c = object method m = 1 end
+|ocaml}
+  in
+  let positions =
+    [ "record pattern", Position.create ~line:1 ~character:10
+    ; "variant", Position.create ~line:2 ~character:17
+    ; "packed module", Position.create ~line:3 ~character:16
+    ; "record field", Position.create ~line:4 ~character:9
+    ; "module name", Position.create ~line:5 ~character:7
+    ; "module type name", Position.create ~line:6 ~character:12
+    ; "class name", Position.create ~line:7 ~character:6
+    ; "method name", Position.create ~line:7 ~character:24
+    ]
+  in
+  let req client =
+    Fiber.sequential_iter positions ~f:(fun (label, position) ->
+      let+ hover = Hover_helpers.hover client position in
+      Printf.printf "%s:\n" label;
+      Hover_helpers.print_hover hover)
+  in
+  Helpers.test ~extra_env:[ "OCAMLLSP_HOVER_IS_EXTENDED=true" ] source req;
+  [%expect
+    {|
+    record pattern:
+    {
+      "contents": { "kind": "plaintext", "value": "record" },
+      "range": {
+        "end": { "character": 19, "line": 1 },
+        "start": { "character": 10, "line": 1 }
+      }
+    }
+    variant:
+    {
+      "contents": { "kind": "plaintext", "value": "[> `Tag of int ]" },
+      "range": {
+        "end": { "character": 26, "line": 2 },
+        "start": { "character": 16, "line": 2 }
+      }
+    }
+    packed module:
+    {
+      "contents": { "kind": "plaintext", "value": "'a" },
+      "range": {
+        "end": { "character": 50, "line": 3 },
+        "start": { "character": 15, "line": 3 }
+      }
+    }
+    record field:
+    {
+      "contents": { "kind": "plaintext", "value": "int" },
+      "range": {
+        "end": { "character": 14, "line": 4 },
+        "start": { "character": 9, "line": 4 }
+      }
+    }
+    module name:
+    {
+      "contents": { "kind": "plaintext", "value": "sig\n  val value : int\nend" },
+      "range": {
+        "end": { "character": 8, "line": 5 },
+        "start": { "character": 7, "line": 5 }
+      }
+    }
+    module type name:
+    no hover response
+    class name:
+    {
+      "contents": { "kind": "plaintext", "value": "object method m : int end" },
+      "range": {
+        "end": { "character": 7, "line": 7 },
+        "start": { "character": 6, "line": 7 }
+      }
+    }
+    method name:
+    {
+      "contents": { "kind": "plaintext", "value": "int" },
+      "range": {
+        "end": { "character": 25, "line": 7 },
+        "start": { "character": 24, "line": 7 }
+      }
+    }
+    |}]
+;;
+
 let%expect_test "hoverExtended regression test for #344" =
   let source = Stdlib.String.make 24 '\n' ^ "let k = ()\nlet m = List.map\n" in
   let request_hover_over_k client =
