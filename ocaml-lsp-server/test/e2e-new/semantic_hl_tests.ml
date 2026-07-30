@@ -461,6 +461,19 @@ let test_semantic_tokens_full src =
   test ~src (fun p -> SemanticTokensFull p) print_resp
 ;;
 
+let%expect_test "typed value binding produces a negative semantic-token delta" =
+  test
+    ~src:"let a:b=0"
+    (fun params -> SemanticTokensFull params)
+    (fun { resp; _ } ->
+       (match resp with
+        | None -> print_endline "empty response"
+        | Some { SemanticTokens.data; _ } ->
+          semantic_token_data_json data |> Test.print_result);
+       Fiber.return ());
+  [%expect {| [ 0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 0, -2, 1, 1, 0 ] |}]
+;;
+
 let%expect_test "tokens are single-line and non-overlapping when required" =
   let src =
     {|module M = struct
