@@ -177,6 +177,61 @@ let f = function
      | 0 -> 0 |}]
 ;;
 
+let%expect_test "remove case after Unicode" =
+  let source, range =
+    Code_actions.parse_selection
+      {|
+let f = function
+ | 0 -> 0
+ | $"😀" -> 1$
+|}
+  in
+  let diagnostics =
+    [ Diagnostic.create ~message:(`String "this match case is unused") ~range () ]
+  in
+  Code_actions.print_code_actions
+    ~diagnostics
+    ~filter:(function
+      | `CodeAction { title; _ } -> String.equal title "Remove unused case"
+      | `Command _ -> false)
+    source
+    range;
+  [%expect
+    {|
+    Code actions:
+    {
+      "diagnostics": [
+        {
+          "message": "this match case is unused",
+          "range": {
+            "end": { "character": 12, "line": 3 },
+            "start": { "character": 3, "line": 3 }
+          }
+        }
+      ],
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "",
+                "range": {
+                  "end": { "character": 14, "line": 3 },
+                  "start": { "character": 1, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": true,
+      "kind": "quickfix",
+      "title": "Remove unused case"
+    }
+    |}]
+;;
+
 let%expect_test "remove rec flag after Unicode" =
   let source, range =
     Code_actions.parse_selection
