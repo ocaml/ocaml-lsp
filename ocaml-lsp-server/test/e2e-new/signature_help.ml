@@ -126,13 +126,13 @@ let%expect_test "parameter label representation follows client capabilities" =
   [%expect
     {|
     labelOffsetSupport omitted
-    [ [ 6, 18 ], [ 22, 29 ] ]
+    [ "f:('a -> 'b)", "'a list" ]
     |}];
   check "labelOffsetSupport false" (Some false);
   [%expect
     {|
     labelOffsetSupport false
-    [ [ 6, 18 ], [ 22, 29 ] ]
+    [ "f:('a -> 'b)", "'a list" ]
     |}];
   check "labelOffsetSupport true" (Some true);
   [%expect
