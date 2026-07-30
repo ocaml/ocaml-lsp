@@ -52,6 +52,52 @@ let%expect_test "problematic_translation" =
     |  - first item - second item | |}]
 ;;
 
+let%expect_test "raw HTML, math, modules, and documentation tags" =
+  let cases =
+    [ "html", "{%html:<span>raw</span>%}"
+    ; "math", "inline {m x + y}\n\n{math z = x + y}"
+    ; "modules", "{!modules:List Array}"
+    ; ( "tags"
+      , "Summary.\n\n\
+         @param value input\n\
+         @return output\n\
+         @canonical Package.Module\n\
+         @version 2.0" )
+    ]
+  in
+  List.iter
+    (fun (label, doc) ->
+       Printf.printf "%s:\n" label;
+       translate doc |> print_doc)
+    cases;
+  [%expect
+    {|
+    html:
+    <span>raw</span>
+    math:
+    inline $x + y$
+
+    ```
+    z = x + y
+    ```
+    modules:
+    * List
+    * Array
+    tags:
+    Summary.
+
+    ***@param*** `value`
+    input
+
+    ***@return***
+    output
+
+    ***@canonical*** Package.Module
+
+    ***@version*** `2.0`
+    |}]
+;;
+
 let%expect_test "code_with_output" =
   let doc = {| {@ocaml[foo][output {b foo}]} |} in
   translate doc |> print_doc;
