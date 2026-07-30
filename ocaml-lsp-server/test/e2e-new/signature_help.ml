@@ -1,17 +1,26 @@
 open Test.Import
 
-let capabilities =
+let make_capabilities
+      ?activeParameterSupport
+      ?contextSupport
+      ?labelOffsetSupport
+      ?noActiveParameterSupport
+      ()
+  =
   let parameterInformation =
-    ClientSignatureParameterInformationOptions.create ~labelOffsetSupport:true ()
+    ClientSignatureParameterInformationOptions.create ?labelOffsetSupport ()
   in
   let signatureInformation =
     ClientSignatureInformationOptions.create
+      ?activeParameterSupport
       ~documentationFormat:[ MarkupKind.Markdown; MarkupKind.PlainText ]
+      ?noActiveParameterSupport
       ~parameterInformation
       ()
   in
   let signatureHelp =
     SignatureHelpClientCapabilities.create
+      ?contextSupport
       ~dynamicRegistration:true
       ~signatureInformation
       ()
@@ -20,11 +29,13 @@ let capabilities =
   ClientCapabilities.create ~textDocument ()
 ;;
 
-let signature_help client position =
+let capabilities = make_capabilities ~labelOffsetSupport:true ()
+
+let signature_help ?context client position =
   let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
   Client.request
     client
-    (SignatureHelp (SignatureHelpParams.create ~textDocument ~position ()))
+    (SignatureHelp (SignatureHelpParams.create ?context ~textDocument ~position ()))
 ;;
 
 let print_signature_help signature_help =
@@ -61,7 +72,7 @@ let print_signature_help signature_help =
   print_endline output
 ;;
 
-let test source position =
+let test ?(capabilities = capabilities) source position =
   Helpers.test ~capabilities source (fun client ->
     let* response = signature_help client position in
     print_signature_help response;
@@ -83,6 +94,267 @@ let%expect_test "signature help inside a comment after Unicode" =
         }
       ]
     }
+    |}]
+;;
+
+let nullable_int_to_yojson = function
+  | None -> `String "<omitted>"
+  | Some None -> `Null
+  | Some (Some value) -> `Int value
+;;
+
+let print_active_parameters (help : SignatureHelp.t) =
+  match help.signatures with
+  | [] -> print_endline "<no signatures>"
+  | signature :: _ ->
+    Test.print_result
+      (`Assoc
+          [ "SignatureHelp.activeParameter", nullable_int_to_yojson help.activeParameter
+          ; ( "SignatureInformation.activeParameter"
+            , nullable_int_to_yojson signature.activeParameter )
+          ])
+;;
+
+let%expect_test "parameter label representation follows client capabilities" =
+  let source = "let map = ListLabels.map\n\nlet _ = map" in
+  let position = Position.create ~line:2 ~character:11 in
+  let check description labelOffsetSupport =
+    print_endline description;
+    let capabilities = make_capabilities ?labelOffsetSupport () in
+    Helpers.test ~capabilities source (fun client ->
+      let* help = signature_help client position in
+      let labels =
+        List.concat_map help.signatures ~f:(fun signature ->
+          Option.value ~default:[] signature.parameters)
+        |> List.map ~f:(fun parameter ->
+          match parameter.ParameterInformation.label with
+          | `String label -> `String label
+          | `Offset (start, end_) -> `List [ `Int start; `Int end_ ])
+      in
+      Test.print_result (`List labels);
+      Fiber.return ())
+  in
+  check "labelOffsetSupport omitted" None;
+  [%expect
+    {|
+    labelOffsetSupport omitted
+    [ [ 6, 18 ], [ 22, 29 ] ]
+    |}];
+  check "labelOffsetSupport false" (Some false);
+  [%expect
+    {|
+    labelOffsetSupport false
+    [ [ 6, 18 ], [ 22, 29 ] ]
+    |}];
+  check "labelOffsetSupport true" (Some true);
+  [%expect
+    {|
+    labelOffsetSupport true
+    [ [ 6, 18 ], [ 22, 29 ] ]
+    |}]
+;;
+
+let%expect_test "active parameter placement follows client capabilities" =
+  let source = "let map = ListLabels.map\n\nlet _ = map []" in
+  let position = Position.create ~line:2 ~character:14 in
+  let check description activeParameterSupport =
+    print_endline description;
+    let capabilities = make_capabilities ?activeParameterSupport () in
+    Helpers.test ~capabilities source (fun client ->
+      let* help = signature_help client position in
+      print_active_parameters help;
+      Fiber.return ())
+  in
+  check "activeParameterSupport omitted" None;
+  [%expect
+    {|
+    activeParameterSupport omitted
+    {
+      "SignatureHelp.activeParameter": 1,
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    |}];
+  check "activeParameterSupport false" (Some false);
+  [%expect
+    {|
+    activeParameterSupport false
+    {
+      "SignatureHelp.activeParameter": 1,
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    |}];
+  check "activeParameterSupport true" (Some true);
+  [%expect
+    {|
+    activeParameterSupport true
+    {
+      "SignatureHelp.activeParameter": 1,
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    |}]
+;;
+
+let%expect_test "no active parameter follows client capabilities" =
+  let source = "let f ~foo = foo\nlet _ = f" in
+  let position = Position.create ~line:1 ~character:9 in
+  let check description ?activeParameterSupport ?noActiveParameterSupport () =
+    print_endline description;
+    let capabilities =
+      make_capabilities ?activeParameterSupport ?noActiveParameterSupport ()
+    in
+    Helpers.test ~capabilities source (fun client ->
+      let* help = signature_help client position in
+      print_active_parameters help;
+      Fiber.return ())
+  in
+  check "capabilities omitted" ();
+  [%expect
+    {|
+    capabilities omitted
+    {
+      "SignatureHelp.activeParameter": "<omitted>",
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    |}];
+  check
+    "legacy non-null client"
+    ~activeParameterSupport:false
+    ~noActiveParameterSupport:false
+    ();
+  [%expect
+    {|
+    legacy non-null client
+    {
+      "SignatureHelp.activeParameter": "<omitted>",
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    |}];
+  check
+    "legacy nullable client"
+    ~activeParameterSupport:false
+    ~noActiveParameterSupport:true
+    ();
+  [%expect
+    {|
+    legacy nullable client
+    {
+      "SignatureHelp.activeParameter": "<omitted>",
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    |}];
+  check
+    "modern non-null client"
+    ~activeParameterSupport:true
+    ~noActiveParameterSupport:false
+    ();
+  [%expect
+    {|
+    modern non-null client
+    {
+      "SignatureHelp.activeParameter": "<omitted>",
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    |}];
+  check
+    "modern nullable client"
+    ~activeParameterSupport:true
+    ~noActiveParameterSupport:true
+    ();
+  [%expect
+    {|
+    modern nullable client
+    {
+      "SignatureHelp.activeParameter": "<omitted>",
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    |}]
+;;
+
+let%expect_test "signature help request contexts" =
+  let source = "let add a b = a + b\nlet _ = add 1 " in
+  let position = Position.create ~line:1 ~character:14 in
+  let capabilities = make_capabilities ~contextSupport:true () in
+  Helpers.test ~capabilities source (fun client ->
+    let request description context =
+      print_endline description;
+      let* help = signature_help ~context client position in
+      print_active_parameters help;
+      Fiber.return help
+    in
+    let invoked =
+      SignatureHelpContext.create
+        ~isRetrigger:false
+        ~triggerKind:SignatureHelpTriggerKind.Invoked
+        ()
+    in
+    let* active = request "invoked" invoked in
+    let triggered =
+      SignatureHelpContext.create
+        ~isRetrigger:false
+        ~triggerCharacter:" "
+        ~triggerKind:SignatureHelpTriggerKind.TriggerCharacter
+        ()
+    in
+    let* (_ : SignatureHelp.t) = request "trigger character" triggered in
+    let retriggered =
+      SignatureHelpContext.create
+        ~activeSignatureHelp:active
+        ~isRetrigger:true
+        ~triggerKind:SignatureHelpTriggerKind.ContentChange
+        ()
+    in
+    let* (_ : SignatureHelp.t) = request "content-change retrigger" retriggered in
+    Fiber.return ());
+  [%expect
+    {|
+    invoked
+    {
+      "SignatureHelp.activeParameter": 1,
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    trigger character
+    {
+      "SignatureHelp.activeParameter": 1,
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    content-change retrigger
+    {
+      "SignatureHelp.activeParameter": 1,
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    |}]
+;;
+
+let%expect_test "signature help retrigger after a nested application" =
+  let source =
+    "let add a b = a + b\nlet take3 a b c = a + b + c\nlet _ = take3 1 (add 2 3) "
+  in
+  let capabilities = make_capabilities ~contextSupport:true () in
+  Helpers.test ~capabilities source (fun client ->
+    let* active = signature_help client (Position.create ~line:2 ~character:23) in
+    print_endline "before closing nested application";
+    print_active_parameters active;
+    let context =
+      SignatureHelpContext.create
+        ~activeSignatureHelp:active
+        ~isRetrigger:true
+        ~triggerCharacter:")"
+        ~triggerKind:SignatureHelpTriggerKind.TriggerCharacter
+        ()
+    in
+    let* help = signature_help ~context client (Position.create ~line:2 ~character:25) in
+    print_endline "after closing nested application";
+    print_active_parameters help;
+    Fiber.return ());
+  [%expect
+    {|
+    before closing nested application
+    {
+      "SignatureHelp.activeParameter": 1,
+      "SignatureInformation.activeParameter": "<omitted>"
+    }
+    after closing nested application
+    <no signatures>
     |}]
 ;;
 

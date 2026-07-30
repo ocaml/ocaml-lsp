@@ -13,6 +13,43 @@ let%expect_test "initialize with empty capabilities" =
   [%expect {| initialized |}]
 ;;
 
+let signature_help_capabilities ~contextSupport =
+  let signatureHelp = SignatureHelpClientCapabilities.create ~contextSupport () in
+  let textDocument = TextDocumentClientCapabilities.create ~signatureHelp () in
+  ClientCapabilities.create ~textDocument ()
+;;
+
+let%expect_test "signature-help capabilities with context support" =
+  let check contextSupport =
+    print_endline (sprintf "contextSupport %b" contextSupport);
+    Test.run
+    @@ fun client ->
+    let run_client () =
+      Test.start_client ~capabilities:(signature_help_capabilities ~contextSupport) client
+    in
+    let run () =
+      let* initialized = Client.initialized client in
+      (match initialized.capabilities.signatureHelpProvider with
+       | None -> print_endline "not advertised"
+       | Some options -> SignatureHelpOptions.yojson_of_t options |> Test.print_result);
+      Client.request client Shutdown
+    in
+    Fiber.fork_and_join_unit run_client (fun () -> run () >>> Client.stop client)
+  in
+  check false;
+  [%expect
+    {|
+    contextSupport false
+    { "triggerCharacters": [ " ", "~", "?", ":", "(" ] }
+    |}];
+  check true;
+  [%expect
+    {|
+    contextSupport true
+    { "triggerCharacters": [ " ", "~", "?", ":", "(" ] }
+    |}]
+;;
+
 let code_action_capabilities () =
   let codeActionLiteralSupport =
     let codeActionKind = ClientCodeActionKindOptions.create ~valueSet:[] in
