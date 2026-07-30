@@ -858,6 +858,7 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
   | WillSaveTextDocument _
   | WorkDoneProgressCancel _
   | WorkDoneProgress _
+  | Progress _
   | NotebookDocumentDidOpen _
   | NotebookDocumentDidChange _
   | NotebookDocumentDidSave _

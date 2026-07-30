@@ -9,6 +9,7 @@ type t =
   | TelemetryNotification of Json.t
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgress of Progress.t ProgressParams.t
+  | Progress of Json.t ProgressParams.t
   | UnknownNotification of Jsonrpc.Notification.t
 
 val to_jsonrpc : t -> Jsonrpc.Notification.t

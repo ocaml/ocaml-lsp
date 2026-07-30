@@ -19,6 +19,7 @@ type t =
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
   | SetTrace of SetTraceParams.t
   | WorkDoneProgress of Progress.t ProgressParams.t
+  | Progress of Json.t ProgressParams.t
   | NotebookDocumentDidOpen of DidOpenNotebookDocumentParams.t
   | NotebookDocumentDidChange of DidChangeNotebookDocumentParams.t
   | NotebookDocumentDidSave of DidSaveNotebookDocumentParams.t

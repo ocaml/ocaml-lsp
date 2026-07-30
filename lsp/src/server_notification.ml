@@ -9,6 +9,7 @@ type t =
   | TelemetryNotification of Json.t
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgress of Progress.t ProgressParams.t
+  | Progress of Json.t ProgressParams.t
   | UnknownNotification of Jsonrpc.Notification.t
 
 let method_ = function
@@ -18,7 +19,7 @@ let method_ = function
   | LogTrace _ -> "$/logTrace"
   | TelemetryNotification _ -> "telemetry/event"
   | CancelRequest _ -> Cancel_request.meth_
-  | WorkDoneProgress _ -> Progress.method_
+  | WorkDoneProgress _ | Progress _ -> Progress.method_
   | UnknownNotification n -> n.method_
 ;;
 
@@ -31,6 +32,7 @@ let yojson_of_t = function
   | CancelRequest params -> Some (Cancel_request.yojson_of_t params)
   | WorkDoneProgress params ->
     Some ((ProgressParams.yojson_of_t Progress.yojson_of_t) params)
+  | Progress params -> Some ((ProgressParams.yojson_of_t Fun.id) params)
   | UnknownNotification n -> (n.params :> Json.t option)
 ;;
 
@@ -64,10 +66,10 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
     let+ params = Json.message_params params (fun x -> x) in
     TelemetryNotification params
   | m when m = Progress.method_ ->
-    let+ params =
-      Json.message_params params (ProgressParams.t_of_yojson Progress.t_of_yojson)
-    in
-    WorkDoneProgress params
+    let+ params = Json.message_params params (ProgressParams.t_of_yojson Fun.id) in
+    (match Progress.t_of_yojson params.value with
+     | value -> WorkDoneProgress (ProgressParams.create ~token:params.token ~value)
+     | exception _ -> Progress params)
   | m when m = Cancel_request.meth_ ->
     let+ params = Json.message_params params Cancel_request.t_of_yojson in
     CancelRequest params
