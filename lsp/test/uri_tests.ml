@@ -108,6 +108,22 @@ let%expect_test "serialization preserves a non-letter drive-like path" =
     |}]
 ;;
 
+let%expect_test "JSON URI serialization normalizes wire spelling" =
+  let encoded_slash = `String "file:///pro%2Fjects/test.ml" in
+  let literal_slash = `String "file:///pro/jects/test.ml" in
+  let encoded_uri = Uri.t_of_yojson encoded_slash in
+  let literal_uri = Uri.t_of_yojson literal_slash in
+  Uri.yojson_of_t encoded_uri |> Yojson.Safe.to_string |> print_endline;
+  Printf.printf
+    "encoded and literal slash compare equal: %b\n"
+    (Uri.equal encoded_uri literal_uri);
+  [%expect
+    {|
+    "file:///pro/jects/test.ml"
+    encoded and literal slash compare equal: true
+    |}]
+;;
+
 let%expect_test "an unescaped Unicode URI query is preserved" =
   let uri = Uri.of_string "file:///foo.ml?search=😀&limit=1" in
   Printf.printf
