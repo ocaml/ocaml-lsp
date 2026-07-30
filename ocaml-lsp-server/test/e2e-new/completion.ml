@@ -1342,6 +1342,51 @@ let%expect_test "named types are not reported as type parameters" =
     |}]
 ;;
 
+let%expect_test "preselects the first completion when supported" =
+  let completionItem = ClientCompletionItemOptions.create ~preselectSupport:true () in
+  let completion = CompletionClientCapabilities.create ~completionItem () in
+  let textDocument = TextDocumentClientCapabilities.create ~completion () in
+  let capabilities = ClientCapabilities.create ~textDocument () in
+  let source = "let value : bool = _" in
+  let position = Position.create ~line:0 ~character:20 in
+  Helpers.test ~capabilities source (fun client ->
+    let* response = request_completions client position in
+    print_completion_response ~limit:2 response;
+    Fiber.return ());
+  [%expect
+    {|
+    Completions:
+    {
+      "filterText": "_false",
+      "kind": 1,
+      "label": "false",
+      "preselect": true,
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "false",
+        "range": {
+          "end": { "character": 20, "line": 0 },
+          "start": { "character": 19, "line": 0 }
+        }
+      }
+    }
+    {
+      "detail": "string",
+      "kind": 12,
+      "label": "__FILE__",
+      "sortText": "0001",
+      "textEdit": {
+        "newText": "__FILE__",
+        "range": {
+          "end": { "character": 20, "line": 0 },
+          "start": { "character": 19, "line": 0 }
+        }
+      }
+    }
+    .............
+    |}]
+;;
+
 let%expect_test "deprecated completions use tags when supported" =
   let capabilities =
     let tagSupport =
