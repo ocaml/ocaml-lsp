@@ -43,6 +43,7 @@ depends: [
   "ppx_expect" {>= "v0.17.0" & with-test}
   "ppx_sexp_conv" {>= "v0.17.0" & with-test}
   "ocamlformat" {with-test & = "0.29.0"}
+  "ocp-indent" {with-test}
   "ocamlc-loc" {>= "3.7.0"}
   "pp" {>= "1.1.2"}
   "csexp" {>= "1.5"}

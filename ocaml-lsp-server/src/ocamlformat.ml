@@ -100,9 +100,11 @@ let message = function
 type formatter =
   | Reason of Document.Kind.t
   | Ocaml of Uri.t
+  | Ocp_indent of Uri.t
   | Mlx of Uri.t
 
 let args = function
+  | Ocp_indent _ -> []
   | Ocaml uri ->
     let name = Uri.to_path uri in
     let flag =
@@ -123,6 +125,7 @@ let args = function
 let binary_name t =
   match t with
   | Ocaml _ -> "ocamlformat"
+  | Ocp_indent _ -> "ocp-indent"
   | Mlx _ -> "ocamlformat-mlx"
   | Reason _ -> "refmt"
 ;;
@@ -147,6 +150,70 @@ let formatter doc =
           | `Other -> failwith "unable to format non merlin document"))
 ;;
 
+type configured_formatter =
+  | Configured_ocamlformat
+  | Configured_ocp_indent
+  | Not_configured
+
+let normalize_directory path =
+  let path =
+    if Filename.is_relative path then Filename.concat (Sys.getcwd ()) path else path
+  in
+  (* [Filename.dirname] treats the final path component as a basename, even when
+     [path] has a trailing separator. Appending [.] marks [path] as a directory;
+     taking its dirname then strips trailing separators while preserving roots. *)
+  Filename.concat path Filename.current_dir_name |> Filename.dirname
+;;
+
+let equal_path =
+  if Sys.win32
+  then fun x y -> String.equal (String.lowercase x) (String.lowercase y)
+  else String.equal
+;;
+
+let configured_formatter ~workspace_root uri =
+  let workspace_root =
+    Option.map workspace_root ~f:(fun uri -> Uri.to_path uri |> normalize_directory)
+  in
+  let rec loop directory =
+    if Sys.file_exists (Filename.concat directory ".ocamlformat")
+    then Configured_ocamlformat
+    else if Sys.file_exists (Filename.concat directory ".ocp-indent")
+    then Configured_ocp_indent
+    else (
+      match workspace_root with
+      | None -> Not_configured
+      | Some workspace_root when equal_path workspace_root directory -> Not_configured
+      | Some _ ->
+        let parent = Filename.dirname directory in
+        if equal_path parent directory then Not_configured else loop parent)
+  in
+  Uri.to_path uri |> Filename.dirname |> normalize_directory |> loop
+;;
+
+let document_formatter ~workspace_root doc =
+  let open Result.O in
+  let+ formatter = formatter doc in
+  match formatter with
+  | Reason _ | Ocp_indent _ | Mlx _ -> formatter
+  | Ocaml uri ->
+    (match configured_formatter ~workspace_root uri with
+     | Configured_ocp_indent -> Ocp_indent uri
+     | Configured_ocamlformat -> formatter
+     | Not_configured ->
+       (match Bin.which "ocamlformat" with
+        | Some _ -> formatter
+        | None ->
+          (match Bin.which "ocp-indent" with
+           | Some _ -> Ocp_indent uri
+           | None -> formatter)))
+;;
+
+let working_directory = function
+  | Ocp_indent uri -> Spawn.Working_dir.Path (Uri.to_path uri |> Filename.dirname)
+  | Reason _ | Ocaml _ | Mlx _ -> Spawn.Working_dir.Inherit
+;;
+
 let exec ?cwd cancel refmt args stdin =
   let+ res, cancel = run_command ?cwd cancel refmt stdin args in
   match cancel with
@@ -159,19 +226,19 @@ let exec ?cwd cancel refmt args stdin =
      | _ -> Result.Error (Unexpected_result { message = res.stderr }))
 ;;
 
-let run merlin cancel : (TextEdit.t list, error) result Fiber.t =
+let run ~workspace_root merlin cancel : (TextEdit.t list, error) result Fiber.t =
   let doc = Document.Merlin.to_doc merlin in
   let res =
     let open Result.O in
-    let* formatter = formatter doc in
+    let* formatter = document_formatter ~workspace_root doc in
     let args = args formatter in
     let+ binary = binary formatter in
-    binary, args, Document.source doc |> Msource.text
+    binary, args, Document.source doc |> Msource.text, formatter
   in
   match res with
   | Error e -> Fiber.return (Error e)
-  | Ok (binary, args, contents) ->
-    exec cancel binary args contents
+  | Ok (binary, args, contents, formatter) ->
+    exec ~cwd:(working_directory formatter) cancel binary args contents
     |> Fiber.map
          ~f:(Result.map ~f:(fun { stdout = to_; _ } -> Diff.edit ~from:contents ~to_))
 ;;
@@ -191,19 +258,19 @@ let compute_modified_margin binary cancel offset formatter =
     |> Fiber.map ~f:(fun res ->
       let margin =
         match res with
+        | Error _ -> default
         | Ok { stderr = config; _ } ->
-          config
-          |> String.split_lines
+          String.split_lines config
           |> List.find_map ~f:(fun line ->
             match String.chop_prefix line ~prefix:"margin=" with
             | None -> None
             | Some margin ->
               String.split margin ~on:' ' |> List.hd |> Option.bind ~f:Int.of_string_opt)
           |> Option.value ~default
-        | Error _ -> default
       in
       let margin = margin - offset in
       "--margin=" ^ Int.to_string margin)
+  | Ocp_indent _ -> assert false
   | Reason _ ->
     let margin =
       Sys.getenv_opt "REFMT_PRINT_WIDTH"
@@ -252,8 +319,10 @@ let format_snippet ~start ~stop ~padding formatter binary cancel contents =
     |> String.strip ~drop:(( = ) ' ')
   in
   let open Fiber.O in
-  let* margin = compute_modified_margin binary cancel padding formatter in
-  let args = margin :: args in
+  let* args =
+    let+ margin = compute_modified_margin binary cancel padding formatter in
+    margin :: args
+  in
   let++ { stdout = formatted; _ } = exec cancel binary args to_format in
   let formatted =
     (* if the return is unchanged, don't insert extra padding *)
@@ -262,19 +331,50 @@ let format_snippet ~start ~stop ~padding formatter binary cancel contents =
   prefix ^ formatted ^ suffix
 ;;
 
-let run_on_range doc range cancel : (TextEdit.t list, error) result Fiber.t =
-  let res =
-    let open Result.O in
-    let* formatter = range_formatter doc in
-    let+ binary = binary formatter in
-    binary, formatter
-  in
-  match res with
+let run_ocp_indent_on_range doc uri (range : Range.t) cancel =
+  let formatter = Ocp_indent uri in
+  match binary formatter with
   | Error e -> Fiber.return (Error e)
-  | Ok (binary, formatter) ->
+  | Ok binary ->
     let contents = Document.source doc |> Msource.text in
-    let start, stop = Text_document.absolute_range (Document.text_document doc) range in
-    let padding = range.start.character in
-    let++ to_ = format_snippet formatter binary cancel ~start ~stop ~padding contents in
-    Diff.edit ~from:contents ~to_
+    let args =
+      (* TODO: [--lines] formats complete boundary lines, so a range starting or
+         ending mid-line can produce edits outside the requested LSP range. Clamp
+         the edits or avoid formatting boundary indentation outside the range. *)
+      let last_line =
+        if range.end_.character = 0 && range.end_.line > range.start.line
+        then range.end_.line
+        else range.end_.line + 1
+      in
+      let first_line = range.start.line + 1 in
+      [ sprintf "--lines=%d-%d" first_line last_line ]
+    in
+    exec ~cwd:(working_directory formatter) cancel binary args contents
+    |> Fiber.map
+         ~f:(Result.map ~f:(fun { stdout = to_; _ } -> Diff.edit ~from:contents ~to_))
+;;
+
+let run_on_range ~workspace_root doc range cancel
+  : (TextEdit.t list, error) result Fiber.t
+  =
+  match document_formatter ~workspace_root doc with
+  | Ok (Ocp_indent uri) -> run_ocp_indent_on_range doc uri range cancel
+  | Error _ | Ok (Reason _ | Ocaml _ | Mlx _) ->
+    (match
+       let open Result.O in
+       let* formatter = range_formatter doc in
+       let+ binary = binary formatter in
+       binary, formatter
+     with
+     | Error e -> Fiber.return (Error e)
+     | Ok (binary, formatter) ->
+       let contents = Document.source doc |> Msource.text in
+       let++ to_ =
+         let padding = range.start.character in
+         let start, stop =
+           Text_document.absolute_range (Document.text_document doc) range
+         in
+         format_snippet formatter binary cancel ~start ~stop ~padding contents
+       in
+       Diff.edit ~from:contents ~to_)
 ;;

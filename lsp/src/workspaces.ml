@@ -72,3 +72,35 @@ let workspace_folders { root_uri; root_path; workspace_folders } =
            ~name:(Filename.basename cwd)
        ])
 ;;
+
+let normalize_directory path =
+  let path =
+    if Filename.is_relative path then Filename.concat (Sys.getcwd ()) path else path
+  in
+  (* [Filename.dirname] treats the final path component as a basename, even when
+     [path] has a trailing separator. Appending [.] marks [path] as a directory;
+     taking its dirname then strips trailing separators while preserving roots. *)
+  Filename.concat path Filename.current_dir_name |> Filename.dirname
+;;
+
+let equal_path =
+  if Sys.win32
+  then fun x y -> String.equal (String.lowercase_ascii x) (String.lowercase_ascii y)
+  else String.equal
+;;
+
+let find_workspace_folder t uri =
+  let roots =
+    workspace_folders t
+    |> List.map ~f:(fun (folder : WorkspaceFolder.t) ->
+      normalize_directory (DocumentUri.to_path folder.uri), folder)
+  in
+  let rec loop directory =
+    match List.find_opt roots ~f:(fun (root, _) -> equal_path root directory) with
+    | Some (_, folder) -> Some folder
+    | None ->
+      let parent = Filename.dirname directory in
+      if equal_path parent directory then None else loop parent
+  in
+  DocumentUri.to_path uri |> Filename.dirname |> normalize_directory |> loop
+;;

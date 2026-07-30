@@ -45,6 +45,32 @@ let%expect_test "workspace folders are updated" =
     |}]
 ;;
 
+let%expect_test "find the innermost workspace containing a document" =
+  let workspaces =
+    Workspaces.create
+      (initialize
+         ~workspaceFolders:(Some [ folder "/workspace"; folder "/workspace/nested" ])
+         ())
+  in
+  let print path =
+    match Workspaces.find_workspace_folder workspaces (Uri.of_path path) with
+    | None -> print_endline "none"
+    | Some folder ->
+      WorkspaceFolder.yojson_of_t folder
+      |> Yojson.Safe.pretty_to_string ~std:false
+      |> print_endline
+  in
+  print "/workspace/file.ml";
+  print "/workspace/nested/lib/file.ml";
+  print "/workspace-other/file.ml";
+  [%expect
+    {|
+    { "name": "workspace", "uri": "file:///workspace" }
+    { "name": "nested", "uri": "file:///workspace/nested" }
+    none
+    |}]
+;;
+
 let%expect_test "workspace folder fallbacks" =
   let root_uri = Uri.of_path "/workspace/root-uri" in
   let root_uri_workspaces = Workspaces.create (initialize ~rootUri:root_uri ()) in

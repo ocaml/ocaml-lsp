@@ -135,6 +135,7 @@
                     p.ppx_expect
                     p.ppx_sexp_conv
                     p.ppx_yojson_conv
+                    p.ocp-indent
                     ocaml-index
                     ocp-indent-rpc
                     (ocamlformat pkgs)
