@@ -340,13 +340,18 @@ let destroy_project project =
   ignore (Sys.command ("rm -rf -- " ^ Filename.quote project.temp) : int)
 ;;
 
-let run ?workspace_root project events ~f =
+let run ?workspace_root ?capabilities project events ~f =
   let ocamllsp_stderr = Unix.openfile Test.null_device [ Unix.O_WRONLY ] 0o666 in
   Fun.protect
     ~finally:(fun () -> Unix.close ocamllsp_stderr)
     (fun () ->
-       let window = WindowClientCapabilities.create ~workDoneProgress:true () in
-       let capabilities = ClientCapabilities.create ~window () in
+       let capabilities =
+         match capabilities with
+         | Some capabilities -> capabilities
+         | None ->
+           let window = WindowClientCapabilities.create ~workDoneProgress:true () in
+           ClientCapabilities.create ~window ()
+       in
        let workspace_root = Option.value workspace_root ~default:project.root in
        let workspace =
          WorkspaceFolder.create ~uri:(Uri.of_path workspace_root) ~name:"dune-rpc"
