@@ -3,6 +3,7 @@
   diagnostics_tests
   ocaml_lsp_tests
   position_prefix_tests
+  progress_tests
   semantic_tokens_quickcheck_tests)
  (name ocaml_lsp_tests)
  (enabled_if

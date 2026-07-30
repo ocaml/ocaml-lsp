@@ -8,5 +8,6 @@ module Merlin_kernel = Merlin_kernel
 module Pid = Pid
 module Prefix_parser = Prefix_parser
 module Position = Position
+module Progress = Progress
 module Range = Range
 module Semantic_tokens = Semantic_highlighting.For_tests
