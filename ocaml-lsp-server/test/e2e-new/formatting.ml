@@ -66,6 +66,57 @@ let print_formatting_error ?language_id source path =
     | Ok _ -> print_endline "Expected formatting to fail")
 ;;
 
+let print_request_error = function
+  | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+    ->
+    Printf.printf
+      "code=%s message=%s\n"
+      (Jsonrpc.Response.Error.Code.to_string error.code)
+      error.message;
+    Fiber.return ()
+  | Error errors -> Fiber.reraise_all errors
+  | Ok _ ->
+    print_endline "formatting unexpectedly succeeded";
+    Fiber.return ()
+;;
+
+let test_formatter_failure ~path_env source =
+  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  Test.run_initialized ~handler ~extra_env:[ "PATH=" ^ path_env ]
+  @@ fun client ->
+  let uri = DocumentUri.of_path "/workspace/format_failure.ml" in
+  let* () = Test.open_document ~client ~uri ~source () in
+  let textDocument = TextDocumentIdentifier.create ~uri in
+  let* result =
+    Fiber.collect_errors (fun () -> Client.request client (make_request textDocument))
+  in
+  let* () = print_request_error result in
+  Test.exit_client client
+;;
+
+let%expect_test "reports a missing ocamlformat executable" =
+  let empty_path = Test.temp_dir "ocamllsp-no-ocamlformat-" in
+  test_formatter_failure ~path_env:empty_path "let  x=1";
+  [%expect
+    {|
+    code=InvalidRequest message=Unable to find ocamlformat binary. You need to install ocamlformat manually to use the formatting feature.
+    |}]
+;;
+
+let%expect_test "reports a nonzero ocamlformat exit" =
+  let failing_path = Test.temp_dir "ocamllsp-failing-ocamlformat-" in
+  let formatter = Filename.concat failing_path "ocamlformat" in
+  Test.write_file
+    formatter
+    "#!/bin/sh\n\
+     while IFS= read -r line; do :; done\n\
+     echo formatter exploded >&2\n\
+     exit 7\n";
+  Unix.chmod formatter 0o700;
+  test_formatter_failure ~path_env:failing_path "let  x=1";
+  [%expect {| code=InternalError message=formatter exploded |}]
+;;
+
 let%expect_test "can format an ocaml impl file" =
   let source =
     {ocaml|let rec gcd a b =
