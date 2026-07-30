@@ -475,7 +475,7 @@ let selection_range
 let references
       rpc
       (state : State.t)
-      { ReferenceParams.textDocument = { uri }; position; _ }
+      { ReferenceParams.textDocument = { uri }; position; context; _ }
   =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
@@ -486,6 +486,23 @@ let references
         ~name:"occurrences"
         doc
         (Occurrences (`Ident_at (Position.logical position), `Project))
+    in
+    let* declaration =
+      if context.includeDeclaration
+      then Fiber.return None
+      else
+        Document.Merlin.dispatch_exn
+          ~name:"reference-declaration"
+          doc
+          (Locate (None, `ML, Position.logical position))
+        >>| function
+        | `At_origin -> Some (`At_origin (uri, position))
+        | `Found (path, lexical_position) ->
+          Position.of_lexical_position lexical_position
+          |> Option.map ~f:(fun position ->
+            `Found (Option.value_map path ~default:uri ~f:Uri.of_path, position))
+        | `Builtin _ | `File_not_found _ | `Invalid_context | `Not_found _ | `Not_in_env _
+          -> None
     in
     let+ () =
       match synced with
@@ -506,18 +523,30 @@ let references
          | { loc = _; is_stale = true } -> None
          | { loc; is_stale = false } ->
            let range = Range.of_loc loc in
-           let uri =
+           let occurrence_uri =
              match loc.loc_start.pos_fname with
              | "" -> uri
              | path -> Uri.of_path path
            in
-           Log.log ~section:"debug" (fun () ->
-             Log.msg
-               "merlin returned fname %a"
-               [ "pos_fname", `String loc.loc_start.pos_fname
-               ; "uri", `String (Uri.to_string uri)
-               ]);
-           Some { Location.uri; range }))
+           let is_declaration =
+             Option.value_map declaration ~default:false ~f:(function
+               | `At_origin (declaration_uri, position) ->
+                 Uri.equal occurrence_uri declaration_uri
+                 && Lsp.Range.contains_position range position ~inclusive_end:true
+               | `Found (declaration_uri, position) ->
+                 Uri.equal occurrence_uri declaration_uri
+                 && Lsp.Position.compare range.start position = 0)
+           in
+           if is_declaration
+           then None
+           else (
+             Log.log ~section:"debug" (fun () ->
+               Log.msg
+                 "merlin returned fname %a"
+                 [ "pos_fname", `String loc.loc_start.pos_fname
+                 ; "uri", `String (Uri.to_string occurrence_uri)
+                 ]);
+             Some { Location.uri = occurrence_uri; range })))
 ;;
 
 let highlight
