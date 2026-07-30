@@ -23,6 +23,23 @@ let open_document client source =
     (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
 ;;
 
+let close_document client =
+  Client.notification
+    client
+    (TextDocumentDidClose
+       (DidCloseTextDocumentParams.create
+          ~textDocument:(TextDocumentIdentifier.create ~uri)))
+;;
+
+let save_document client =
+  Client.notification
+    client
+    (DidSaveTextDocument
+       (DidSaveTextDocumentParams.create
+          ~textDocument:(TextDocumentIdentifier.create ~uri)
+          ()))
+;;
+
 let change_document ?range ?rangeLength client ~version ~text =
   let textDocument = VersionedTextDocumentIdentifier.create ~uri ~version in
   let contentChanges =
@@ -57,6 +74,49 @@ let run_document_test f =
   @@ fun client ->
   let* () = f client in
   Test.exit_client client
+;;
+
+let%expect_test "close, save after close, and reopen a document" =
+  run_document_test (fun client ->
+    let* () = open_document client "let first = 1" in
+    let* first = get_document client in
+    print_endline "open:";
+    print_document first;
+    let* () = close_document client in
+    let* () = save_document client in
+    let* closed = Fiber.collect_errors (fun () -> get_document client) in
+    let* () =
+      match closed with
+      | Error
+          [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+        ->
+        Printf.printf
+          "after close: code=%s message=%s\n"
+          (Jsonrpc.Response.Error.Code.to_string error.code)
+          (String.substr_replace_all
+             error.message
+             ~pattern:(DocumentUri.to_string uri)
+             ~with_:"<document-uri>");
+        Fiber.return ()
+      | Error errors -> Fiber.reraise_all errors
+      | Ok document ->
+        print_endline "after close unexpectedly succeeded:";
+        print_document document;
+        Fiber.return ()
+    in
+    let* () = open_document client "let second = 2" in
+    let+ reopened = get_document client in
+    print_endline "reopened:";
+    print_document reopened);
+  [%expect
+    {|
+    open:
+    let first = 1
+    after close unexpectedly succeeded:
+    <missing document>
+    reopened:
+    let second = 2
+    |}]
 ;;
 
 let%expect_test "Manages unicode character ranges correctly" =
