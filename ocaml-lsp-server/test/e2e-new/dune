@@ -81,6 +81,7 @@
     definition
     diagnostics
     dune_diagnostics
+    dune_formatting
     dune_nested_root
     dune_promotion_disconnect
     dune_promotion_open
