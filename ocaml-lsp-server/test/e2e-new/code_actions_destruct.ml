@@ -2,6 +2,46 @@ open Test.Import
 open Lsp_helpers
 open Code_actions
 
+let rec censor_backtraces = function
+  | `Assoc fields ->
+    `Assoc
+      (List.map fields ~f:(fun (name, value) ->
+         match name, value with
+         | "backtrace", _ -> name, `String "<censored>"
+         | "exn", `String message
+           when String.is_prefix message ~prefix:"File \"src/analysis/destruct.ml\"" ->
+           name, `String "Assert_failure(\"src/analysis/destruct.ml\", _, _)"
+         | _ -> name, censor_backtraces value))
+  | `List values -> `List (List.map values ~f:censor_backtraces)
+  | json -> json
+;;
+
+let%expect_test "malformed object method leaks a destruct assertion" =
+  let source = "object method x with|0" in
+  let range = range ~start_line:0 ~start_character:21 ~end_line:0 ~end_character:21 in
+  let makeRequest textDocument =
+    let only = [ CodeActionKind.Other "destruct (enumerate cases)" ] in
+    let context = CodeActionContext.create ~diagnostics:[] ~only () in
+    Lsp.Client_request.CodeAction
+      (CodeActionParams.create ~textDocument ~range ~context ())
+  in
+  Lsp_helpers.iter_lsp_response_result ~language_id:"ocaml" ~makeRequest ~source (function
+    | Error error ->
+      Jsonrpc.Response.Error.yojson_of_t error |> censor_backtraces |> Test.print_result
+    | Ok response -> print_code_action_result response);
+  [%expect
+    {|
+    {
+      "data": {
+        "exn": "Assert_failure(\"src/analysis/destruct.ml\", _, _)",
+        "backtrace": "<censored>"
+      },
+      "code": -32603,
+      "message": "uncaught exception"
+    }
+    |}]
+;;
+
 let%expect_test "can destruct sum types" =
   let source =
     {ocaml|
