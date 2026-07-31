@@ -68,7 +68,7 @@ let%expect_test "promotion removal while its document is open" =
           "id": "ocamllsp-promote/<document-uri>",
           "method": "textDocument/codeAction",
           "registerOptions": {
-            "codeActionKinds": [ "Promote" ],
+            "codeActionKinds": [ "quickfix" ],
             "documentSelector": [
               { "language": null, "scheme": null, "pattern": "<document-path>" }
             ]

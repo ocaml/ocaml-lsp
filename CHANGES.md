@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Advertise Dune promotion code actions using their returned `quickfix` kind.
+  (#2055, @rgrinberg)
 - Keep Merlin diagnostic ranges within document bounds. (#2008, @rgrinberg)
 - Suppress triggered completion and signature help inside comments after Unicode.
   (#1994, @rgrinberg)
