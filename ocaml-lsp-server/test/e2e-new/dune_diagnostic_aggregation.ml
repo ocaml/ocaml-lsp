@@ -196,7 +196,7 @@ let%expect_test "merge Merlin and Dune diagnostics and honor configuration" =
     {
       "diagnostics": [
         {
-          "message": "diff --git a/_build/default/expected.ml b/_build/.sandbox/<sandbox>/default/actual.ml\nindex 253029d..d7fbee4 100644\n--- a/_build/default/expected.ml\n+++ b/_build/.sandbox/<sandbox>/default/actual.ml\n@@ -1 +1 @@\n-let promoted = 0\n+let promoted = 42\n\\ No newline at end of file",
+          "message": "--- expected.ml\n+++ actual.ml\n@@ -1 +1 @@\n-let promoted = 0\n+let promoted = 42\n\\ No newline at end of file",
           "range": {
             "end": { "character": 0, "line": 0 },
             "start": { "character": 0, "line": 0 }
