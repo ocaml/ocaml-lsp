@@ -201,6 +201,45 @@ end
     |}]
 ;;
 
+let%expect_test "hierarchical symbols drop the deprecated tag" =
+  let source = "let old_value = 1 [@@deprecated]" in
+  let capabilities =
+    let tagSupport = ClientSymbolTagOptions.create ~valueSet:[ SymbolTag.Deprecated ] in
+    let documentSymbol =
+      DocumentSymbolClientCapabilities.create
+        ~hierarchicalDocumentSymbolSupport:true
+        ~tagSupport
+        ()
+    in
+    let textDocument = TextDocumentClientCapabilities.create ~documentSymbol () in
+    ClientCapabilities.create ~textDocument ()
+  in
+  let request client =
+    let open Fiber.O in
+    let+ response = Util.call_document_symbol client in
+    print_result response
+  in
+  Helpers.test ~capabilities source request;
+  [%expect
+    {|
+    [
+      {
+        "children": [],
+        "kind": 13,
+        "name": "old_value",
+        "range": {
+          "end": { "character": 32, "line": 0 },
+          "start": { "character": 0, "line": 0 }
+        },
+        "selectionRange": {
+          "end": { "character": 13, "line": 0 },
+          "start": { "character": 4, "line": 0 }
+        }
+      }
+    ]
+    |}]
+;;
+
 let%expect_test "documentOutline in an empty file" =
   let source = {||} in
   let request client =
