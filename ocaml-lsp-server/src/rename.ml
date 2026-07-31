@@ -75,7 +75,14 @@ let prepare
 
 let rename (state : State.t) { RenameParams.textDocument = { uri }; position; newName; _ }
   =
-  let doc = Document_store.get state.store uri in
+  let documents =
+    Document_store.fold
+      state.store
+      ~init:(Map.empty (module Uri))
+      ~f:(fun document documents ->
+        Map.set documents ~key:(Document.uri document) ~data:document)
+  in
+  let doc = Map.find_exn documents uri in
   match Document.kind doc with
   | `Other -> Fiber.return (WorkspaceEdit.create ())
   | `Merlin merlin ->
@@ -106,10 +113,9 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     let edits =
       Map.mapi locs ~f:(fun ~key:doc_uri ~data:locs ->
         let source =
-          match Document_store.get_opt state.store doc_uri with
-          | Some doc when DocumentUri.equal doc_uri (Document.uri doc) ->
-            Document.source doc
-          | Some _ | None ->
+          match Map.find documents doc_uri with
+          | Some doc -> Document.source doc
+          | None ->
             let source_path = Uri.to_path doc_uri in
             In_channel.with_open_text source_path In_channel.input_all |> Msource.make
         in
@@ -152,9 +158,7 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
         let documentChanges =
           Map.to_alist edits
           |> List.map ~f:(fun (uri, edits) ->
-            let version =
-              Document_store.get_opt state.store uri |> Option.map ~f:Document.version
-            in
+            let version = Map.find documents uri |> Option.map ~f:Document.version in
             let textDocument =
               OptionalVersionedTextDocumentIdentifier.create ~uri ?version ()
             in
