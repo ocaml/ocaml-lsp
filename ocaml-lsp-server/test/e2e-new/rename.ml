@@ -85,7 +85,7 @@ let%expect_test "prepare rename leaks a lexer error on an astral character" =
     |}]
 ;;
 
-let%expect_test "rename returns overlapping edits for an incomplete binding" =
+let%expect_test "rename deduplicates edits for an incomplete binding" =
   run "let rec ma" (fun client ->
     let* response =
       rename ~newName:"fuzz_renamed" client (Position.create ~line:0 ~character:10)
@@ -97,13 +97,6 @@ let%expect_test "rename returns overlapping edits for an incomplete binding" =
     {
       "changes": {
         "file:///test.ml": [
-          {
-            "newText": "fuzz_renamed",
-            "range": {
-              "end": { "character": 10, "line": 0 },
-              "start": { "character": 8, "line": 0 }
-            }
-          },
           {
             "newText": "fuzz_renamed",
             "range": {
