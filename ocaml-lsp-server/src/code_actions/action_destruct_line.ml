@@ -209,10 +209,10 @@ let format_match_cases lines ~indent =
 
 (** Finds the "with" in the Merlin reply and splits after it. *)
 let separate_match_line new_code =
-  let end_of_match = String.substr_index_exn new_code ~pattern:"with" in
-  let match_line = String.prefix new_code (end_of_match + 4) in
-  let rest = String.drop_prefix new_code (end_of_match + 4) in
-  match_line, rest
+  Option.map (String.substr_index new_code ~pattern:"with") ~f:(fun end_of_match ->
+    let match_line = String.prefix new_code (end_of_match + 4) in
+    let rest = String.drop_prefix new_code (end_of_match + 4) in
+    match_line, rest)
 ;;
 
 let format_merlin_reply ~(statement : destructable_statement) (new_code : string) =
@@ -223,21 +223,22 @@ let format_merlin_reply ~(statement : destructable_statement) (new_code : string
   in
   match statement.kind with
   | MatchLine | MatchWithLine ->
-    let match_line, rest = separate_match_line new_code in
-    let rest = String.chop_suffix_if_exists rest ~suffix:")" in
-    let match_line = String.chop_prefix_if_exists match_line ~prefix:"(" in
-    let lines = String.split ~on:'|' rest in
-    match_line ^ format_match_cases lines ~indent
-  | CaseLine -> format_match_cases (String.split ~on:'|' new_code) ~indent
+    Option.map (separate_match_line new_code) ~f:(fun (match_line, rest) ->
+      let rest = String.chop_suffix_if_exists rest ~suffix:")" in
+      let match_line = String.chop_prefix_if_exists match_line ~prefix:"(" in
+      let lines = String.split ~on:'|' rest in
+      match_line ^ format_match_cases lines ~indent)
+  | CaseLine -> Some (format_match_cases (String.split ~on:'|' new_code) ~indent)
   | Hole | OffsetHole _ ->
     let lines = String.split ~on:'|' new_code in
-    (match List.hd lines, List.tl lines with
-     | None, _ | _, None -> new_code
-     | Some first_line, Some other_lines ->
-       let other_lines =
-         List.map other_lines ~f:(fun l -> indent ^ "| " ^ strip_case_line l)
-       in
-       String.concat ~sep:" -> _\n" (String.strip first_line :: other_lines))
+    Some
+      (match List.hd lines, List.tl lines with
+       | None, _ | _, None -> new_code
+       | Some first_line, Some other_lines ->
+         let other_lines =
+           List.map other_lines ~f:(fun l -> indent ^ "| " ^ strip_case_line l)
+         in
+         String.concat ~sep:" -> _\n" (String.strip first_line :: other_lines))
 ;;
 
 let code_action
@@ -259,9 +260,9 @@ let code_action
          ~action_kind
          ~range:statement.query_range
          ~postprocess:(fun (loc, newText) ->
-           let loc = adjust_reply_location ~statement loc in
-           let newText = format_merlin_reply ~statement newText in
-           loc, newText))
+           Option.map (format_merlin_reply ~statement newText) ~f:(fun newText ->
+             let loc = adjust_reply_location ~statement loc in
+             loc, newText)))
 ;;
 
 let t ~dispatch state =
