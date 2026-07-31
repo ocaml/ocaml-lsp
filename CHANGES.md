@@ -14,6 +14,8 @@
   returns a multiline location. (#2034, @rgrinberg)
 - Advertise Dune promotion code actions using their returned `quickfix` kind.
   (#2055, @rgrinberg)
+- Return `null` from the construct custom request when the cursor is not at a
+  typed hole. (#2047, @rgrinberg)
 - Render empty odoc tables in hover documentation without raising an internal
   error. (#2038, @rgrinberg)
 - Keep Merlin diagnostic ranges within document bounds. (#2008, @rgrinberg)
