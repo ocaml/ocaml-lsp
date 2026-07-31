@@ -38,8 +38,14 @@ let%expect_test "split_at" =
 
 let%expect_test "rindex is relative to a slice" =
   let substring = Substring.of_slice "xxabc" ~pos:2 ~len:3 in
-  Substring.rindex substring 'b' |> Option.iter (printf "%d\n");
-  [%expect {| 1 |}]
+  (match Substring.rindex substring 'b' with
+   | None -> print_endline "not found"
+   | Some index ->
+     printf
+       "index %d points into %S\n"
+       index
+       (Substring.drop substring index |> Substring.to_string));
+  [%expect {| index 1 points into "bc" |}]
 ;;
 
 let%expect_test "negative indices do not escape a substring" =
