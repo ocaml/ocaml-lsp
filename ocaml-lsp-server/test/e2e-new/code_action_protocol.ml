@@ -37,22 +37,46 @@ let metrics_handler contents =
   Client.Handler.make ~on_request ~on_notification:(fun _ _ -> Fiber.return ()) ()
 ;;
 
-let metric_count metrics name =
+let metric_names metrics =
   match Yojson.Safe.from_string metrics with
   | `Assoc fields ->
     (match List.Assoc.find fields "traceEvents" ~equal:String.equal with
      | Some (`List events) ->
-       List.count events ~f:(function
+       List.map events ~f:(function
          | `Assoc fields ->
            (match List.Assoc.find fields "name" ~equal:String.equal with
-            | Some (`String event_name) -> String.equal event_name name
-            | Some _ | None -> false)
-         | _ -> false)
-     | _ -> 0)
-  | _ -> 0
+            | Some (`String name) -> name
+            | Some _ | None -> "<unnamed>")
+         | _ -> "<malformed>")
+     | Some _ | None -> failwith "metrics contain no trace event list")
+  | _ -> failwith "metrics are not a JSON object"
 ;;
 
-let print_pipeline_count ?(prep = fun _ -> Fiber.return ()) ~name ~only ~source range =
+let code_action_kind_to_string kind =
+  CodeActionKind.yojson_of_t kind |> Yojson.Safe.Util.to_string
+;;
+
+let print_code_actions = function
+  | None -> print_endline "code actions: none"
+  | Some actions ->
+    print_endline "code actions:";
+    List.iter actions ~f:(function
+      | `Command { Command.title; command; _ } ->
+        Printf.printf "- command %S (%s)\n" title command
+      | `CodeAction { CodeAction.title; kind; _ } ->
+        let kind =
+          Option.value_map kind ~default:"<no kind>" ~f:code_action_kind_to_string
+        in
+        Printf.printf "- %s (%s)\n" title kind)
+;;
+
+let print_pipeline_trace
+      ?(prep = fun _ -> Fiber.return ())
+      ~pipeline_name
+      ~only
+      ~source
+      range
+  =
   let contents = Fiber.Ivar.create () in
   let handler = metrics_handler contents in
   Test.run_initialized ~handler ~capabilities:(code_action_capabilities ())
@@ -64,11 +88,27 @@ let print_pipeline_count ?(prep = fun _ -> Fiber.return ()) ~name ~only ~source 
     let textDocument = TextDocumentIdentifier.create ~uri in
     let context = CodeActionContext.create ~diagnostics:[] ~only () in
     let params = CodeActionParams.create ~textDocument ~range ~context () in
-    let* (_ : CodeActionResult.t) = Client.request client (CodeAction params) in
+    let* code_actions = Client.request client (CodeAction params) in
+    print_code_actions code_actions;
     let view_metrics = ExecuteCommandParams.create ~command:"ocamllsp/view-metrics" () in
     let* _ = Client.request client (ExecuteCommand view_metrics) in
     let+ metrics = Fiber.Ivar.read contents in
-    Printf.printf "%s pipelines: %d\n" name (metric_count metrics name)
+    print_endline "Merlin pipeline trace:";
+    let pipelines = metric_names metrics |> List.filter ~f:(String.equal pipeline_name) in
+    let rec print_trace requested pipelines =
+      match requested, pipelines with
+      | kind :: requested, pipeline :: pipelines ->
+        Printf.printf "- %s -> %s\n" (code_action_kind_to_string kind) pipeline;
+        print_trace requested pipelines
+      | kind :: requested, [] ->
+        Printf.printf "- %s -> <no pipeline>\n" (code_action_kind_to_string kind);
+        print_trace requested []
+      | [], pipeline :: pipelines ->
+        Printf.printf "- <unrequested> -> %s\n" pipeline;
+        print_trace [] pipelines
+      | [], [] -> ()
+    in
+    print_trace only pipelines
   in
   Fiber.finalize run ~finally:(fun () -> Test.exit_client client)
 ;;
@@ -95,8 +135,29 @@ let f (x : t) =
   let range =
     Code_actions.range ~start_line:3 ~start_character:4 ~end_line:3 ~end_character:4
   in
-  print_pipeline_count ~prep:activate_jump ~name:"unknown" ~only:jump_kinds ~source range;
-  [%expect {| unknown pipelines: 7 |}]
+  print_pipeline_trace
+    ~prep:activate_jump
+    ~pipeline_name:"unknown"
+    ~only:jump_kinds
+    ~source
+    range;
+  [%expect
+    {|
+    code actions:
+    - Create metrics.mli (switch)
+    - Fun jump (merlin-jump-fun)
+    - Match jump (merlin-jump-match)
+    - Let jump (merlin-jump-let)
+    - Next-case jump (merlin-jump-next-case)
+    Merlin pipeline trace:
+    - merlin-jump-fun -> unknown
+    - merlin-jump-match -> unknown
+    - merlin-jump-let -> unknown
+    - merlin-jump-module -> unknown
+    - merlin-jump-module-type -> unknown
+    - merlin-jump-next-case -> unknown
+    - merlin-jump-prev-case -> unknown
+    |}]
 ;;
 
 let%expect_test "destruct actions duplicate case analysis" =
@@ -113,6 +174,15 @@ let%expect_test "destruct actions duplicate case analysis" =
     ; CodeActionKind.Other "destruct-line (enumerate cases, use existing match)"
     ]
   in
-  print_pipeline_count ~name:"destruct" ~only ~source range;
-  [%expect {| destruct pipelines: 2 |}]
+  print_pipeline_trace ~pipeline_name:"destruct" ~only ~source range;
+  [%expect
+    {|
+    code actions:
+    - Destruct-line (enumerate cases, use existing match) (destruct-line (enumerate cases, use existing match))
+    - Destruct (enumerate cases) (destruct (enumerate cases))
+    - Create metrics.mli (switch)
+    Merlin pipeline trace:
+    - destruct (enumerate cases) -> destruct
+    - destruct-line (enumerate cases, use existing match) -> destruct
+    |}]
 ;;
