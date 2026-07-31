@@ -128,6 +128,17 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
          sprintf "%s : " fun_name
        in
        let offset = String.length prefix in
+       let supports_parameter_label_offsets =
+         let open Option.O in
+         let support =
+           let* text_document = (State.client_capabilities state).textDocument in
+           let* signature_help = text_document.signatureHelp in
+           let* signature_information = signature_help.signatureInformation in
+           let* parameter_information = signature_information.parameterInformation in
+           parameter_information.labelOffsetSupport
+         in
+         Option.value support ~default:false
+       in
        let+ doc =
          Document.Merlin.doc_comment
            ~name:"signature help-position"
@@ -139,7 +150,16 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
            List.map
              application_signature.parameters
              ~f:(fun (p : Merlin_analysis.Signature_help.parameter_info) ->
-               let label = `Offset (offset + p.param_start, offset + p.param_end) in
+               let label =
+                 if supports_parameter_label_offsets
+                 then `Offset (offset + p.param_start, offset + p.param_end)
+                 else
+                   `String
+                     (String.sub
+                        application_signature.signature
+                        ~pos:p.param_start
+                        ~len:(p.param_end - p.param_start))
+               in
                ParameterInformation.create ~label ())
          in
          let documentation =
