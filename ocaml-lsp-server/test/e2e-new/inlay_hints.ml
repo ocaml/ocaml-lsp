@@ -6,6 +6,7 @@ let apply_inlay_hints
       ?(hint_pattern_variables = false)
       ?(hint_let_bindings = false)
       ?hint_function_params
+      ?(configure = true)
       ~source
       ()
   =
@@ -34,10 +35,13 @@ let apply_inlay_hints
     | None -> []
     | Some hint_function_params -> [ "hintFunctionParams", `Bool hint_function_params ]
   in
+  let settings =
+    if configure then Some (`Assoc [ "inlayHints", `Assoc regular_config ]) else None
+  in
   let inlay_hints =
     Test.run_request
       ~prep:(fun client -> Test.open_document ~client ~uri ~source ())
-      ~settings:(`Assoc [ "inlayHints", `Assoc regular_config ])
+      ?settings
       (InlayHint request)
   in
   match inlay_hints with
@@ -114,4 +118,11 @@ let%expect_test "function params (deactivated)" =
   let source = "let f a b c d = (a + b, c ^ string_of_bool d)" in
   apply_inlay_hints ~hint_function_params:false ~source ();
   [%expect {| let f a b c d = (a + b, c ^ string_of_bool d) |}]
+;;
+
+let%expect_test "function params (no configuration sent)" =
+  let source = "let f a b c d = (a + b, c ^ string_of_bool d)" in
+  apply_inlay_hints ~configure:false ~source ();
+  [%expect
+    {| let f a$: int$ b$: int$ c$: string$ d$: bool$ = (a + b, c ^ string_of_bool d) |}]
 ;;
