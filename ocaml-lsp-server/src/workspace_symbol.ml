@@ -260,7 +260,7 @@ let rec symbol_info ~containerName resolve_uri (item : Query_protocol.item) =
       SymbolInformation.create
         ~name:item.outline_name
         ~kind
-        ~deprecated:false
+        ~deprecated:item.deprecated
         ~location
         ?containerName
         ()
