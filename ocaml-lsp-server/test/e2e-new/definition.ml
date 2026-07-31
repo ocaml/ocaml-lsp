@@ -40,7 +40,8 @@ let%expect_test "reports definition lookup failures without stopping the server"
     let* () = check "missing" (Position.create ~line:1 ~character:18) in
     let* () = check "builtin" (Position.create ~line:3 ~character:12) in
     let* response = definition client (Position.create ~line:4 ~character:10) in
-    Printf.printf "server remains usable: %b\n" (Option.is_some response);
+    print_endline "definition after errors:";
+    print_locations response;
     Fiber.return ()
   in
   Helpers.test source req;
@@ -49,7 +50,16 @@ let%expect_test "reports definition lookup failures without stopping the server"
     at origin: Request "Jump to definition" failed. ("Locate: Already at definition point")
     missing: Request "Jump to definition" failed. ("Locate: Not in environment: missing")
     builtin: Request "Jump to definition" failed. ("Locate: \"int\" is a builtin, it is not possible to jump to its definition")
-    server remains usable: true
+    definition after errors:
+    [
+      {
+        "range": {
+          "end": { "character": 4, "line": 0 },
+          "start": { "character": 4, "line": 0 }
+        },
+        "uri": "file:///test.ml"
+      }
+    ]
     |}]
 ;;
 
