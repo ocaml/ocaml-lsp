@@ -50,17 +50,6 @@ let print_optional_code_action label = function
   | Some action -> print_code_action label action
 ;;
 
-let print_action_shape label = function
-  | None -> Printf.printf "%s: no action\n" label
-  | Some { CodeAction.edit; data; disabled; _ } ->
-    Printf.printf
-      "%s: edit=%b data=%b disabled=%b\n"
-      label
-      (Option.is_some edit)
-      (Option.is_some data)
-      (Option.is_some disabled)
-;;
-
 let%expect_test "inline edit is computed eagerly despite resolve support" =
   let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
   let capabilities = code_action_capabilities resolveSupport in
@@ -302,7 +291,7 @@ let%expect_test "inline edits remain eager without complete resolve support" =
         Code_actions.range ~start_line:1 ~start_character:6 ~end_line:1 ~end_character:7
       in
       let* action = request_inline_action client ~uri ~range in
-      print_action_shape label action;
+      print_optional_code_action label action;
       Test.exit_client client
     in
     run ()
@@ -311,7 +300,52 @@ let%expect_test "inline edits remain eager without complete resolve support" =
   test "no-edit-resolve-support" [ "disabled" ];
   [%expect
     {|
-    no-data-support: edit=true data=false disabled=false
-    no-edit-resolve-support: edit=true data=false disabled=false
+    no-data-support:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(0)",
+                "range": {
+                  "end": { "character": 3, "line": 2 },
+                  "start": { "character": 2, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///no-data-support.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "refactor.inline",
+      "title": "Inline into uses"
+    }
+    no-edit-resolve-support:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "(0)",
+                "range": {
+                  "end": { "character": 3, "line": 2 },
+                  "start": { "character": 2, "line": 2 }
+                }
+              }
+            ],
+            "textDocument": {
+              "uri": "file:///no-edit-resolve-support.ml",
+              "version": 0
+            }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "refactor.inline",
+      "title": "Inline into uses"
+    }
     |}]
 ;;
