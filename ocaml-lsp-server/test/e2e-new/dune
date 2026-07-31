@@ -84,6 +84,7 @@
     dune_formatting
     dune_nested_root
     dune_promotion_disconnect
+    dune_promotion_execute
     dune_promotion_open
     dune_workspace_removal
     metrics
