@@ -277,6 +277,28 @@ let%expect_test "rename value in a file with documentChanges capability" =
     |}]
 ;;
 
+let%expect_test "rename a record-punned variable" =
+  let source =
+    {ocaml|type t = { x : int }
+let f x = { x }
+|ocaml}
+  in
+  run source (fun client ->
+    let* response = rename ~newName:"y" client (Position.create ~line:1 ~character:6) in
+    let edits =
+      match response.changes with
+      | Some [ (_, edits) ] -> edits
+      | None | Some _ -> failwith "expected edits for one document"
+    in
+    Test.apply_edits source edits |> print_string;
+    Fiber.return ());
+  [%expect
+    {|
+    type t = { x : int }
+    let f y = { y }
+    |}]
+;;
+
 let%expect_test "rename a var used as a labelled argument" =
   let source =
     {ocaml|let foo x = x
