@@ -295,8 +295,8 @@ let _ = x
     let position = Position.create ~line:2 ~character:8 in
     let* result = Fiber.collect_errors (fun () -> Hover_helpers.hover client position) in
     match result with
-    | Error
-        [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ] ->
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+      ->
       let data = Option.value_exn error.data in
       let exn = Yojson.Safe.Util.(data |> member "exn" |> to_string) in
       Printf.printf
@@ -312,8 +312,13 @@ let _ = x
   Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source request;
   [%expect
     {|
-    code: InternalError
-    exception: File "ocaml-lsp-server/src/doc_to_md.ml", line 137, characters 16-22: Assertion failed
+    {
+      "contents": { "kind": "markdown", "value": "```ocaml\nint\n```\n***\n" },
+      "range": {
+        "end": { "character": 9, "line": 2 },
+        "start": { "character": 8, "line": 2 }
+      }
+    }
     |}]
 ;;
 

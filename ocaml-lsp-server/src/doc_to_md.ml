@@ -109,37 +109,37 @@ let rec nestable_block_element_to_block
     Block.Paragraph (paragraph, meta)
   | { value = `Table ((grid, alignment), _); location } ->
     let meta = loc_to_meta location in
-    let tbl =
-      let rows =
-        let alignment_row =
-          match alignment with
-          | None -> []
-          | Some alignment ->
-            let alignment =
-              List.map ~f:(fun x -> (x, 1 (* nb of separator *)), Meta.none) alignment
-            in
-            [ (`Sep alignment, Meta.none), "" ]
-        in
-        let cell ((c, _) : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.cell) =
-          let c = nestable_block_element_list_to_inlines c in
-          c, (" ", " ")
-          (* Initial and trailing blanks *)
-        in
-        let data_row (row : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.row) =
-          let row = List.map ~f:cell row in
-          (`Data row, Meta.none), ""
-        in
-        let header_row (row : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.row) =
-          let row = List.map ~f:cell row in
-          (`Header row, Meta.none), ""
-        in
-        match grid with
-        | [] -> assert false
-        | h :: t -> (header_row h :: alignment_row) @ List.map ~f:data_row t
-      in
-      Block.Table.make rows
-    in
-    Block.Ext_table (tbl, meta)
+    (match grid with
+     | [] -> Block.empty
+     | h :: t ->
+       let rows =
+         let alignment_row =
+           match alignment with
+           | None -> []
+           | Some alignment ->
+             let alignment =
+               List.map ~f:(fun x -> (x, 1 (* nb of separator *)), Meta.none) alignment
+             in
+             [ (`Sep alignment, Meta.none), "" ]
+         in
+         let cell ((c, _) : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.cell) =
+           let c = nestable_block_element_list_to_inlines c in
+           c, (" ", " ")
+           (* Initial and trailing blanks *)
+         in
+         let data_row (row : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.row) =
+           let row = List.map ~f:cell row in
+           (`Data row, Meta.none), ""
+         in
+         let header_row (row : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.row)
+           =
+           let row = List.map ~f:cell row in
+           (`Header row, Meta.none), ""
+         in
+         (header_row h :: alignment_row) @ List.map ~f:data_row t
+       in
+       let tbl = Block.Table.make rows in
+       Block.Ext_table (tbl, meta))
   | { value = `List (kind, style, xs); location } ->
     let l =
       let list_items =
