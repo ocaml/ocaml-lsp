@@ -64,6 +64,7 @@
   (#1823, fixes #1427, @rgrinberg)
 - Report a missing project build-system executable as a diagnostic without
   discarding the opened document. (#1814, @rgrinberg)
+- Translate positions using the UTF-16 encoding negotiated with the client. (#1813, @rgrinberg)
 - Advertise all code-action kinds that the server may return. (#1803, @rgrinberg)
 - Respect hierarchical code-action kind filters from clients. (#1802, @rgrinberg)
 - Ensure `textDocument/documentSymbol` returns a `selectionRange` contained

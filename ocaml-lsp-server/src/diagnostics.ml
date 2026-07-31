@@ -320,7 +320,7 @@ let error_to_diagnostics ~diagnostics ~merlin error =
   let uri = Document.uri doc in
   let loc = Loc.loc_of_report error in
   let source = Document.Merlin.source merlin in
-  let original_range = Range.of_loc loc |> clamp_range_to_source source in
+  let original_range = Document.range_of_loc doc loc |> clamp_range_to_source source in
   let range =
     if diagnostics.shorten_merlin_diagnostics
     then first_n_lines_of_range original_range 1
@@ -344,7 +344,9 @@ let error_to_diagnostics ~diagnostics ~merlin error =
          , Some
              (List.map error.sub ~f:(fun (sub : Loc.msg) ->
                 let location =
-                  let range = Range.of_loc sub.loc |> clamp_range_to_source source in
+                  let range =
+                    Document.range_of_loc doc sub.loc |> clamp_range_to_source source
+                  in
                   Location.create ~range ~uri
                 in
                 let message = make_message Loc.print_sub_msg sub in
@@ -401,7 +403,7 @@ let merlin_diagnostics diagnostics merlin =
         let holes_as_err_diags =
           Query_commands.dispatch pipeline Holes
           |> List.rev_map ~f:(fun (loc, typ) ->
-            let range = Range.of_loc loc |> clamp_range_to_source source in
+            let range = Document.range_of_loc doc loc |> clamp_range_to_source source in
             let severity = DiagnosticSeverity.Error in
             let message =
               "This typed hole should be replaced with an expression of type " ^ typ

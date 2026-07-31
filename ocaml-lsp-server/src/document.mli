@@ -121,6 +121,25 @@ val update_text : ?version:int -> t -> TextDocumentContentChangeEvent.t list -> 
 val close : t -> unit Fiber.t
 val text_document : t -> Text_document.t
 
+(** Convert between positions in the negotiated LSP encoding and Merlin's
+    UTF-8 byte-based positions. *)
+val merlin_position : t -> Position.t -> [ `Logical of int * int ]
+
+val merlin_range : t -> Range.t -> Range.t
+
+val position_of_lexical_position_in_source
+  :  t
+  -> Msource.t
+  -> Lexing.position
+  -> Position.t option
+
+val position_of_lexical_position : t -> Lexing.position -> Position.t option
+val range_of_loc_opt_in_source : t -> Msource.t -> Loc.t -> Range.t option
+val range_of_loc_opt : t -> Loc.t -> Range.t option
+val range_of_loc_in_source : t -> Msource.t -> Loc.t -> Range.t
+val range_of_loc : t -> Loc.t -> Range.t
+val range_of_merlin_range : t -> Range.t -> Range.t
+
 (** [get_impl_intf_counterparts uri] returns the implementation/interface
     counterparts for the URI [uri].
 

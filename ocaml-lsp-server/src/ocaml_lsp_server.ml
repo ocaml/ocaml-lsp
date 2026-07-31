@@ -293,6 +293,13 @@ let on_initialize server (ip : InitializeParams.t) =
               Server.Batch.notification batch (PublishDiagnostics d));
             Server.Batch.submit batch))
   in
+  let initialize_info = initialize_info ip.capabilities in
+  let position_encoding =
+    match initialize_info.capabilities.positionEncoding with
+    | None | Some UTF16 -> `UTF16
+    | Some UTF8 -> `UTF8
+    | Some UTF32 | Some (Other _) -> assert false
+  in
   let+ dune =
     let progress =
       Progress.create
@@ -309,21 +316,13 @@ let on_initialize server (ip : InitializeParams.t) =
         diagnostics
         progress
         state.store
+        ~position_encoding
         ~log:(State.log_msg server)
         ~trace:(State.log_trace server)
     in
     Fiber.return dune
   in
-  let initialize_info = initialize_info ip.capabilities in
-  let state =
-    let position_encoding =
-      match initialize_info.capabilities.positionEncoding with
-      | None | Some UTF16 -> `UTF16
-      | Some UTF8 -> `UTF8
-      | Some UTF32 | Some (Other _) -> assert false
-    in
-    State.initialize state ~position_encoding ip workspaces dune diagnostics
-  in
+  let state = State.initialize state ~position_encoding ip workspaces dune diagnostics in
   let state =
     match ip.trace with
     | None -> state
