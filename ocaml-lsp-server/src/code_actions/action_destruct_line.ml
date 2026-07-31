@@ -151,18 +151,23 @@ let get_reply_range (code : string) (kind : statement_kind) (query_range : Range
 
 (** Adjusts the location Merlin gave us to ensure the right text gets
     overwritten. *)
-let adjust_reply_location ~(statement : destructable_statement) (loc : Loc.t) : Loc.t =
-  let start_offset =
-    statement.reply_range.start.character - statement.query_range.start.character
-  in
-  let end_offset =
-    statement.reply_range.end_.character - statement.query_range.end_.character
-  in
-  let loc_start =
-    { loc.loc_start with pos_cnum = loc.loc_start.pos_cnum + start_offset }
-  in
-  let loc_end = { loc.loc_end with pos_cnum = loc.loc_end.pos_cnum + end_offset } in
-  { loc with loc_start; loc_end }
+let adjust_reply_location ~(statement : destructable_statement) (loc : Loc.t) =
+  if
+    loc.loc_start.pos_lnum - 1 <> statement.query_range.start.line
+    || loc.loc_end.pos_lnum - 1 <> statement.query_range.end_.line
+  then None
+  else (
+    let start_offset =
+      statement.reply_range.start.character - statement.query_range.start.character
+    in
+    let end_offset =
+      statement.reply_range.end_.character - statement.query_range.end_.character
+    in
+    let loc_start =
+      { loc.loc_start with pos_cnum = loc.loc_start.pos_cnum + start_offset }
+    in
+    let loc_end = { loc.loc_end with pos_cnum = loc.loc_end.pos_cnum + end_offset } in
+    Some { loc with loc_start; loc_end })
 ;;
 
 (** Tries to find a statement we know how to handle on the line where the range
@@ -259,9 +264,9 @@ let code_action
          ~action_kind
          ~range:statement.query_range
          ~postprocess:(fun (loc, newText) ->
-           let loc = adjust_reply_location ~statement loc in
-           let newText = format_merlin_reply ~statement newText in
-           loc, newText))
+           Option.map (adjust_reply_location ~statement loc) ~f:(fun loc ->
+             let newText = format_merlin_reply ~statement newText in
+             loc, newText)))
 ;;
 
 let t ~dispatch state =

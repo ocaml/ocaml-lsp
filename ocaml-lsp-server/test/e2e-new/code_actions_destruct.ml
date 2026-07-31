@@ -42,7 +42,7 @@ let%expect_test "malformed object method leaks a destruct assertion" =
     |}]
 ;;
 
-let%expect_test "destruct-line returns an edit inside a UTF-8 scalar" =
+let%expect_test "destruct-line rejects a cross-line recovery location" =
   let source = "𐐀 = 1\nmatch th | 0 -)et x = 1" in
   let range = range ~start_line:1 ~start_character:11 ~end_line:1 ~end_character:23 in
   let general =
@@ -61,31 +61,7 @@ let%expect_test "destruct-line returns an edit inside a UTF-8 scalar" =
       response
       ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
     Fiber.return ());
-  [%expect
-    {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "match ((1 0) - (( *type-error* ) ( *type-error* ))) = 1 with\n| false -> _\n| true -> _",
-                "range": {
-                  "end": { "character": 23, "line": 1 },
-                  "start": { "character": 1, "line": 0 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///test.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "destruct-line (enumerate cases, use existing match)",
-      "title": "Destruct-line (enumerate cases, use existing match)"
-    }
-    |}]
+  [%expect {| No code actions |}]
 ;;
 
 let%expect_test "can destruct sum types" =
