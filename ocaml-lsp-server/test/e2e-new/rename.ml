@@ -189,7 +189,7 @@ let b = (^*$) 1
     |}]
 ;;
 
-let%expect_test "rename record-punned variable also renames the field" =
+let%expect_test "rename record-punned expression variable preserves the field" =
   test_rename
     ~newName:"y"
     {ocaml|type t = { x : int }
@@ -198,11 +198,11 @@ let f $x = { x }
   [%expect
     {|
     type t = { x : int }
-    let f y = { y }
+    let f y = { x = y }
     |}]
 ;;
 
-let%expect_test "rename record-punned pattern variable also renames the field" =
+let%expect_test "rename record-punned pattern variable preserves the field" =
   test_rename
     ~newName:"y"
     {ocaml|type t = { x : int }
@@ -211,11 +211,11 @@ let get { $x } = x
   [%expect
     {|
     type t = { x : int }
-    let get { y } = y
+    let get { x = y } = y
     |}]
 ;;
 
-let%expect_test "rename record field also renames a punned variable" =
+let%expect_test "rename record field preserves a punned variable" =
   test_rename
     ~newName:"y"
     {ocaml|type t = { $x : int }
@@ -224,7 +224,7 @@ let f x = { x }
   [%expect
     {|
     type t = { y : int }
-    let f x = { y }
+    let f x = { y = x }
     |}]
 ;;
 
@@ -497,7 +497,7 @@ let%expect_test "rename a symbol across open and closed files" =
     |}]
 ;;
 
-let%expect_test "rename cross-file record-punned variable also renames field" =
+let%expect_test "rename cross-file record-punned variable preserves field" =
   test_project_rename
     ~newName:"renamed"
     ~request_file:"lib.ml"
@@ -519,11 +519,11 @@ let result : t = { value }
     let renamed = 1
     main.ml:
     open Lib
-    let result : t = { renamed }
+    let result : t = { value = renamed }
     |}]
 ;;
 
-let%expect_test "rename cross-file punned record field also renames variable" =
+let%expect_test "rename cross-file punned record field preserves variable" =
   test_project_rename
     ~newName:"renamed"
     ~request_file:"lib.ml"
@@ -545,11 +545,11 @@ let result : t = { value }
     let value = 1
     main.ml:
     open Lib
-    let result : t = { renamed }
+    let result : t = { renamed = value }
     |}]
 ;;
 
-let%expect_test "rename field without local declaration also renames punned variable" =
+let%expect_test "rename field without local declaration preserves punned variable" =
   test_project_rename
     ~newName:"renamed"
     ~request_file:"main.ml"
@@ -570,11 +570,11 @@ let punned : t = { value }
     open Lib
     let value = 1
     let explicit : t = { renamed = 2 }
-    let punned : t = { renamed }
+    let punned : t = { renamed = value }
     |}]
 ;;
 
-let%expect_test "rename qualified record-punned variable also renames field" =
+let%expect_test "rename qualified record-punned variable preserves field" =
   test_rename
     ~newName:"y"
     {ocaml|module M = struct type t = { x : int } end
@@ -583,11 +583,11 @@ let f $x : M.t = { M.x }
   [%expect
     {|
     module M = struct type t = { x : int } end
-    let f y : M.t = { y }
+    let f y : M.t = { M.x = y }
     |}]
 ;;
 
-let%expect_test "rename qualified punned field also renames variable" =
+let%expect_test "rename qualified punned field preserves variable" =
   test_rename
     ~newName:"y"
     {ocaml|module M = struct type t = { $x : int } end
@@ -598,7 +598,7 @@ let value : M.t = { M.x }
     {|
     module M = struct type t = { y : int } end
     let x = 1
-    let value : M.t = { M.y }
+    let value : M.t = { M.y = x }
     |}]
 ;;
 
@@ -643,7 +643,7 @@ let f $x =
     {|
     type t = { x : int }
     let f y =
-      ({ y : int }, { y :> int }, { y : int :> int }, { x : int = y })
+      ({ x : int = y }, { x :> int = y }, { x : int :> int = y }, { x : int = y })
     |}]
 ;;
 
@@ -658,7 +658,7 @@ let f x =
     {|
     type t = { y : int }
     let f x =
-      ({ y : int }, { y :> int }, { y : int :> int }, { y : int = x })
+      ({ y : int = x }, { y :> int = x }, { y : int :> int = x }, { y : int = x })
     |}]
 ;;
 
@@ -671,7 +671,7 @@ let f { x : int } { x : int = explicit } = $x, explicit
   [%expect
     {|
     type t = { x : int }
-    let f { y : int } { x : int = explicit } = y, explicit
+    let f { x : int = y } { x : int = explicit } = y, explicit
     |}]
 ;;
 
@@ -684,7 +684,7 @@ let f { x : int } { x : int = explicit } = x, explicit
   [%expect
     {|
     type t = { y : int }
-    let f { y : int } { y : int = explicit } = x, explicit
+    let f { y : int = x } { y : int = explicit } = x, explicit
     |}]
 ;;
 
@@ -698,8 +698,8 @@ let f $x = { M.x (* keep *) :
   [%expect
     {|
     module M = struct type t = { x : int } end
-    let f y = { y (* keep *) :
-      int }
+    let f y = { M.x (* keep *) :
+      int = y }
     |}]
 ;;
 
@@ -714,11 +714,24 @@ let f x = { M.x (* keep *) :
     {|
     module M = struct type t = { y : int } end
     let f x = { M.y (* keep *) :
-      int }
+      int = x }
     |}]
 ;;
 
-let%expect_test "rename qualified pattern-punned variable with and without a constraint" =
+let%expect_test "rename qualified pattern-punned variable preserves field" =
+  test_rename
+    ~newName:"y"
+    {ocaml|module M = struct type t = { x : int } end
+let f { M.x } = $x
+|ocaml};
+  [%expect
+    {|
+    module M = struct type t = { x : int } end
+    let f { M.x = y } = y
+    |}]
+;;
+
+let%expect_test "rename qualified constrained pattern-punned variable" =
   test_rename
     ~newName:"y"
     {ocaml|module M = struct type t = { x : int } end
@@ -728,7 +741,7 @@ let g { M.x } = x
   [%expect
     {|
     module M = struct type t = { x : int } end
-    let f { y : int } = y
+    let f { M.x : int = y } = y
     let g { M.x } = x
     |}]
 ;;
@@ -743,8 +756,8 @@ let g { M.x } = x
   [%expect
     {|
     module M = struct type t = { y : int } end
-    let f { M.y : int } = x
-    let g { M.y } = x
+    let f { M.y : int = x } = x
+    let g { M.y = x } = x
     |}]
 ;;
 

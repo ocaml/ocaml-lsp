@@ -70,6 +70,9 @@
   running. (#1919, @rgrinberg)
 - Fix the build on FreeBSD, where `statfs(2)` is declared in `<sys/mount.h>`
   rather than `<sys/statfs.h>`. (#2070, fixes #1069, @dayangac)
+- Expand record puns during rename to preserve the untouched field or variable,
+  including qualified and type-annotated puns and cross-file occurrences.
+  (#2065, @rgrinberg)
 - Deduplicate identical rename text edits returned by Merlin recovery.
   (#2064, @rgrinberg)
 - Reject cross-line destruct recovery locations before applying line-local

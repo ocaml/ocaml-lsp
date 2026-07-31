@@ -28,6 +28,16 @@ module Single_pipeline : sig
   type t
 
   val create : Lev_fiber.Thread.t -> t
+
+  (** Run a pipeline for a source snapshot on the Merlin worker, outside any
+      other pipeline's state. *)
+  val use_with_config
+    :  ?name:string
+    -> t
+    -> source:Msource.t
+    -> config:Mconfig.t
+    -> f:(Mpipeline.t -> 'a)
+    -> ('a, Exn_with_backtrace.t) result Fiber.t
 end
 
 val make
