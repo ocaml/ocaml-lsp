@@ -30,6 +30,46 @@ module Util = struct
   ;;
 end
 
+let%expect_test "missing index is reported as an internal error" =
+  let source = "let x = 1" in
+  let request client =
+    let params =
+      `Assoc
+        [ "uri", DocumentUri.yojson_of_t Helpers.uri
+        ; "at", Position.yojson_of_t (Position.create ~line:0 ~character:4)
+        ]
+    in
+    let* result =
+      Fiber.collect_errors (fun () -> Test.custom_request client Req.meth params)
+    in
+    match result with
+    | Error
+        [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ] ->
+      let data = Option.value_exn error.data in
+      let exn = Yojson.Safe.Util.(data |> member "exn" |> to_string) in
+      let exn =
+        if String.is_prefix exn ~prefix:"Yojson__Safe.Util.Type_error"
+        then "Yojson__Safe.Util.Type_error"
+        else exn
+      in
+      Printf.printf
+        "code: %s\nexception: %s\n"
+        (Jsonrpc.Response.Error.Code.to_string error.code)
+        exn;
+      Fiber.return ()
+    | Error errors -> Fiber.reraise_all errors
+    | Ok response ->
+      Test.print_result response;
+      Fiber.return ()
+  in
+  Helpers.test source request;
+  [%expect
+    {|
+    code: InternalError
+    exception: Yojson__Safe.Util.Type_error
+    |}]
+;;
+
 let%expect_test "Application of function without range end" =
   let source = "string_of_int 42" in
   let line = 0
