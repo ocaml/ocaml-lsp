@@ -18,10 +18,12 @@
  (libraries
   unix
   stdune
+  dune-rpc
   fiber
   fs-io
   yojson
   re
+  xdg
   ppx_yojson_conv_lib
   lev_fiber
   lev
@@ -80,6 +82,7 @@
     declaration
     definition
     diagnostics
+    dune_connection_errors
     dune_diagnostics
     dune_formatting
     dune_nested_root

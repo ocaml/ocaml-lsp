@@ -17,6 +17,7 @@ module Events : sig
   type t
 
   val dune_ready : t -> Signal.t
+  val multiple_instances : t -> Signal.t
 
   val wait_for_diagnostics
     :  t
