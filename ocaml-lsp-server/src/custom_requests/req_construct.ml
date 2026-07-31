@@ -79,8 +79,11 @@ let make_construct_command position with_values depth =
 let dispatch_construct position with_values depth pipeline =
   let position = Position.logical position in
   let command = make_construct_command position with_values depth in
-  let pos, result = Query_commands.dispatch pipeline command in
-  yojson_of_t { position = Range.of_loc pos; result }
+  try
+    let pos, result = Query_commands.dispatch pipeline command in
+    yojson_of_t { position = Range.of_loc pos; result }
+  with
+  | Merlin_analysis.Construct.Not_a_hole -> `Null
 ;;
 
 let on_request ~params state =

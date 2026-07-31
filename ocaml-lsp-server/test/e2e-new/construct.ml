@@ -22,6 +22,33 @@ module Util = struct
   ;;
 end
 
+let%expect_test "construct at a non-hole returns null" =
+  let source = "let x = 1" in
+  let request client =
+    let position = Position.create ~line:0 ~character:4 in
+    let* result = Fiber.collect_errors (fun () -> Util.call_construct client position) in
+    match result with
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+      ->
+      let data = Option.value_exn error.data in
+      let exn = Yojson.Safe.Util.(data |> member "exn" |> to_string) in
+      Printf.printf
+        "code: %s\nexception: %s\n"
+        (Jsonrpc.Response.Error.Code.to_string error.code)
+        exn;
+      Fiber.return ()
+    | Error errors -> Fiber.reraise_all errors
+    | Ok response ->
+      Test.print_result response;
+      Fiber.return ()
+  in
+  Helpers.test source request;
+  [%expect
+    {|
+    null
+    |}]
+;;
+
 let%expect_test "Example sample from merlin 1" =
   let source =
     {|type r = {the_t: t; id: int}
