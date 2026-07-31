@@ -4,7 +4,23 @@ let inline_test ?print_none source =
   Code_actions.code_action_test ?print_none ~title:"Inline into uses" source
 ;;
 
-let%expect_test "eager inline action overflows on a deeply recovered expression" =
+let%expect_test "inline a shorthand function used as a value and a labelled argument" =
+  inline_test
+    {|
+let use ~f = f 0
+let $f x = x + 1
+let g = f
+let h = use ~f
+|};
+  [%expect
+    {|
+    let use ~f = f 0
+    let f x = x + 1
+    let g = (fun x -> x + 1)
+    let h = use ~f:(fun x -> x + 1) |}]
+;;
+
+let%expect_test "inline action handles a deeply recovered expression" =
   let source = "let opt[()\nlet claion A -x" in
   let range =
     Code_actions.range ~start_line:0 ~start_character:7 ~end_line:1 ~end_character:15
@@ -42,14 +58,7 @@ let%expect_test "eager inline action overflows on a deeply recovered expression"
          | Error errors -> Fiber.reraise_all errors)
   in
   test ();
-  [%expect
-    {|
-    {
-      "data": { "exn": "Stack overflow" },
-      "code": -32603,
-      "message": "uncaught exception"
-    }
-    |}];
+  [%expect {| No code actions |}];
   let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
   let codeAction =
     CodeActionClientCapabilities.create ~dataSupport:true ~resolveSupport ()
