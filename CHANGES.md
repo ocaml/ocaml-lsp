@@ -9,6 +9,8 @@
 - Distinguish operators from functions in semantic highlighting. (#1831, @rgrinberg)
 - Classify function parameters and labels in semantic highlighting.
   (#1857, @rgrinberg)
+- Distinguish built-in from user-defined types in semantic highlighting.
+  (#1858, fixes #1139, @rgrinberg)
 
 ## Fixes
 
