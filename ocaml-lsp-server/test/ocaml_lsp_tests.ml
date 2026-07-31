@@ -2,9 +2,16 @@ open Lsp.Types
 module Position = Lsp.Position
 module Range = Lsp.Range
 
-let%test_unit "convert an LSP position to a Merlin logical position" =
+let%expect_test "convert an LSP position to a Merlin logical position" =
   let position = Position.create ~line:2 ~character:3 in
-  assert (Ocaml_lsp_server.Testing.Position.logical position = `Logical (3, 3))
+  let (`Logical (line, column)) = Ocaml_lsp_server.Testing.Position.logical position in
+  Printf.printf
+    "LSP position (%d, %d) -> Merlin logical position (%d, %d)\n"
+    position.line
+    position.character
+    line
+    column;
+  [%expect {| LSP position (2, 3) -> Merlin logical position (3, 3) |}]
 ;;
 
 let%expect_test "replacement ranges preserve trailing newlines" =
@@ -127,23 +134,30 @@ let%expect_test "normalize document-symbol selection ranges" =
     |}]
 ;;
 
-let%expect_test "eat_message tests" =
-  let test e1 e2 expected =
-    let result = Ocaml_lsp_server.Diagnostics.equal_message e1 e2 in
-    if result = expected then print_endline "[PASS]" else print_endline "[FAIL]"
+let%expect_test "diagnostic message equality ignores insignificant whitespace" =
+  let test left right =
+    let relation =
+      if Ocaml_lsp_server.Diagnostics.equal_message left right
+      then "equal"
+      else "different"
+    in
+    Printf.printf "%S <> %S: %s\n" left right relation
   in
-  test "foo bar" "foo  bar" true;
-  [%expect {| [PASS] |}];
-  test " foobar" "foobar" true;
-  [%expect {| [PASS] |}];
-  test "foobar" "foobar " true;
-  [%expect {| [PASS] |}];
-  test "foobar" "foobar\t" true;
-  [%expect {| [PASS] |}];
-  test "foobar" "foobar\n" true;
-  [%expect {| [PASS] |}];
-  test "foobar" "foo bar" false;
-  [%expect {| [PASS] |}];
-  test "foo bar" "foo Bar" false;
-  [%expect {| [PASS] |}]
+  test "foo bar" "foo  bar";
+  test " foobar" "foobar";
+  test "foobar" "foobar ";
+  test "foobar" "foobar\t";
+  test "foobar" "foobar\n";
+  test "foobar" "foo bar";
+  test "foo bar" "foo Bar";
+  [%expect
+    {|
+    "foo bar" <> "foo  bar": equal
+    " foobar" <> "foobar": equal
+    "foobar" <> "foobar ": equal
+    "foobar" <> "foobar\t": equal
+    "foobar" <> "foobar\n": equal
+    "foobar" <> "foo bar": different
+    "foo bar" <> "foo Bar": different
+    |}]
 ;;

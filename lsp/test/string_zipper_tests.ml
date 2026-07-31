@@ -195,11 +195,12 @@ let%expect_test "squashing" =
   let t = String_zipper.goto_line t 1 |> checked in
   let t, str' = String_zipper.squash t in
   check_invariants t;
-  assert (String.equal str str');
-  printfn "squashing: %S" (String_zipper.to_string_debug t);
+  printfn "squashed text: %S" str';
+  printfn "zipper: %S" (String_zipper.to_string_debug t);
   [%expect
     {|
-    squashing: "foo\n|bar" |}]
+    squashed text: "foo\nbar"
+    zipper: "foo\n|bar" |}]
 ;;
 
 let%expect_test "add buffer between" =
@@ -223,6 +224,17 @@ let%expect_test "drop_until bug" =
   [%expect
     {|
     "foo\nbar\n|" |}];
-  printfn "abs_pos: %d" (String_zipper.Private.reflect t).abs_pos;
-  [%expect {| abs_pos: 0 |}]
+  String_zipper.Private.reflect t |> to_dyn |> Dyn.to_string |> print_endline;
+  [%expect
+    {|
+    { left = []
+    ; rel_pos = 8
+    ; abs_pos = 0
+    ; current = "foo\n\
+                 bar\n\
+                 "
+    ; right = []
+    ; line = 2
+    }
+    |}]
 ;;
