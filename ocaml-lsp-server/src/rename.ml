@@ -73,6 +73,45 @@ let prepare
         else None))
 ;;
 
+let record_puns_and_fields (parsetree : Mreader.parsetree) =
+  let record_puns = ref [] in
+  let record_fields = ref [] in
+  let iterator =
+    let expr (self : Ast_iterator.iterator) (expr : Parsetree.expression) =
+      (match expr.pexp_desc with
+       | Pexp_record (fields, _) ->
+         List.iter fields ~f:(fun (field, value) ->
+           if Loc.compare field.loc value.pexp_loc = 0
+           then record_puns := field.loc :: !record_puns)
+       | _ -> ());
+      Ast_iterator.default_iterator.expr self expr
+    in
+    let pat (self : Ast_iterator.iterator) (pat : Parsetree.pattern) =
+      (match pat.ppat_desc with
+       | Ppat_record (fields, _) ->
+         List.iter fields ~f:(fun (field, value) ->
+           if Loc.compare field.loc value.ppat_loc = 0
+           then record_puns := field.loc :: !record_puns)
+       | _ -> ());
+      Ast_iterator.default_iterator.pat self pat
+    in
+    let label_declaration
+          (self : Ast_iterator.iterator)
+          (declaration : Parsetree.label_declaration)
+      =
+      record_fields := declaration.pld_name.loc :: !record_fields;
+      Ast_iterator.default_iterator.label_declaration self declaration
+    in
+    { Ast_iterator.default_iterator with expr; pat; label_declaration }
+  in
+  (match parsetree with
+   | `Implementation structure -> iterator.structure iterator structure
+   | `Interface signature -> iterator.signature iterator signature);
+  !record_puns, !record_fields
+;;
+
+let same_range left right = Lsp.Range.compare (Range.of_loc left) (Range.of_loc right) = 0
+
 let rename (state : State.t) { RenameParams.textDocument = { uri }; position; newName; _ }
   =
   let doc = Document_store.get state.store uri in
@@ -82,9 +121,11 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position), `Renaming)
     in
-    let+ occurrences, _desync =
-      Document.Merlin.dispatch_exn ~name:"rename" merlin command
+    let+ (occurrences, _desync), parsetree =
+      Document.Merlin.with_pipeline_exn ~name:"rename" merlin (fun pipeline ->
+        Query_commands.dispatch pipeline command, Mpipeline.reader_parsetree pipeline)
     in
+    let record_puns, record_fields = record_puns_and_fields parsetree in
     let locs =
       List.filter_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
         match occurrence.is_stale with
@@ -103,6 +144,11 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
           in
           Map.add_multi acc ~key:uri ~data:loc)
     in
+    let renames_record_field =
+      Map.exists locs ~f:(fun locs ->
+        List.exists locs ~f:(fun loc ->
+          List.exists record_fields ~f:(fun field -> same_range loc field)))
+    in
     let edits =
       Map.mapi locs ~f:(fun ~key:doc_uri ~data:locs ->
         let source =
@@ -115,7 +161,27 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
         in
         List.map locs ~f:(fun loc ->
           let range = identifier_range source loc in
-          let edit = TextEdit.create ~range ~newText:newName in
+          let edit =
+            if List.exists record_puns ~f:(fun pun -> same_range loc pun)
+            then
+              if renames_record_field
+              then (
+                let source_text = Msource.text source in
+                let (`Offset start_offset) =
+                  Msource.get_offset source (Position.logical range.start)
+                in
+                let (`Offset end_offset) =
+                  Msource.get_offset source (Position.logical range.end_)
+                in
+                let old_name =
+                  String.sub source_text ~pos:start_offset ~len:(end_offset - start_offset)
+                in
+                TextEdit.create ~range ~newText:(newName ^ " = " ^ old_name))
+              else (
+                let range = { range with start = range.end_ } in
+                TextEdit.create ~range ~newText:(" = " ^ newName))
+            else TextEdit.create ~range ~newText:newName
+          in
           let start_position = edit.range.start in
           match start_position with
           | { character = 0; _ } -> edit
@@ -126,7 +192,6 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
             (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
                  when [character = 0] in a separate matching branch *);
             let source_txt = Msource.text source in
-            (* TODO: handle record field puning *)
             (match source_txt.[index - 1] with
              | '~' (* the occurrence is a named argument *)
              | '?' (* is an optional argument *) ->
