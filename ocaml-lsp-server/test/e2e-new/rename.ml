@@ -25,7 +25,10 @@ let print_prepare_rename = function
   | Some result -> PrepareRenameResult.yojson_of_t result |> Test.print_result
 ;;
 
-let print_workspace_edit edit = WorkspaceEdit.yojson_of_t edit |> Test.print_result
+let print_workspace_edit = function
+  | None -> print_endline "null"
+  | Some edit -> WorkspaceEdit.yojson_of_t edit |> Test.print_result
+;;
 
 let rec censor_backtraces = function
   | `Assoc fields ->
@@ -384,23 +387,25 @@ let open_project_document client ~uri ~version ~text =
     (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument))
 ;;
 
-let print_document_changes (edit : WorkspaceEdit.t) =
-  match edit.documentChanges with
-  | None -> print_endline "missing documentChanges"
-  | Some changes ->
-    List.iter changes ~f:(function
-      | `TextDocumentEdit { textDocument = { uri; version }; edits } ->
-        let version = Option.value_map version ~default:"null" ~f:Int.to_string in
-        Printf.printf
-          "%s (version %s)\n"
-          (DocumentUri.to_path uri |> Filename.basename)
-          version;
-        List.iter edits ~f:(function
-          | `TextEdit edit -> TextEdit.yojson_of_t edit |> Test.print_result
-          | `AnnotatedTextEdit _ | `SnippetTextEdit _ ->
-            failwith "unexpected annotated or snippet edit")
-      | `CreateFile _ | `RenameFile _ | `DeleteFile _ ->
-        failwith "unexpected resource operation")
+let print_document_changes = function
+  | None -> print_endline "null"
+  | Some (edit : WorkspaceEdit.t) ->
+    (match edit.documentChanges with
+     | None -> print_endline "missing documentChanges"
+     | Some changes ->
+       List.iter changes ~f:(function
+         | `TextDocumentEdit { textDocument = { uri; version }; edits } ->
+           let version = Option.value_map version ~default:"null" ~f:Int.to_string in
+           Printf.printf
+             "%s (version %s)\n"
+             (DocumentUri.to_path uri |> Filename.basename)
+             version;
+           List.iter edits ~f:(function
+             | `TextEdit edit -> TextEdit.yojson_of_t edit |> Test.print_result
+             | `AnnotatedTextEdit _ | `SnippetTextEdit _ ->
+               failwith "unexpected annotated or snippet edit")
+         | `CreateFile _ | `RenameFile _ | `DeleteFile _ ->
+           failwith "unexpected resource operation"))
 ;;
 
 let%expect_test "rename a symbol across open and closed files" =

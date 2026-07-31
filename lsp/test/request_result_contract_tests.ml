@@ -65,45 +65,37 @@ let%expect_test "definition-like result wire shapes" =
   [%expect
     {|
     definition:
-    [
-      {
-        "range": {
-          "end": { "character": 4, "line": 2 },
-          "start": { "character": 4, "line": 2 }
-        },
-        "uri": "file:///workspace/test.ml"
-      }
-    ]
+    {
+      "range": {
+        "end": { "character": 4, "line": 2 },
+        "start": { "character": 4, "line": 2 }
+      },
+      "uri": "file:///workspace/test.ml"
+    }
     declaration:
-    [
-      {
-        "range": {
-          "end": { "character": 4, "line": 2 },
-          "start": { "character": 4, "line": 2 }
-        },
-        "uri": "file:///workspace/test.ml"
-      }
-    ]
+    {
+      "range": {
+        "end": { "character": 4, "line": 2 },
+        "start": { "character": 4, "line": 2 }
+      },
+      "uri": "file:///workspace/test.ml"
+    }
     type definition:
-    [
-      {
-        "range": {
-          "end": { "character": 4, "line": 2 },
-          "start": { "character": 4, "line": 2 }
-        },
-        "uri": "file:///workspace/test.ml"
-      }
-    ]
+    {
+      "range": {
+        "end": { "character": 4, "line": 2 },
+        "start": { "character": 4, "line": 2 }
+      },
+      "uri": "file:///workspace/test.ml"
+    }
     implementation:
-    [
-      {
-        "range": {
-          "end": { "character": 4, "line": 2 },
-          "start": { "character": 4, "line": 2 }
-        },
-        "uri": "file:///workspace/test.ml"
-      }
-    ]
+    {
+      "range": {
+        "end": { "character": 4, "line": 2 },
+        "start": { "character": 4, "line": 2 }
+      },
+      "uri": "file:///workspace/test.ml"
+    }
     |}]
 ;;
 
@@ -153,9 +145,9 @@ let%expect_test "workspace symbol and nullable results" =
     `Null;
   [%expect
     {|
-    workspace symbol: rejected
-    signature help null: rejected
-    selection range null: rejected
-    rename null: rejected
+    workspace symbol: accepted
+    signature help null: accepted
+    selection range null: accepted
+    rename null: accepted
     |}]
 ;;

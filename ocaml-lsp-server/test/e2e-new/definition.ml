@@ -1,6 +1,10 @@
 open Test.Import
 
-let print_locations = Test.print_option Locations.yojson_of_t
+let print_locations =
+  Test.print_option (function
+    | `Definition definition -> Definition.yojson_of_t definition
+    | `DefinitionLink links -> `List (List.map links ~f:DefinitionLink.yojson_of_t))
+;;
 
 let definition client position =
   let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in

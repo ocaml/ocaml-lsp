@@ -634,7 +634,12 @@ let on_request
      | Some doc -> now (Some (Msource.text (Document.source doc))))
   | DebugEcho params -> now params
   | Shutdown -> Fiber.return (Reply.now (), state)
-  | WorkspaceSymbol req -> later (fun state () -> Workspace_symbol.run state req) ()
+  | WorkspaceSymbol req ->
+    later
+      (fun state () ->
+         let+ result = Workspace_symbol.run state req in
+         Option.map result ~f:(fun symbols -> `SymbolInformation symbols))
+      ()
   | CodeActionResolve ca -> now ca
   | ExecuteCommand command ->
     if String.equal command.command Merlin_config_command.command_name
@@ -722,11 +727,24 @@ let on_request
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
   | TextDocumentDeclaration { textDocument = { uri }; position; _ } ->
-    later (fun state () -> Definition_query.run `Declaration state uri position) ()
+    later
+      (fun state () ->
+         let+ result = Definition_query.run `Declaration state uri position in
+         Option.map result ~f:(fun (`Location locations) ->
+           `Declaration (`List locations)))
+      ()
   | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
-    later (fun state () -> Definition_query.run `Definition state uri position) ()
+    later
+      (fun state () ->
+         let+ result = Definition_query.run `Definition state uri position in
+         Option.map result ~f:(fun (`Location locations) -> `Definition (`List locations)))
+      ()
   | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
-    later (fun state () -> Definition_query.run `Type_definition state uri position) ()
+    later
+      (fun state () ->
+         let+ result = Definition_query.run `Type_definition state uri position in
+         Option.map result ~f:(fun (`Location locations) -> `Definition (`List locations)))
+      ()
   | TextDocumentCompletion params -> later (fun _ () -> Compl.complete state params) ()
   | TextDocumentPrepareRename req ->
     later
@@ -734,9 +752,19 @@ let on_request
          let+ result = Rename.prepare state req in
          Option.map result ~f:(fun range -> `Range range))
       req
-  | TextDocumentRename req -> later Rename.rename req
+  | TextDocumentRename req ->
+    later
+      (fun state req ->
+         let+ result = Rename.rename state req in
+         Some result)
+      req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
-  | SignatureHelp req -> later Signature_help.run req
+  | SignatureHelp req ->
+    later
+      (fun state req ->
+         let+ result = Signature_help.run state req in
+         Some result)
+      req
   | TextDocumentLinkResolve l -> now l
   | TextDocumentLink _ -> now None
   | WillSaveWaitUntilTextDocument _ -> now None
@@ -753,7 +781,12 @@ let on_request
          Formatter.run_on_range rpc doc range)
       ()
   | TextDocumentOnTypeFormatting _ -> now None
-  | SelectionRange req -> later selection_range req
+  | SelectionRange req ->
+    later
+      (fun state req ->
+         let+ result = selection_range state req in
+         Some result)
+      req
   | TextDocumentImplementation _ -> not_supported ()
   | SemanticTokensFull p -> later Semantic_highlighting.on_request_full p
   | SemanticTokensDelta p -> later Semantic_highlighting.on_request_full_delta p

@@ -6274,12 +6274,3 @@ module CodeActionResult : sig
 
   include Json.Jsonable.S with type t := t
 end
-
-module Locations : sig
-  type t =
-    [ `Location of Location.t list
-    | `LocationLink of LocationLink.t list
-    ]
-
-  include Json.Jsonable.S with type t := t
-end

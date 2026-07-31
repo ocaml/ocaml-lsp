@@ -240,7 +240,12 @@ let to_test_result workspaces (symbol : SymbolInformation.t) =
 ;;
 
 let print_symbols workspaces symbols =
-  let symbols = Option.value symbols ~default:[] in
+  let symbols =
+    match symbols with
+    | None -> []
+    | Some (`SymbolInformation symbols) -> symbols
+    | Some (`WorkspaceSymbol _) -> failwith "unexpected resolvable workspace symbols"
+  in
   List.iter symbols ~f:(fun symbol -> print_endline (to_test_result workspaces symbol))
 ;;
 

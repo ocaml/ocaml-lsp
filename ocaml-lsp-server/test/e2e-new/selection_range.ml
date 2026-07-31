@@ -7,18 +7,20 @@ let selection_range client positions =
     (SelectionRange (SelectionRangeParams.create ~textDocument ~positions ()))
 ;;
 
-let print_selection_ranges ranges =
-  let rec chain (selection_range : SelectionRange.t) =
-    let rest =
-      match selection_range.parent with
-      | None -> []
-      | Some parent -> chain parent
+let print_selection_ranges = function
+  | None -> print_endline "null"
+  | Some ranges ->
+    let rec chain (selection_range : SelectionRange.t) =
+      let rest =
+        match selection_range.parent with
+        | None -> []
+        | Some parent -> chain parent
+      in
+      Range.yojson_of_t selection_range.range :: rest
     in
-    Range.yojson_of_t selection_range.range :: rest
-  in
-  `List (List.map ranges ~f:(fun range -> `List (chain range)))
-  |> Yojson.Safe.pretty_to_string ~std:false
-  |> print_endline
+    `List (List.map ranges ~f:(fun range -> `List (chain range)))
+    |> Yojson.Safe.pretty_to_string ~std:false
+    |> print_endline
 ;;
 
 let test source positions =
