@@ -60,7 +60,7 @@ possible and does not make any assumptions about IO.
   (stdune (>= 3.22.0))
   (fiber (and (>= 3.1.1) (< 4.0.0)))
   (fs-io (>= 3.22.0))
-  (ocaml (and (>= 5.5) (< 5.6)))
+  (ocaml (and (>= 5.6) (< 5.7)))
   xdg
   ordering
   (dune-build-info (>= 3.22.0))

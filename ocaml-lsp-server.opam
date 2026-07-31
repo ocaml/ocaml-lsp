@@ -32,7 +32,7 @@ depends: [
   "stdune" {>= "3.22.0"}
   "fiber" {>= "3.1.1" & < "4.0.0"}
   "fs-io" {>= "3.22.0"}
-  "ocaml" {>= "5.5" & < "5.6"}
+  "ocaml" {>= "5.6" & < "5.7"}
   "xdg"
   "ordering"
   "dune-build-info" {>= "3.22.0"}
