@@ -54,9 +54,7 @@ let num2 = num
 
 let%expect_test "can reject invalid rename request" =
   run rename_source (fun client ->
-    let* response = prepare_rename client (Position.create ~line:0 ~character:1) in
-    print_prepare_rename response;
-    Fiber.return ());
+    Position.create ~line:0 ~character:1 |> prepare_rename client >>| print_prepare_rename);
   [%expect {| null |}]
 ;;
 
@@ -90,11 +88,8 @@ let%expect_test "prepare rename leaks a lexer error on an astral character" =
 
 let%expect_test "rename deduplicates edits for an incomplete binding" =
   run "let rec ma" (fun client ->
-    let* response =
-      rename ~newName:"fuzz_renamed" client (Position.create ~line:0 ~character:10)
-    in
-    print_workspace_edit response;
-    Fiber.return ());
+    rename ~newName:"fuzz_renamed" client (Position.create ~line:0 ~character:10)
+    >>| print_workspace_edit);
   [%expect
     {|
     {
@@ -115,9 +110,7 @@ let%expect_test "rename deduplicates edits for an incomplete binding" =
 
 let%expect_test "allows valid rename request" =
   run rename_source (fun client ->
-    let* response = prepare_rename client (Position.create ~line:0 ~character:4) in
-    print_prepare_rename response;
-    Fiber.return ());
+    prepare_rename client (Position.create ~line:0 ~character:4) >>| print_prepare_rename);
   [%expect
     {|
     {
@@ -186,9 +179,8 @@ let f x = { x }
 |ocaml}
   in
   run source (fun client ->
-    let* response = rename ~newName:"y" client (Position.create ~line:1 ~character:6) in
-    print_workspace_edit response;
-    Fiber.return ());
+    rename ~newName:"y" client (Position.create ~line:1 ~character:6)
+    >>| print_workspace_edit);
   [%expect
     {|
     {
@@ -214,11 +206,49 @@ let f x = { x }
     |}]
 ;;
 
+let test_rename ~newName source_with_cursor =
+  let source, { Range.start = position; end_ } =
+    Code_actions.parse_selection source_with_cursor
+  in
+  assert (Position.compare position end_ = 0);
+  run source (fun client ->
+    let+ response = rename ~newName client position in
+    (match response.changes with
+     | Some [ (_, edits) ] -> edits
+     | None | Some _ -> failwith "expected edits for one document")
+    |> Test.apply_edits source
+    |> print_string)
+;;
+
+let%expect_test "rename record-punned pattern variable also renames the field" =
+  test_rename
+    ~newName:"y"
+    {ocaml|type t = { x : int }
+let get { $x } = x
+|ocaml};
+  [%expect
+    {|
+    type t = { x : int }
+    let get { y } = y
+    |}]
+;;
+
+let%expect_test "rename record field also renames a punned variable" =
+  test_rename
+    ~newName:"y"
+    {ocaml|type t = { $x : int }
+let f x = { x }
+|ocaml};
+  [%expect
+    {|
+    type t = { y : int }
+    let f x = { y }
+    |}]
+;;
+
 let%expect_test "rename value in a file without documentChanges capability" =
   run rename_source (fun client ->
-    let* response = rename client (Position.create ~line:0 ~character:4) in
-    print_workspace_edit response;
-    Fiber.return ());
+    Position.create ~line:0 ~character:4 |> rename client >>| print_workspace_edit);
   [%expect
     {|
     {
@@ -246,9 +276,7 @@ let%expect_test "rename value in a file without documentChanges capability" =
 
 let%expect_test "rename value in a file with documentChanges capability" =
   run ~documentChanges:true rename_source (fun client ->
-    let* response = rename client (Position.create ~line:0 ~character:4) in
-    print_workspace_edit response;
-    Fiber.return ());
+    Position.create ~line:0 ~character:4 |> rename client >>| print_workspace_edit);
   [%expect
     {|
     {
@@ -284,14 +312,12 @@ let f x = { x }
 |ocaml}
   in
   run source (fun client ->
-    let* response = rename ~newName:"y" client (Position.create ~line:1 ~character:6) in
-    let edits =
-      match response.changes with
-      | Some [ (_, edits) ] -> edits
-      | None | Some _ -> failwith "expected edits for one document"
-    in
-    Test.apply_edits source edits |> print_string;
-    Fiber.return ());
+    let+ response = rename ~newName:"y" client (Position.create ~line:1 ~character:6) in
+    (match response.changes with
+     | Some [ (_, edits) ] -> edits
+     | None | Some _ -> failwith "expected edits for one document")
+    |> Test.apply_edits source
+    |> print_string);
   [%expect
     {|
     type t = { x : int }
@@ -309,11 +335,9 @@ let () = bar ~foo
 |ocaml}
   in
   run source (fun client ->
-    let* response =
-      rename ~newName:"ident" client (Position.create ~line:0 ~character:4)
-    in
-    print_workspace_edit response;
-    Fiber.return ());
+    Position.create ~line:0 ~character:4
+    |> rename ~newName:"ident" client
+    >>| print_workspace_edit);
   [%expect
     {|
     {
@@ -350,11 +374,8 @@ ignore (bar ?foo ())
 |ocaml}
   in
   run source (fun client ->
-    let* response =
-      rename ~newName:"sunit" client (Position.create ~line:0 ~character:4)
-    in
-    print_workspace_edit response;
-    Fiber.return ());
+    rename ~newName:"sunit" client (Position.create ~line:0 ~character:4)
+    >>| print_workspace_edit);
   [%expect
     {|
     {
