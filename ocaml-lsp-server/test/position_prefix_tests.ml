@@ -121,12 +121,13 @@ let%expect_test "completion sort text preserves order above 9999 items" =
   |> List.map (fun index ->
     index, Testing.Compl.For_tests.sortText_of_index ~item_count index)
   |> List.sort (fun (_, left) (_, right) -> String.compare left right)
-  |> List.iter (fun (index, _) -> Printf.printf "%d\n" index);
+  |> List.iter (fun (index, sort_text) ->
+    Printf.printf "item %d -> sortText %S\n" index sort_text);
   [%expect
     {|
-    9998
-    9999
-    10000
-    10001
+    item 9998 -> sortText "09998"
+    item 9999 -> sortText "09999"
+    item 10000 -> sortText "10000"
+    item 10001 -> sortText "10001"
     |}]
 ;;

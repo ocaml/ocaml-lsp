@@ -281,37 +281,52 @@ let%expect_test "absolute_position" =
   let td = make_document (Uri.of_path "foo.ml") ~text in
   let test (line, character) =
     let offset = Text_document.absolute_position td (Position.create ~line ~character) in
-    printf "position: %d/%d\n" offset (String.length text)
+    let before = String.sub text ~pos:0 ~len:offset in
+    let after = String.sub text ~pos:offset ~len:(String.length text - offset) in
+    printf "position (%d, %d) -> offset %d: %S | %S\n" line character offset before after
   in
   test (0, 0);
-  [%expect {| position: 0/13 |}];
+  [%expect {| position (0, 0) -> offset 0: "" | "foo|bar\nbaz.x" |}];
   test (3, 0);
-  [%expect {| position: 13/13 |}];
+  [%expect {| position (3, 0) -> offset 13: "foo|bar\nbaz.x" | "" |}];
   test (1, 0);
-  [%expect {| position: 8/13 |}];
+  [%expect {| position (1, 0) -> offset 8: "foo|bar\n" | "baz.x" |}];
   test (1, 100);
-  [%expect {| position: 13/13 |}];
+  [%expect {| position (1, 100) -> offset 13: "foo|bar\nbaz.x" | "" |}];
   test (0, 100);
-  [%expect {| position: 7/13 |}];
+  [%expect {| position (0, 100) -> offset 7: "foo|bar" | "\nbaz.x" |}];
   test (100, 0);
-  [%expect {| position: 13/13 |}]
+  [%expect {| position (100, 0) -> offset 13: "foo|bar\nbaz.x" | "" |}]
 ;;
 
-let%test_unit "workspace edits identify the document and its version" =
+let%expect_test "workspace edits identify the document and its version" =
   let uri = Uri.of_string "file:///foo.ml" in
   let doc = make_document uri ~text:"old" in
   let range = tuple_range (0, 0) (0, 3) in
   let text_edit = TextEdit.create ~range ~newText:"new" in
-  match (Text_document.workspace_edit doc [ text_edit ]).documentChanges with
-  | Some
-      [ `TextDocumentEdit
-          { textDocument = { uri = actual_uri; version = Some 1 }
-          ; edits = [ `TextEdit actual_edit ]
-          }
-      ] ->
-    assert (Uri.equal uri actual_uri);
-    assert (text_edit = actual_edit)
-  | _ -> assert false
+  Text_document.workspace_edit doc [ text_edit ]
+  |> WorkspaceEdit.yojson_of_t
+  |> Yojson.Safe.pretty_to_string ~std:false
+  |> print_endline;
+  [%expect
+    {|
+    {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "new",
+              "range": {
+                "end": { "character": 3, "line": 0 },
+                "start": { "character": 0, "line": 0 }
+              }
+            }
+          ],
+          "textDocument": { "uri": "file:///foo.ml", "version": 1 }
+        }
+      ]
+    }
+    |}]
 ;;
 
 let%expect_test "substring uses the document's position encoding" =

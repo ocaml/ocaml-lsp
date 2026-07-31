@@ -74,13 +74,15 @@ let%expect_test "serialization disambiguates a path beginning with two slashes" 
   let serialized = Uri.to_string uri in
   let round_trip = Uri.of_string serialized in
   Printf.printf
-    "serialized: %s\nround trip equal: %b\n"
+    "original: %s\nserialized: %s\nparsed serialization: %s\n"
+    (Uri.to_string uri)
     serialized
-    (Uri.equal uri round_trip);
+    (Uri.to_string round_trip);
   [%expect
     {|
+    original: untitled:////Module.ml
     serialized: untitled:////Module.ml
-    round trip equal: true
+    parsed serialization: untitled:////Module.ml
     |}]
 ;;
 
@@ -111,16 +113,20 @@ let%expect_test "serialization preserves a non-letter drive-like path" =
 let%expect_test "JSON URI serialization normalizes wire spelling" =
   let encoded_slash = `String "file:///pro%2Fjects/test.ml" in
   let literal_slash = `String "file:///pro/jects/test.ml" in
-  let encoded_uri = Uri.t_of_yojson encoded_slash in
-  let literal_uri = Uri.t_of_yojson literal_slash in
-  Uri.yojson_of_t encoded_uri |> Yojson.Safe.to_string |> print_endline;
-  Printf.printf
-    "encoded and literal slash compare equal: %b\n"
-    (Uri.equal encoded_uri literal_uri);
+  let print_normalized label input =
+    let normalized = Uri.t_of_yojson input |> Uri.yojson_of_t in
+    Printf.printf
+      "%s: %s -> %s\n"
+      label
+      (Yojson.Safe.to_string input)
+      (Yojson.Safe.to_string normalized)
+  in
+  print_normalized "encoded slash" encoded_slash;
+  print_normalized "literal slash" literal_slash;
   [%expect
     {|
-    "file:///pro/jects/test.ml"
-    encoded and literal slash compare equal: true
+    encoded slash: "file:///pro%2Fjects/test.ml" -> "file:///pro/jects/test.ml"
+    literal slash: "file:///pro/jects/test.ml" -> "file:///pro/jects/test.ml"
     |}]
 ;;
 
