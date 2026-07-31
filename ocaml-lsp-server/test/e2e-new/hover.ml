@@ -93,6 +93,43 @@ let%expect_test "returns type inferred under cursor with documentation" =
     |}]
 ;;
 
+let%expect_test "renders extended documentation markup in hover" =
+  let source =
+    {ocaml|(** {%html:<span>raw</span>%}
+
+    Inline math: {m x + y}
+
+    {math z = x + y}
+
+    {!modules:List Array}
+
+    @param value input
+    @return output
+    @canonical Package.Module
+    @version 2.0
+*)
+let documented value = value
+|ocaml}
+  in
+  Hover_helpers.test_hover
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:13 ~character:5 ];
+  [%expect
+    {|
+    {
+      "contents": {
+        "kind": "markdown",
+        "value": "```ocaml\n'a -> 'a\n```\n***\n<span>raw</span>\n\nInline math: $x + y$\n\n```\nz = x + y\n```\n\n* List\n* Array\n\n***@param*** `value`\ninput\n\n***@return***\noutput\n\n***@canonical*** Package.Module\n\n***@version*** `2.0`"
+      },
+      "range": {
+        "end": { "character": 14, "line": 13 },
+        "start": { "character": 4, "line": 13 }
+      }
+    }
+    |}]
+;;
+
 let%expect_test
     "returns type inferred under cursor with documentation with tags (markdown \
      formatting)"
