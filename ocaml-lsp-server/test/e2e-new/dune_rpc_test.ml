@@ -74,15 +74,21 @@ module Events = struct
 
   type t =
     { dune_ready : Signal.t
+    ; multiple_instances : Signal.t
     ; mutable diagnostics : PublishDiagnosticsParams.t list
     ; mutable diagnostic_waiter : diagnostic_waiter option
     }
 
   let create () =
-    { dune_ready = Signal.create (); diagnostics = []; diagnostic_waiter = None }
+    { dune_ready = Signal.create ()
+    ; multiple_instances = Signal.create ()
+    ; diagnostics = []
+    ; diagnostic_waiter = None
+    }
   ;;
 
   let dune_ready t = t.dune_ready
+  let multiple_instances t = t.multiple_instances
 
   let rec take_matching ~f rev_prefix = function
     | [] -> None
@@ -126,6 +132,8 @@ module Events = struct
     | LogMessage { message; _ }
       when Re.execp (Re.compile (Re.str ": connected to dune at ")) message ->
       Signal.notify t.dune_ready
+    | LogMessage { message; _ } when String.is_substring message ~substring:" ignores " ->
+      Signal.notify t.multiple_instances
     | _ -> Fiber.return ()
   ;;
 end
