@@ -118,7 +118,7 @@ let%expect_test "function parameter hint lies outside the requested range" =
       ~end_:(Position.create ~line:0 ~character:6)
   in
   apply_inlay_hints ~range ~source ();
-  [%expect {| let f x$: 'a$ = x |}]
+  [%expect {| let f x = x |}]
 ;;
 
 let%expect_test "function params (deactivated)" =
