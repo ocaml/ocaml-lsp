@@ -47,8 +47,16 @@ let dispatch_destruct range pipeline =
   let start = range.Range.start |> Position.logical
   and stop = range.Range.end_ |> Position.logical in
   let command = make_destruct_command start stop in
-  let loc, content = Query_commands.dispatch pipeline command in
-  yojson_of_t { content; range = Range.of_loc loc }
+  try
+    let loc, content = Query_commands.dispatch pipeline command in
+    yojson_of_t { content; range = Range.of_loc loc }
+  with
+  | Merlin_analysis.Destruct.Wrong_parent _
+  | Query_commands.No_nodes
+  | Merlin_analysis.Destruct.Not_allowed _
+  | Merlin_analysis.Destruct.Useless_refine
+  | Merlin_analysis.Destruct.Ill_typed
+  | Merlin_analysis.Destruct.Nothing_to_do -> `Null
 ;;
 
 let on_request ~params state =
