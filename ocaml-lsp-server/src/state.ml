@@ -22,6 +22,7 @@ type t =
   ; configuration : Configuration.t
   ; trace : TraceValue.t
   ; ocamlformat_rpc : Ocamlformat_rpc.t
+  ; ocp_indent_rpc : Ocp_indent_rpc.t
   ; symbols_thread : Lev_fiber.Thread.t Lazy_fiber.t
   ; wheel : Lev_fiber.Timer.Wheel.t
   ; hover_extended : hover_extended
@@ -33,6 +34,7 @@ let create
       ~detached
       ~configuration
       ~ocamlformat_rpc
+      ~ocp_indent_rpc
       ~symbols_thread
       ~wheel
       ~trace
@@ -45,6 +47,7 @@ let create
   ; configuration
   ; trace = Off
   ; ocamlformat_rpc
+  ; ocp_indent_rpc
   ; symbols_thread
   ; wheel
   ; hover_extended = { history = None }
