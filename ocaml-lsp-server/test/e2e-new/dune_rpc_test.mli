@@ -31,6 +31,7 @@ end
 module Lifecycle_events : sig
   type t = private
     { dune : Events.t
+    ; progress_creations : WorkDoneProgressCreateParams.t Mailbox.t
     ; registrations : RegistrationParams.t Mailbox.t
     ; unregistrations : UnregistrationParams.t Mailbox.t
     }

@@ -145,12 +145,14 @@ end
 module Lifecycle_events = struct
   type t =
     { dune : Events.t
+    ; progress_creations : WorkDoneProgressCreateParams.t Mailbox.t
     ; registrations : RegistrationParams.t Mailbox.t
     ; unregistrations : UnregistrationParams.t Mailbox.t
     }
 
   let create () =
     { dune = Events.create ()
+    ; progress_creations = Mailbox.create ()
     ; registrations = Mailbox.create ()
     ; unregistrations = Mailbox.create ()
     }
@@ -164,8 +166,9 @@ module Lifecycle_events = struct
       : (response Lsp_fiber.Rpc.Reply.t * state) Fiber.t
       =
       match request with
-      | WorkDoneProgressCreate _ ->
-        Fiber.return (Lsp_fiber.Rpc.Reply.now (), Client.state client)
+      | WorkDoneProgressCreate params ->
+        let+ () = Mailbox.push t.progress_creations params in
+        Lsp_fiber.Rpc.Reply.now (), Client.state client
       | ClientRegisterCapability params ->
         let+ () = Mailbox.push t.registrations params in
         Lsp_fiber.Rpc.Reply.now (), Client.state client
