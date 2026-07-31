@@ -36,6 +36,7 @@ module Lifecycle_events : sig
     }
 
   val create : unit -> t
+  val handler : t -> unit Client.Handler.t
 end
 
 val for_uri : Uri.t -> PublishDiagnosticsParams.t -> bool

@@ -43,11 +43,15 @@ open Import
 
 let start_client
       ?(capabilities = ClientCapabilities.create ())
+      ?rootPath
+      ?rootUri
       ?workspaceFolders
       ?trace
       client
   =
-  Client.start client (InitializeParams.create ~capabilities ?workspaceFolders ?trace ())
+  Client.start
+    client
+    (InitializeParams.create ~capabilities ?rootPath ?rootUri ?workspaceFolders ?trace ())
 ;;
 
 let shutdown_client client =
@@ -109,6 +113,8 @@ module T : sig
     -> ?stderr:Unix.file_descr
     -> ?timeout:float
     -> ?capabilities:ClientCapabilities.t
+    -> ?rootPath:string option
+    -> ?rootUri:DocumentUri.t
     -> ?workspaceFolders:WorkspaceFolder.t list option
     -> ?trace:TraceValue.t
     -> ?on_spawn:(int -> unit)
@@ -210,6 +216,8 @@ end = struct
         ?stderr
         ?timeout
         ?(capabilities = ClientCapabilities.create ())
+        ?rootPath
+        ?rootUri
         ?workspaceFolders
         ?trace
         ?on_spawn
@@ -217,7 +225,9 @@ end = struct
     =
     run ?cwd ?extra_env ?handler ?stderr ?timeout ?on_spawn
     @@ fun client ->
-    let run_client () = start_client ~capabilities ?workspaceFolders ?trace client in
+    let run_client () =
+      start_client ~capabilities ?rootPath ?rootUri ?workspaceFolders ?trace client
+    in
     let run_test () =
       let* (_ : InitializeResult.t) = Client.initialized client in
       f client
