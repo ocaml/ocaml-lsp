@@ -224,7 +224,7 @@ let%expect_test "comment-only document without a trailing newline" =
     [
       [
         {
-          "end": { "character": 0, "line": 1 },
+          "end": { "character": 13, "line": 0 },
           "start": { "character": 0, "line": 0 }
         }
       ]
