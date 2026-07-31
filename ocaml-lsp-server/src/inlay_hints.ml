@@ -58,7 +58,9 @@ let compute (state : State.t) { InlayHintParams.range; textDocument = { uri }; _
               ~paddingLeft:false
               ~paddingRight:false
               ())
-          hints)
+          hints
+        |> List.filter ~f:(fun (hint : InlayHint.t) ->
+          Lsp.Range.contains_position range hint.position ~inclusive_end:true))
     in
     Some hints
 ;;
