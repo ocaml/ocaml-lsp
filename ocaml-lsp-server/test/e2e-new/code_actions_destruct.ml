@@ -88,6 +88,26 @@ let%expect_test "destruct-line returns an edit inside a UTF-8 scalar" =
     |}]
 ;;
 
+let%expect_test "destruct-line ignores a recovered match without with" =
+  let source = "let o_[\nmatch xwith | 0 -> () |" in
+  let range = range ~start_line:1 ~start_character:7 ~end_line:1 ~end_character:23 in
+  let makeRequest textDocument =
+    let only =
+      [ CodeActionKind.Other "destruct-line (enumerate cases, use existing match)" ]
+    in
+    let context = CodeActionContext.create ~diagnostics:[] ~only () in
+    Lsp.Client_request.CodeAction
+      (CodeActionParams.create ~textDocument ~range ~context ())
+  in
+  Lsp_helpers.iter_lsp_response_result ~language_id:"ocaml" ~makeRequest ~source (function
+    | Error error -> Jsonrpc.Response.Error.raise error
+    | Ok response ->
+      print_code_action_result
+        response
+        ~filter:(find_action "Destruct-line (enumerate cases, use existing match)"));
+  [%expect {| No code actions |}]
+;;
+
 let%expect_test "can destruct sum types" =
   let source =
     {ocaml|

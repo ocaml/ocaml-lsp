@@ -56,12 +56,12 @@ let run state doc ~(dispatch : dispatch) ~action_kind ~(range : Range.t) ~postpr
   let+ res = dispatch range in
   match res with
   | Ok reply ->
-    let reply = postprocess reply in
-    let supportsJumpToNextHole =
-      State.experimental_client_capabilities state
-      |> Client.Experimental_capabilities.supportsJumpToNextHole
-    in
-    Some (code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc reply)
+    Option.map (postprocess reply) ~f:(fun reply ->
+      let supportsJumpToNextHole =
+        State.experimental_client_capabilities state
+        |> Client.Experimental_capabilities.supportsJumpToNextHole
+      in
+      code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc reply)
   | Error
       { exn =
           ( Merlin_analysis.Destruct.Wrong_parent _
@@ -80,7 +80,7 @@ let code_action (state : State.t) dispatch doc (params : CodeActionParams.t) =
   | `Other -> Fiber.return None
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return None
   | `Merlin _ ->
-    run state doc ~dispatch ~action_kind ~range:params.range ~postprocess:Fun.id
+    run state doc ~dispatch ~action_kind ~range:params.range ~postprocess:Option.some
 ;;
 
 let t ~dispatch state =

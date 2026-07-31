@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Ignore malformed destruct-line recovery replies instead of raising an
+  internal substring lookup error. (#2043, @rgrinberg)
 - Keep construct-completion text edits on the request line when Merlin recovery
   returns a multiline location. (#2034, @rgrinberg)
 - Advertise Dune promotion code actions using their returned `quickfix` kind.
