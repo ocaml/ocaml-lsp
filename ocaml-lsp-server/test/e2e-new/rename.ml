@@ -85,6 +85,38 @@ let%expect_test "prepare rename leaks a lexer error on an astral character" =
     |}]
 ;;
 
+let%expect_test "rename returns overlapping edits for an incomplete binding" =
+  run "let rec ma" (fun client ->
+    let* response =
+      rename ~newName:"fuzz_renamed" client (Position.create ~line:0 ~character:10)
+    in
+    print_workspace_edit response;
+    Fiber.return ());
+  [%expect
+    {|
+    {
+      "changes": {
+        "file:///test.ml": [
+          {
+            "newText": "fuzz_renamed",
+            "range": {
+              "end": { "character": 10, "line": 0 },
+              "start": { "character": 8, "line": 0 }
+            }
+          },
+          {
+            "newText": "fuzz_renamed",
+            "range": {
+              "end": { "character": 10, "line": 0 },
+              "start": { "character": 8, "line": 0 }
+            }
+          }
+        ]
+      }
+    }
+    |}]
+;;
+
 let%expect_test "allows valid rename request" =
   run rename_source (fun client ->
     let* response = prepare_rename client (Position.create ~line:0 ~character:4) in
