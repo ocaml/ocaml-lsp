@@ -2,10 +2,8 @@
 
 module Bin = Bin
 module Compl = Compl
-module Diagnostics = Diagnostics
 module Document_symbol = Document_symbol
 module Merlin_kernel = Merlin_kernel
-module Pid = Pid
 module Prefix_parser = Prefix_parser
 module Position = Position
 module Progress = Progress

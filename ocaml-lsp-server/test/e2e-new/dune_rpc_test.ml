@@ -75,6 +75,7 @@ module Events = struct
   type t =
     { dune_ready : Signal.t
     ; multiple_instances : Signal.t
+    ; progress : Lsp.Progress.t ProgressParams.t Mailbox.t
     ; mutable diagnostics : PublishDiagnosticsParams.t list
     ; mutable diagnostic_waiter : diagnostic_waiter option
     }
@@ -82,6 +83,7 @@ module Events = struct
   let create () =
     { dune_ready = Signal.create ()
     ; multiple_instances = Signal.create ()
+    ; progress = Mailbox.create ()
     ; diagnostics = []
     ; diagnostic_waiter = None
     }
@@ -89,6 +91,7 @@ module Events = struct
 
   let dune_ready t = t.dune_ready
   let multiple_instances t = t.multiple_instances
+  let progress t = t.progress
 
   let rec take_matching ~f rev_prefix = function
     | [] -> None
@@ -134,6 +137,7 @@ module Events = struct
       Signal.notify t.dune_ready
     | LogMessage { message; _ } when String.is_substring message ~substring:" ignores " ->
       Signal.notify t.multiple_instances
+    | WorkDoneProgress progress -> Mailbox.push t.progress progress
     | _ -> Fiber.return ()
   ;;
 end
@@ -340,7 +344,7 @@ let destroy_project project =
   ignore (Sys.command ("rm -rf -- " ^ Filename.quote project.temp) : int)
 ;;
 
-let run ?workspace_root ?capabilities project events ~f =
+let run_with_workspace ?capabilities ~root ~runtime_dir events ~f =
   let ocamllsp_stderr = Unix.openfile Test.null_device [ Unix.O_WRONLY ] 0o666 in
   Fun.protect
     ~finally:(fun () -> Unix.close ocamllsp_stderr)
@@ -352,13 +356,10 @@ let run ?workspace_root ?capabilities project events ~f =
            let window = WindowClientCapabilities.create ~workDoneProgress:true () in
            ClientCapabilities.create ~window ()
        in
-       let workspace_root = Option.value workspace_root ~default:project.root in
-       let workspace =
-         WorkspaceFolder.create ~uri:(Uri.of_path workspace_root) ~name:"dune-rpc"
-       in
+       let workspace = WorkspaceFolder.create ~uri:(Uri.of_path root) ~name:"dune-rpc" in
        let server_pid = ref None in
        Test.run_initialized
-         ~extra_env:[ "OCAMLLSP_TEST=false"; "XDG_RUNTIME_DIR=" ^ project.runtime_dir ]
+         ~extra_env:[ "OCAMLLSP_TEST=false"; "XDG_RUNTIME_DIR=" ^ runtime_dir ]
          ~timeout:30.0
          ~handler:(Lifecycle_events.handler events)
          ~stderr:ocamllsp_stderr
@@ -369,4 +370,9 @@ let run ?workspace_root ?capabilities project events ~f =
        Fiber.finalize
          (fun () -> f client workspace)
          ~finally:(fun () -> stop_abruptly client (Option.value_exn !server_pid)))
+;;
+
+let run ?workspace_root ?capabilities project events ~f =
+  let root = Option.value workspace_root ~default:project.root in
+  run_with_workspace ~root ~runtime_dir:project.runtime_dir ?capabilities events ~f
 ;;
