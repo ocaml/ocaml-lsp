@@ -569,6 +569,7 @@ let%expect_test "does not advertise or send unsupported semantic token modifiers
 ;;
 
 let%expect_test "remaps supported semantic token modifiers" =
+  let src = "let f () = 0\n" in
   let capabilities =
     semantic_tokens_client_capabilities
       ~full:(`Bool true)
@@ -578,7 +579,7 @@ let%expect_test "remaps supported semantic token modifiers" =
   in
   test
     ~capabilities
-    ~src:"let f () = 0\n"
+    ~src
     (fun params -> SemanticTokensFull params)
     (fun { initializeResult; resp } ->
        let legend = semantic_tokens_legend initializeResult in
@@ -586,12 +587,27 @@ let%expect_test "remaps supported semantic token modifiers" =
        (match resp with
         | None -> print_endline "empty response"
         | Some { SemanticTokens.data; _ } ->
-          Printf.printf "first token modifiers: %d\n" data.(4));
+          Semantic_hl_helpers.annotate_src_with_tokens
+            ~legend
+            ~encoded_tokens:data
+            ~annot_mods:false
+            src
+          |> print_string;
+          let enabled_modifiers =
+            List.mapi legend.tokenModifiers ~f:(fun index modifier ->
+              let mask = Int.shift_left 1 index in
+              if Int.bit_and data.(4) mask = 0 then None else Some modifier)
+            |> List.filter_opt
+          in
+          Printf.printf
+            "function token modifiers: %s\n"
+            (String.concat ~sep:", " enabled_modifiers));
        Fiber.return ());
   [%expect
     {|
     modifiers: definition
-    first token modifiers: 1
+    let <function-0>f</0> () = <number-1>0</1>
+    function token modifiers: definition
     |}]
 ;;
 
@@ -600,16 +616,19 @@ let%expect_test "semantic tokens use UTF-16 positions" =
   test
     ~src
     (fun params -> SemanticTokensFull params)
-    (fun { resp; _ } ->
+    (fun { initializeResult; resp } ->
        (match resp with
         | None -> print_endline "empty response"
         | Some { SemanticTokens.data; _ } ->
-          Array.iteri data ~f:(fun index value ->
-            if index > 0 then print_string "; ";
-            print_int value);
-          print_newline ());
+          let legend = semantic_tokens_legend initializeResult in
+          Semantic_hl_helpers.annotate_src_with_tokens
+            ~legend
+            ~encoded_tokens:data
+            ~annot_mods:true
+            src
+          |> print_string);
        Fiber.return ());
-  [%expect {| 0; 4; 5; 8; 0; 0; 8; 1; 19; 0 |}]
+  [%expect {| let <variable|-0>café</0> = <number|-1>1</1> |}]
 ;;
 
 let%expect_test "tokens for ocaml_lsp_server.ml" =
