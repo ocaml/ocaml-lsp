@@ -10,6 +10,7 @@
 
 ## Fixes
 
+- Keep Merlin diagnostic ranges within document bounds. (#2008, @rgrinberg)
 - Suppress triggered completion and signature help inside comments after Unicode.
   (#1994, @rgrinberg)
 - Emit semantic tokens in source order so their relative positions remain valid.
