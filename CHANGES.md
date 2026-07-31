@@ -35,6 +35,8 @@
 - Preserve deprecation status in workspace-symbol results. (#2044, @rgrinberg)
 - Render empty odoc tables in hover documentation without raising an internal
   error. (#2038, @rgrinberg)
+- Enable function parameter inlay hints when the client sends no configuration.
+  (#2097, fixes #1371, @dayangac)
 - Respect client support for signature-help parameter-label offsets. (#2009,
   @rgrinberg)
 - Keep Merlin diagnostic ranges within document bounds. (#2008, @rgrinberg)

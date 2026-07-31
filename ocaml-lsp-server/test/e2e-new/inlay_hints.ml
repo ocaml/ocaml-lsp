@@ -123,5 +123,6 @@ let%expect_test "function params (deactivated)" =
 let%expect_test "function params (no configuration sent)" =
   let source = "let f a b c d = (a + b, c ^ string_of_bool d)" in
   apply_inlay_hints ~configure:false ~source ();
-  [%expect {| let f a b c d = (a + b, c ^ string_of_bool d) |}]
+  [%expect
+    {| let f a$: int$ b$: int$ c$: string$ d$: bool$ = (a + b, c ^ string_of_bool d) |}]
 ;;

@@ -62,7 +62,7 @@ interface config {
 
     /**
     * Enable/Disable Inlay Hints for function params
-    * @default false
+    * @default true
     * @since 1.23
     */
     hintFunctionParams : boolean
