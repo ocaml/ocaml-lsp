@@ -208,7 +208,7 @@ let stop_process pid =
   ignore (Test.waitpid pid : Unix.process_status)
 ;;
 
-let start_dune root runtime_dir =
+let start_dune ?build_dir root runtime_dir =
   let prog = Bin.which "dune" |> Option.value_exn in
   let output = Unix.openfile Test.null_device [ Unix.O_WRONLY ] 0o666 in
   let env =
@@ -219,15 +219,15 @@ let start_dune root runtime_dir =
     |> List.cons ("XDG_RUNTIME_DIR=" ^ runtime_dir)
     |> Spawn.Env.of_list
   in
+  let argv =
+    [ prog; "build"; "--root"; root ]
+    @ (match build_dir with
+       | None -> []
+       | Some build_dir -> [ "--build-dir"; build_dir ])
+    @ [ "-w"; "@repro" ]
+  in
   let pid =
-    Spawn.spawn
-      ~env
-      ~cwd:(Path root)
-      ~prog
-      ~argv:[ prog; "build"; "--root"; root; "-w"; "@repro" ]
-      ~stdout:output
-      ~stderr:output
-      ()
+    Spawn.spawn ~env ~cwd:(Path root) ~prog ~argv ~stdout:output ~stderr:output ()
   in
   Unix.close output;
   pid
