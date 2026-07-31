@@ -107,13 +107,11 @@ module Lifecycle_chan = struct
     ; mutable read_closed : bool
     ; mutable write_closed : bool
     ; mutable fail_sends : bool
-    ; mutable send_attempts : int
     ; mutable sent : Jsonrpc.Packet.t list list
     }
 
   let send t packets =
     Fiber.of_thunk (fun () ->
-      t.send_attempts <- t.send_attempts + 1;
       t.sent <- packets :: t.sent;
       if t.fail_sends then failwith "transport send attempted" else Fiber.return ())
   ;;
@@ -142,7 +140,6 @@ let lifecycle_channel () =
   ; read_closed = false
   ; write_closed = false
   ; fail_sends = false
-  ; send_attempts = 0
   ; sent = []
   }
 ;;
@@ -227,7 +224,6 @@ let%expect_test "stopped sessions drain notifications and reject requests" =
   let operations () =
     let started = Jsonrpc.Notification.create ~method_:"started" () in
     let* () = Lifecycle_jrpc.notification session started in
-    channel.send_attempts <- 0;
     channel.sent <- [];
     let* () = Lifecycle_jrpc.stop session in
     let notification = Jsonrpc.Notification.create ~method_:"draining" () in
@@ -251,7 +247,7 @@ let%expect_test "stopped sessions drain notifications and reject requests" =
     Printf.printf "notification batch: %s\n" (classify notification_batch);
     Printf.printf "request: %s\n" (classify request_result);
     Printf.printf "cancellable request: %s\n" (classify cancellable);
-    Printf.printf "transport attempts: %d\n" channel.send_attempts
+    print_packet_groups "transport packets" (List.rev channel.sent)
   in
   Fiber_test.test Dyn.opaque (fun () ->
     let* () =
@@ -266,7 +262,11 @@ let%expect_test "stopped sessions drain notifications and reject requests" =
     notification batch: accepted
     request: error
     cancellable request: error
-    transport attempts: 2
+    transport packets:
+    [
+      [ { "method": "draining", "jsonrpc": "2.0" } ],
+      [ { "method": "draining", "jsonrpc": "2.0" } ]
+    ]
     <opaque> |}]
 ;;
 
@@ -284,9 +284,7 @@ let%expect_test "a request batch rejected while draining is not consumed" =
     let started = Jsonrpc.Notification.create ~method_:"started" () in
     let* () = Lifecycle_jrpc.notification stopped started in
     let* () = Lifecycle_jrpc.notification retry started in
-    stopped_channel.send_attempts <- 0;
     stopped_channel.sent <- [];
-    retry_channel.send_attempts <- 0;
     retry_channel.sent <- [];
     let* () = Lifecycle_jrpc.stop stopped in
     stopped_channel.fail_sends <- true;
@@ -302,7 +300,7 @@ let%expect_test "a request batch rejected while draining is not consumed" =
       Fiber.collect_errors (fun () -> Lifecycle_jrpc.submit retry batch)
     in
     Printf.printf "stopped submit: %s\n" (classify stopped_submit);
-    Printf.printf "stopped transport attempts: %d\n" stopped_channel.send_attempts;
+    print_packet_groups "stopped wire packets" (List.rev stopped_channel.sent);
     Printf.printf "retry submit: %s\n" (classify retry_submit);
     print_packet_groups "retry wire packets" (List.rev retry_channel.sent);
     Lifecycle_jrpc.stop retry
@@ -321,7 +319,8 @@ let%expect_test "a request batch rejected while draining is not consumed" =
   [%expect
     {|
     stopped submit: error
-    stopped transport attempts: 0
+    stopped wire packets:
+    []
     retry submit: accepted
     retry wire packets:
     [ [ { "id": 1, "method": "batched", "jsonrpc": "2.0" } ] ]
@@ -339,7 +338,7 @@ let%expect_test "notifications are rejected before reaching the transport after 
   let operations () =
     let started = Jsonrpc.Notification.create ~method_:"started" () in
     let* () = Lifecycle_jrpc.notification session started in
-    channel.send_attempts <- 0;
+    channel.sent <- [];
     let* () = Lifecycle_jrpc.close session in
     let notification = Jsonrpc.Notification.create ~method_:"closed" () in
     let* notification_result =
@@ -370,7 +369,7 @@ let%expect_test "notifications are rejected before reaching the transport after 
     Printf.printf "cancellable request: %s\n" (classify cancellable_result);
     Printf.printf "notification batch: %s\n" (classify notification_batch_result);
     Printf.printf "request batch: %s\n" (classify request_batch_result);
-    Printf.printf "transport attempts: %d\n" channel.send_attempts
+    print_packet_groups "transport packets" (List.rev channel.sent)
   in
   Fiber_test.test Dyn.opaque (fun () ->
     Fiber.fork_and_join_unit (fun () -> Lifecycle_jrpc.run session) operations);
@@ -381,7 +380,8 @@ let%expect_test "notifications are rejected before reaching the transport after 
     cancellable request: rejected
     notification batch: rejected
     request batch: rejected
-    transport attempts: 0
+    transport packets:
+    []
     <opaque> |}]
 ;;
 
@@ -424,8 +424,8 @@ let%expect_test "server accepts notifications" =
     let on_notification c =
       let n = Context.message c in
       let state = Context.state c in
-      assert (notif = n);
-      print_endline "received notification";
+      print_endline "received notification:";
+      print_json (Jsonrpc.Notification.yojson_of_t n);
       Fiber.return (Notify.Stop, state)
     in
     let jrpc = Jrpc.create ~name:"test" ~on_notification (in_, no_output ()) () in
@@ -434,7 +434,8 @@ let%expect_test "server accepts notifications" =
   Fiber_test.test Dyn.opaque run;
   [%expect
     {|
-    received notification
+    received notification:
+    { "params": [ "bar" ], "method": "method", "jsonrpc": "2.0" }
     <opaque> |}]
 ;;
 
@@ -458,7 +459,8 @@ let%expect_test "serving requests" =
     let on_request c =
       let r = Context.message c in
       let state = Context.state c in
-      assert (r = request);
+      print_endline "received request:";
+      print_json (Jsonrpc.Request.yojson_of_t r);
       let response = Jsonrpc.Response.ok r.id response_data in
       Fiber.return (Reply.now response, state)
     in
@@ -472,6 +474,8 @@ let%expect_test "serving requests" =
   Fiber_test.test Dyn.opaque run;
   [%expect
     {|
+    received request:
+    { "id": 1, "params": [ 100 ], "method": "bla", "jsonrpc": "2.0" }
     { "id": 1, "jsonrpc": "2.0", "result": "response" }
     <opaque> |}]
 ;;
