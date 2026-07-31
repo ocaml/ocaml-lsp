@@ -91,6 +91,7 @@
     dune_promotion_disconnect
     dune_promotion_execute
     dune_promotion_open
+    dune_registry_errors
     dune_workspace_removal
     metrics
     refactor_extract
