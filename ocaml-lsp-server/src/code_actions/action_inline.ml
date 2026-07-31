@@ -244,21 +244,18 @@ let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
   | _ -> app
 ;;
 
-let inlined_text pipeline task =
-  let open Option.O in
-  let+ expr = find_parsetree_loc pipeline task.inlined_expr.exp_loc in
-  let expr = strip_attribute "merlin.loc" expr in
-  Format.asprintf "(%a)" Pprintast.expression expr
+let inlined_text doc task =
+  Code_action.source_text doc task.inlined_expr.exp_loc |> Option.map ~f:(sprintf "(%s)")
 ;;
 
 (** [inline_edits pipeline task] returns a list of inlining edits and an
     optional error value. An error will be generated if any of the potential
     inlinings is not allowed due to shadowing. The successful edits will still
     be returned *)
-let inline_edits pipeline task =
+let inline_edits pipeline doc task =
   let module I = Ocaml_typing.Tast_iterator in
   let open Option.O in
-  let+ newText = inlined_text pipeline task in
+  let+ newText = inlined_text doc task in
   let make_edit newText loc = TextEdit.create ~newText ~range:(Range.of_loc loc) in
   let edits = Queue.create () in
   let error = ref None in
@@ -350,7 +347,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
     | `Implementation x -> Some x
   in
   let* task = find_inline_task typedtree params.range.start in
-  let m_edits = inline_edits pipeline task in
+  let m_edits = inline_edits pipeline doc task in
   let* edits, m_error = m_edits in
   match edits, m_error with
   | [], None -> None
