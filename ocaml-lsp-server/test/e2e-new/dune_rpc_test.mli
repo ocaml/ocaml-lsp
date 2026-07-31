@@ -62,6 +62,7 @@ val print_payloads : project -> string -> ('a -> Yojson.Safe.t) -> 'a list -> un
 
 val run
   :  ?workspace_root:string
+  -> ?capabilities:ClientCapabilities.t
   -> project
   -> Lifecycle_events.t
   -> f:(unit Client.t -> WorkspaceFolder.t -> 'a Fiber.t)
