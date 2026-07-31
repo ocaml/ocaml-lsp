@@ -17,6 +17,21 @@ type t =
 let batchable kind run = { kind; run = `Batchable run }
 let non_batchable kind run = { kind; run = `Non_batchable run }
 
+let kind_is_requested only kind =
+  match only with
+  | None -> true
+  | Some only ->
+    let to_string kind =
+      match CodeActionKind.yojson_of_t kind with
+      | `String kind -> kind
+      | _ -> assert false
+    in
+    let kind = to_string kind in
+    List.exists only ~f:(fun requested ->
+      let requested = to_string requested in
+      String.equal requested kind || String.is_prefix kind ~prefix:(requested ^ "."))
+;;
+
 let source_text doc (loc : Loc.t) =
   let open Option.O in
   let source = Document.source doc in
