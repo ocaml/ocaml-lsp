@@ -51,6 +51,33 @@ let%expect_test "returns all symbols from workspace" =
     |}]
 ;;
 
+let%expect_test "reports deprecated workspace symbols" =
+  let workspace_a, _workspace_b = setup_workspaces () in
+  Test.write_file
+    (Filename.concat workspace_a.path "lib/LibTypes.mli")
+    (a_lib_types_mli ^ "\nval deprecated_value : int [@@deprecated]\n");
+  build_project workspace_a;
+  run [ workspace_a ] (fun client ->
+    let* symbols = workspace_symbol client "deprecated_value" in
+    (match symbols with
+     | Some [ symbol ] ->
+       let deprecated =
+         Option.value_map symbol.deprecated ~default:"missing" ~f:Bool.to_string
+       in
+       let tags =
+         Option.value_map symbol.tags ~default:"missing" ~f:(fun _ -> "present")
+       in
+       Printf.printf "name: %s\ndeprecated: %s\ntags: %s\n" symbol.name deprecated tags
+     | _ -> print_endline "expected exactly one symbol");
+    Fiber.return ());
+  [%expect
+    {|
+    name: deprecated_value
+    deprecated: true
+    tags: missing
+    |}]
+;;
+
 let%expect_test "returns filtered symbols from workspace" =
   let workspace_a, _workspace_b = setup_workspaces () in
   build_project workspace_a;

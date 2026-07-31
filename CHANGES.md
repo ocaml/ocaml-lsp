@@ -22,6 +22,7 @@
   (#2048, @rgrinberg)
 - Return `null` from the construct custom request when the cursor is not at a
   typed hole. (#2047, @rgrinberg)
+- Preserve deprecation status in workspace-symbol results. (#2044, @rgrinberg)
 - Render empty odoc tables in hover documentation without raising an internal
   error. (#2038, @rgrinberg)
 - Respect client support for signature-help parameter-label offsets. (#2009,
