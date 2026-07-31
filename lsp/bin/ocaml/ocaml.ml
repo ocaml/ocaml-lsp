@@ -7,8 +7,7 @@ open! Ts_types
 (* These declarations are all excluded because we don't support them or their
    definitions are hand written *)
 let skipped_ts_decls =
-  [ "InitializedParams"
-  ; "NotificationMessage"
+  [ "NotificationMessage"
   ; "RequestMessage"
   ; "ResponseError"
   ; "DocumentUri"

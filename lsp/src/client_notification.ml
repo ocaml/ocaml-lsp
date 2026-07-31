@@ -13,7 +13,7 @@ type t =
   | DidRenameFiles of RenameFilesParams.t
   | ChangeWorkspaceFolders of DidChangeWorkspaceFoldersParams.t
   | ChangeConfiguration of DidChangeConfigurationParams.t
-  | Initialized
+  | Initialized of InitializedParams.t
   | Exit
   | CancelRequest of Jsonrpc.Id.t
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
@@ -30,7 +30,7 @@ let method_ = function
   | TextDocumentDidChange _ -> "textDocument/didChange"
   | TextDocumentDidClose _ -> "textDocument/didClose"
   | Exit -> "exit"
-  | Initialized -> "initialized"
+  | Initialized _ -> "initialized"
   | ChangeWorkspaceFolders _ -> "workspace/didChangeWorkspaceFolders"
   | ChangeConfiguration _ -> "workspace/didChangeConfiguration"
   | WillSaveTextDocument _ -> "textDocument/willSave"
@@ -55,7 +55,7 @@ let yojson_of_t = function
   | TextDocumentDidChange params -> Some (DidChangeTextDocumentParams.yojson_of_t params)
   | TextDocumentDidClose params -> Some (DidCloseTextDocumentParams.yojson_of_t params)
   | Exit -> None
-  | Initialized -> None
+  | Initialized params -> Some (InitializedParams.yojson_of_t params)
   | ChangeWorkspaceFolders params ->
     Some (DidChangeWorkspaceFoldersParams.yojson_of_t params)
   | ChangeConfiguration params -> Some (DidChangeConfigurationParams.yojson_of_t params)
@@ -96,7 +96,9 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
     let+ params = Json.message_params params DidCloseTextDocumentParams.t_of_yojson in
     TextDocumentDidClose params
   | "exit" -> Ok Exit
-  | "initialized" -> Ok Initialized
+  | "initialized" ->
+    let+ params = Json.message_params params InitializedParams.t_of_yojson in
+    Initialized params
   | "workspace/didChangeWorkspaceFolders" ->
     let+ params =
       Json.message_params params DidChangeWorkspaceFoldersParams.t_of_yojson

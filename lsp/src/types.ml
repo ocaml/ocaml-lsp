@@ -44936,6 +44936,18 @@ module InitializeResult = struct
   ;;
 end
 
+module InitializedParams = struct
+  type t = Json.Object.t [@@deriving_inline yojson]
+
+  let _ = fun (_ : t) -> ()
+  let t_of_yojson = (Json.Object.t_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+  let _ = t_of_yojson
+  let yojson_of_t = (Json.Object.yojson_of_t : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+  let _ = yojson_of_t
+
+  [@@@end]
+end
+
 module InitializedParams_ = struct
   type t =
     { capabilities : ClientCapabilities.t

@@ -39,7 +39,7 @@ let%expect_test "dynamic registration waits for initialized" =
      print_endline "received initialize response";
      print_endline "sending initialized";
      sending_initialized := true;
-     let* () = Client.notification client Initialized in
+     let* () = Client.notification client (Initialized []) in
      let* registration = Fiber.Ivar.read registration_received in
      print_endline "received client/registerCapability after sending initialized:";
      RegistrationParams.yojson_of_t registration |> Test.print_result;
