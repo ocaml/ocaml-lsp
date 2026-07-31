@@ -201,7 +201,7 @@ end
     |}]
 ;;
 
-let%expect_test "hierarchical symbols drop the deprecated tag" =
+let%expect_test "hierarchical symbols include deprecation metadata" =
   let source = "let old_value = 1 [@@deprecated]" in
   let capabilities =
     let tagSupport = ClientSymbolTagOptions.create ~valueSet:[ SymbolTag.Deprecated ] in
@@ -234,7 +234,8 @@ let%expect_test "hierarchical symbols drop the deprecated tag" =
         "selectionRange": {
           "end": { "character": 13, "line": 0 },
           "start": { "character": 4, "line": 0 }
-        }
+        },
+        "tags": [ 1 ]
       }
     ]
     |}]
