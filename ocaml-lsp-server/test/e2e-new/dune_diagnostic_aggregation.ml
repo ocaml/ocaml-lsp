@@ -54,13 +54,13 @@ let has_source source (params : PublishDiagnosticsParams.t) =
     Option.equal String.equal diagnostic.source (Some source))
 ;;
 
-let normalize_sandbox string =
-  let rec replace = function
-    | ".sandbox" :: _hash :: rest -> ".sandbox" :: "<sandbox>" :: replace rest
-    | component :: rest -> component :: replace rest
-    | [] -> []
-  in
-  String.split string ~on:'/' |> replace |> String.concat ~sep:"/"
+let normalize_diff string =
+  match
+    String.split_lines string
+    |> List.drop_while ~f:(fun line -> not (String.is_prefix line ~prefix:"@@"))
+  with
+  | [] -> string
+  | hunk -> String.concat hunk ~sep:"\n"
 ;;
 
 let sanitize_string project string =
@@ -75,7 +75,7 @@ let sanitize_string project string =
   in
   List.fold_left replacements ~init:string ~f:(fun string (pattern, with_) ->
     String.substr_replace_all string ~pattern ~with_)
-  |> normalize_sandbox
+  |> normalize_diff
 ;;
 
 let rec sanitize_json project : Yojson.Safe.t -> Yojson.Safe.t = function
@@ -196,7 +196,7 @@ let%expect_test "merge Merlin and Dune diagnostics and honor configuration" =
     {
       "diagnostics": [
         {
-          "message": "diff --git a/_build/default/expected.ml b/_build/.sandbox/<sandbox>/default/actual.ml\nindex 253029d..d7fbee4 100644\n--- a/_build/default/expected.ml\n+++ b/_build/.sandbox/<sandbox>/default/actual.ml\n@@ -1 +1 @@\n-let promoted = 0\n+let promoted = 42\n\\ No newline at end of file",
+          "message": "@@ -1 +1 @@\n-let promoted = 0\n+let promoted = 42\n\\ No newline at end of file",
           "range": {
             "end": { "character": 0, "line": 0 },
             "start": { "character": 0, "line": 0 }
