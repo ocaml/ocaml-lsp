@@ -230,7 +230,7 @@ let f x = { x }
       "changes": {
         "file:///test.ml": [
           {
-            "newText": "y",
+            "newText": "x = y",
             "range": {
               "end": { "character": 13, "line": 1 },
               "start": { "character": 12, "line": 1 }
