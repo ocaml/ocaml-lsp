@@ -23,11 +23,18 @@ let normalize_selection_range ~(range : Range.t) = function
     else Option.value (Lsp.Range.intersection range selection_range) ~default:range
 ;;
 
-let rec items_to_symbols items =
+let rec items_to_symbols ~supports_deprecated_tag items =
   List.rev_map
     ~f:
       (fun
-        { Query_protocol.outline_name; outline_kind; location; selection; children; _ } ->
+        { Query_protocol.outline_name
+        ; outline_kind
+        ; location
+        ; selection
+        ; children
+        ; deprecated
+        ; _
+        } ->
       let range = Range.of_loc location in
       (* The LSP spec requires [selectionRange] to be contained in [range].
          Preserve valid selections, clip non-empty overlaps, and fall back to
@@ -35,12 +42,21 @@ let rec items_to_symbols items =
       let selectionRange =
         normalize_selection_range ~range (Range.of_loc_opt selection)
       in
+      let { Deprecation.deprecated; tags } =
+        Deprecation.create
+          ~deprecated
+          ~tag:Lsp.Types.SymbolTag.Deprecated
+          ~supports_tag:supports_deprecated_tag
+          ~supports_deprecated_field:true
+      in
       DocumentSymbol.create
         ~name:outline_name
         ~kind:(symbol_kind_of_outline_kind outline_kind)
         ~range
         ~selectionRange
-        ~children:(items_to_symbols children)
+        ?deprecated
+        ?tags
+        ~children:(items_to_symbols ~supports_deprecated_tag children)
         ())
     items
 ;;
@@ -53,6 +69,8 @@ let rec flatten_document_symbols ~uri ~container_name (symbols : DocumentSymbol.
         ~kind:symbol.kind
         ~location:{ range = symbol.range; uri }
         ~name:symbol.name
+        ?deprecated:symbol.deprecated
+        ?tags:symbol.tags
         ()
     in
     let children =
@@ -72,14 +90,29 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
       Document.Merlin.with_pipeline_exn ~name:"document-symbols" merlin (fun pipeline ->
         Query_commands.dispatch pipeline Query_protocol.Outline)
     in
-    let symbols = items_to_symbols outline in
+    let document_symbol_capabilities =
+      let open Option.O in
+      let* text_document = client_capabilities.textDocument in
+      text_document.documentSymbol
+    in
+    let supports_deprecated_tag =
+      Option.value
+        ~default:false
+        (let open Option.O in
+         let* document_symbol = document_symbol_capabilities in
+         let* tag_support = document_symbol.tagSupport in
+         Some
+           (Deprecation.tag_supported
+              tag_support.valueSet
+              ~tag:Lsp.Types.SymbolTag.Deprecated))
+    in
+    let symbols = items_to_symbols ~supports_deprecated_tag outline in
     (match
        Option.value
          ~default:false
          (let open Option.O in
-          let* textDocument = client_capabilities.textDocument in
-          let* ds = textDocument.documentSymbol in
-          ds.hierarchicalDocumentSymbolSupport)
+          let* document_symbol = document_symbol_capabilities in
+          document_symbol.hierarchicalDocumentSymbolSupport)
      with
      | true -> Some (`DocumentSymbol symbols)
      | false ->

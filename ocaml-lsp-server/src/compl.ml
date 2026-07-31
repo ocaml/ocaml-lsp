@@ -124,14 +124,12 @@ module Complete_by_prefix = struct
         ~sort_text_width
     =
     let kind = completion_kind ~supports_enum_member entry.kind in
-    let deprecated, tags =
-      if not entry.deprecated
-      then None, None
-      else if supports_deprecated_tag
-      then None, Some [ CompletionItemTag.Deprecated ]
-      else if supports_deprecated_field
-      then Some true, None
-      else None, None
+    let { Deprecation.deprecated; tags } =
+      Deprecation.create
+        ~deprecated:entry.deprecated
+        ~tag:CompletionItemTag.Deprecated
+        ~supports_tag:supports_deprecated_tag
+        ~supports_deprecated_field
     in
     let textEdit = `TextEdit { TextEdit.range; newText = entry.name } in
     CompletionItem.create
@@ -367,7 +365,7 @@ let complete
         with
         | None -> false
         | Some { valueSet } ->
-          List.mem valueSet CompletionItemTag.Deprecated ~equal:Poly.equal
+          Deprecation.tag_supported valueSet ~tag:CompletionItemTag.Deprecated
       in
       let supports_deprecated_field =
         (not supports_deprecated_tag)
