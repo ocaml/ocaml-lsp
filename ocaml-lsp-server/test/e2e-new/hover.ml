@@ -178,6 +178,21 @@ let sum = f i f
     |}]
 ;;
 
+let%expect_test "returned range does not contain the hover position" =
+  let source = "let rec f x = x :: f x" in
+  Hover_helpers.test_hover source [ Position.create ~line:0 ~character:18 ];
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "'a list" },
+      "range": {
+        "end": { "character": 22, "line": 0 },
+        "start": { "character": 19, "line": 0 }
+      }
+    }
+    |}]
+;;
+
 let%expect_test "regression test for #343" =
   let source =
     {ocaml|type t = s
