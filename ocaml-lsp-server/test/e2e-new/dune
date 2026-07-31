@@ -73,6 +73,7 @@
     for_ppx
     hover
     hover_extended
+    hover_ocamlformat_restart
     infer_intf
     inlay_hints
     jump_to_typed_hole
