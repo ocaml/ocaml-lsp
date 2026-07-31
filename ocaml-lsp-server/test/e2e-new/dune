@@ -122,6 +122,7 @@
     with_pp
     with_ppx
     workspace_change_config
+    workspace_initialization
     workspace_symbol
     workspace_symbol_partial_build
     wrapping_ast_node))))
