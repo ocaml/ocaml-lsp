@@ -159,7 +159,9 @@ let on_request ~params state =
   Fiber.of_thunk (fun () ->
     let params = (Option.value ~default:(`Assoc []) params :> Json.t) in
     let Request_params.{ index; verbosity; text_document; at } =
-      Request_params.t_of_yojson params
+      try Request_params.t_of_yojson params with
+      | Yojson.Safe.Util.Type_error _ ->
+        Util.raise_invalid_params ~message:"Unexpected parameter format" ~data:params ()
     in
     let position, range_end =
       match at with

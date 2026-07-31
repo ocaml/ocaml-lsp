@@ -30,6 +30,39 @@ module Util = struct
   ;;
 end
 
+let%expect_test "missing index is reported as invalid params" =
+  let source = "let x = 1" in
+  let request client =
+    let params =
+      `Assoc
+        [ "uri", DocumentUri.yojson_of_t Helpers.uri
+        ; "at", Position.yojson_of_t (Position.create ~line:0 ~character:4)
+        ]
+    in
+    let* result =
+      Fiber.collect_errors (fun () -> Test.custom_request client Req.meth params)
+    in
+    match result with
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+      ->
+      Printf.printf
+        "code: %s\nmessage: %s\n"
+        (Jsonrpc.Response.Error.Code.to_string error.code)
+        error.message;
+      Fiber.return ()
+    | Error errors -> Fiber.reraise_all errors
+    | Ok response ->
+      Test.print_result response;
+      Fiber.return ()
+  in
+  Helpers.test source request;
+  [%expect
+    {|
+    code: InvalidParams
+    message: Unexpected parameter format
+    |}]
+;;
+
 let%expect_test "Application of function without range end" =
   let source = "string_of_int 42" in
   let line = 0
