@@ -77,7 +77,7 @@ let%expect_test "short path prefix" =
 
 let%expect_test "short path preserves a dotted operator" =
   prefix_test ~short_path:true "let _ = 1 +." (`Logical (1, 12));
-  [%expect ""]
+  [%expect "+."]
 ;;
 
 let%expect_test "prefix may contain a Latin-1 identifier" =

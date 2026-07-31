@@ -23,6 +23,19 @@ let completion_kind ~supports_enum_member kind : CompletionItemKind.t option =
   | `Type -> Some TypeParameter
 ;;
 
+let ident_char = function
+  | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '\128' .. '\255' | '\'' | '_' -> true
+  | _ -> false
+;;
+
+let path_start_char char =
+  ident_char char
+  ||
+  match char with
+  | '~' | '?' | '`' -> true
+  | _ -> false
+;;
+
 let prefix_of_position ~short_path source position =
   match Msource.text source with
   | "" -> ""
@@ -45,7 +58,11 @@ let prefix_of_position ~short_path source position =
         | ' ' | '\n' | '\r' | '\t' | '\012' -> false
         | _ -> true)
     in
-    if short_path
+    let starts_like_a_path =
+      (not (String.is_empty reconstructed_prefix))
+      && path_start_char reconstructed_prefix.[0]
+    in
+    if short_path && starts_like_a_path
     then (
       match String.split reconstructed_prefix ~on:'.' |> List.last with
       | Some s -> s
@@ -53,7 +70,7 @@ let prefix_of_position ~short_path source position =
     else reconstructed_prefix
 ;;
 
-let suffix_of_position source position =
+let suffix_of_position ~is_char source position =
   match Msource.text source with
   | "" -> ""
   | text ->
@@ -64,12 +81,8 @@ let suffix_of_position source position =
     else (
       let from = index in
       let len =
-        let ident_char = function
-          | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '\128' .. '\255' | '\'' | '_' -> true
-          | _ -> false
-        in
         let until =
-          String.lfindi ~pos:from text ~f:(fun _ c -> not (ident_char c))
+          String.lfindi ~pos:from text ~f:(fun _ c -> not (is_char c))
           |> Option.value ~default:len
         in
         until - from
@@ -79,7 +92,7 @@ let suffix_of_position source position =
 
 let reconstruct_ident source position =
   let prefix = prefix_of_position ~short_path:false source position in
-  let suffix = suffix_of_position source position in
+  let suffix = suffix_of_position ~is_char:ident_char source position in
   let ident = prefix ^ suffix in
   Option.some_if (ident <> "") ident
 ;;
@@ -100,7 +113,7 @@ let edit_range doc pos =
   let suffix =
     let text_document = Document.Merlin.to_doc doc |> Document.text_document in
     let offset = Text_document.absolute_position text_document pos in
-    suffix_of_position source (`Offset offset)
+    suffix_of_position ~is_char:ident_char source (`Offset offset)
   in
   { range with end_ = { pos with character = pos.character + String.length suffix } }
 ;;
@@ -498,18 +511,24 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~mark
     let position : Position.t = resolve.position in
     let logical_position = Position.logical position in
     let doc =
+      let prefix =
+        prefix_of_position ~short_path:true (Document.Merlin.source doc) logical_position
+      in
+      let suffix =
+        let is_operator =
+          (not (String.is_empty prefix))
+          && String.for_all prefix ~f:Ocaml_operator.is_symbolic_character
+        in
+        let is_char =
+          if is_operator then Ocaml_operator.is_symbolic_character else ident_char
+        in
+        suffix_of_position ~is_char (Document.Merlin.source doc) logical_position
+      in
       let complete =
         let start =
-          let prefix =
-            prefix_of_position
-              ~short_path:true
-              (Document.Merlin.source doc)
-              logical_position
-          in
           { position with character = position.character - String.length prefix }
         in
         let end_ =
-          let suffix = suffix_of_position (Document.Merlin.source doc) logical_position in
           { position with character = position.character + String.length suffix }
         in
         let range = Range.create ~start ~end_ in

@@ -226,7 +226,7 @@ let _ = 1 >>. 2
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {| { "label": ">>." } |}]
+  [%expect {| { "documentation": "combine docs", "label": ">>." } |}]
 ;;
 
 let%expect_test "completion resolve converts UTF-16 positions for Merlin" =
