@@ -169,33 +169,11 @@ let%expect_test "a connected but uninitialized Dune rejects promotion commands" 
 
 let%expect_test "multiple Dune instances for one workspace are reported" =
   let project = create_project "multiple" in
-  let socket_path = Filename.concat project.temp "fake-rpc.sock" in
-  let listener = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
-  Unix.bind listener (Unix.ADDR_UNIX socket_path);
-  Unix.listen listener 1;
-  let fake_pid =
-    match Unix.fork () with
-    | 0 ->
-      let connection, _ = Unix.accept listener in
-      Unix.sleep 30;
-      Unix.close connection;
-      Unix._exit 0
-    | pid -> pid
-  in
-  let fake_dune =
-    Dune_rpc.Private.Registry.Dune.create
-      ~where:(`Unix socket_path)
-      ~root:project.root
-      ~pid:fake_pid
-  in
-  register project.runtime_dir fake_dune;
+  let build_dir = Filename.concat project.temp "second-build" in
+  let second_dune = start_dune ~build_dir project.root project.runtime_dir in
   Fun.protect
     ~finally:(fun () ->
-      (match Unix.kill fake_pid Sys.sigterm with
-       | () -> ()
-       | exception Unix.Unix_error (Unix.ESRCH, _, _) -> ());
-      ignore (Test.waitpid fake_pid : Unix.process_status);
-      Unix.close listener;
+      stop_process second_dune;
       destroy_project project)
     (fun () ->
        let events = Lifecycle_events.create () in
