@@ -66,6 +66,8 @@
   (#2064, @rgrinberg)
 - Reject cross-line destruct recovery locations before applying line-local
   source offsets. (#2063, @rgrinberg)
+- Use consistent document snapshots and versions when converting rename
+  occurrences into workspace edits. (#2062, @rgrinberg)
 - Keep construct-completion text edits on the request line when Merlin recovery
   returns a multiline location. (#2034, @rgrinberg)
 - Advertise Dune promotion code actions using their returned `quickfix` kind.
