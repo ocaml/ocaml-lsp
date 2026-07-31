@@ -19,8 +19,14 @@ let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
                  first."
               ())
        | Some impl ->
-         let+ intf = Inference.infer_intf_for_impl impl in
-         Json.t_of_yojson (`String intf))
+         (match Document.kind impl with
+          | `Merlin merlin when Document.Merlin.kind merlin = Document.Kind.Impl ->
+            let+ intf = Inference.infer_intf_for_impl impl in
+            Json.t_of_yojson (`String intf)
+          | `Merlin _ | `Other ->
+            Util.raise_invalid_params
+              ~message:"ocamllsp/inferIntf expects an implementation document"
+              ()))
     | Some json ->
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make
