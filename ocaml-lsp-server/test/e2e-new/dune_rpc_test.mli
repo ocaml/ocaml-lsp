@@ -18,6 +18,7 @@ module Events : sig
 
   val dune_ready : t -> Signal.t
   val multiple_instances : t -> Signal.t
+  val progress : t -> Lsp.Progress.t ProgressParams.t Mailbox.t
 
   val wait_for_diagnostics
     :  t
@@ -54,11 +55,21 @@ type project = private
   ; mutable dune_pid : int option
   }
 
+val start_dune : string -> string -> int
+val stop_process : int -> unit
 val create_project : string -> project
 val stop_dune : project -> unit
 val destroy_project : project -> unit
 val print_payload : project -> string -> Yojson.Safe.t -> unit
 val print_payloads : project -> string -> ('a -> Yojson.Safe.t) -> 'a list -> unit
+
+val run_with_workspace
+  :  ?capabilities:ClientCapabilities.t
+  -> root:string
+  -> runtime_dir:string
+  -> Lifecycle_events.t
+  -> f:(unit Client.t -> WorkspaceFolder.t -> 'a Fiber.t)
+  -> 'a
 
 val run
   :  ?workspace_root:string

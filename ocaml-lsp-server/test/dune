@@ -1,6 +1,5 @@
 (library
  (modules
-  diagnostics_tests
   ocaml_lsp_tests
   position_prefix_tests
   progress_tests
