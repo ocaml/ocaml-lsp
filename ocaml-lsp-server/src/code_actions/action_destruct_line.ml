@@ -30,7 +30,8 @@ module Search = struct
         Some { kind; start = Lexing.lexeme_start lexbuf; end_ = Lexing.lexeme_end lexbuf })
   ;;
 
-  let find_case code ~start next =
+  (** Finds the [with] belonging to an already consumed [match] token. *)
+  let find_matching_with next =
     (* The stack tracks the innermost open constructs:
        - [`Match] for a nested [match]/[try]
        - [`Brace] for a record-update brace
@@ -39,26 +40,10 @@ module Search = struct
        [(module M : S with type t = _)] do not look like the outer match [with].
        A [with] closes the innermost [`Match]; a [with] above another stack frame
        belongs to that construct; a [with] inside parentheses is ignored; and a
-       [with] with an empty stack at depth 0 belongs to the [match] we started
-       from, whose first case (if any) immediately follows. *)
-    (* The search is bounded to a few lines after the [match] to avoid lexing the
-     rest of the file when the [match] has no cases yet. *)
-    let max_lines = 100 in
-    let lines = ref 0 in
-    let prev_end = ref start in
-    let budget_ok token =
-      let len = token.start - !prev_end in
-      if len > 0
-      then (
-        let skipped = String.sub code ~pos:!prev_end ~len in
-        String.iter skipped ~f:(fun c -> if Char.equal c '\n' then incr lines));
-      prev_end := token.end_;
-      !lines <= max_lines
-    in
+       [with] with an empty stack at depth 0 belongs to the outer [match]. *)
     let rec loop stack paren_depth =
       match next () with
       | None -> None
-      | Some token when not (budget_ok token) -> None
       | Some { kind = MATCH | TRY; _ } -> loop (`Match :: stack) paren_depth
       | Some { kind = LBRACE; _ } -> loop (`Brace :: stack) paren_depth
       | Some { kind = BEGIN | STRUCT | SIG | OBJECT; _ } ->
@@ -73,18 +58,43 @@ module Search = struct
          | _ -> loop stack paren_depth)
       | Some { kind = LPAREN; _ } -> loop stack (paren_depth + 1)
       | Some { kind = RPAREN; _ } -> loop stack (max 0 (paren_depth - 1))
-      | Some { kind = WITH; _ } ->
+      | Some ({ kind = WITH; _ } as token) ->
         (match stack with
          | `Match :: rest -> loop rest paren_depth
          | [] when paren_depth > 0 -> loop stack paren_depth
-         | [] ->
-           (match next () with
-            | Some ({ kind = BAR; start; _ } as token) when budget_ok token -> Some start
-            | None | Some _ -> None)
+         | [] -> Some token
          | _ -> loop stack paren_depth)
       | Some _ -> loop stack paren_depth
     in
     loop [] 0
+  ;;
+
+  let find_case code ~start next =
+    (* The search is bounded to a few lines after the [match] to avoid lexing the
+       rest of the file when the [match] has no cases yet. *)
+    let max_lines = 100 in
+    let lines = ref 0 in
+    let prev_end = ref start in
+    let budget_ok token =
+      let len = token.start - !prev_end in
+      if len > 0
+      then (
+        let skipped = String.sub code ~pos:!prev_end ~len in
+        String.iter skipped ~f:(fun c -> if Char.equal c '\n' then incr lines));
+      prev_end := token.end_;
+      !lines <= max_lines
+    in
+    let next_within_budget () =
+      match next () with
+      | Some token when budget_ok token -> Some token
+      | None | Some _ -> None
+    in
+    match find_matching_with next_within_budget with
+    | None -> None
+    | Some _ ->
+      (match next_within_budget () with
+       | Some { kind = BAR; start; _ } -> Some start
+       | None | Some _ -> None)
   ;;
 
   let find code ~position =
@@ -424,12 +434,29 @@ let format_match_cases patterns ~indent =
      |> String.concat ~sep:"\n")
 ;;
 
-(** Finds the "with" in the Merlin reply and splits after it. *)
+(** Finds the outer [with] token in the Merlin reply and splits after it. *)
 let separate_match_line new_code =
-  let end_of_match = String.substr_index_exn new_code ~pattern:"with" in
-  let match_line = String.prefix new_code (end_of_match + 4) in
-  let rest = String.drop_prefix new_code (end_of_match + 4) in
-  match_line, rest
+  let next = Staged.unstage (Search.lexer new_code) in
+  let rec find_match () =
+    match next () with
+    | None -> None
+    | Some { kind = MATCH; _ } ->
+      let rec find_with_before_case () =
+        match Search.find_matching_with next with
+        | None -> None
+        | Some with_token ->
+          (match next () with
+           | Some { kind = BAR; _ } -> Some with_token
+           | None -> None
+           | Some _ -> find_with_before_case ())
+      in
+      Option.map (find_with_before_case ()) ~f:(fun with_token ->
+        let match_line = String.prefix new_code with_token.end_ in
+        let rest = String.drop_prefix new_code with_token.end_ in
+        match_line, rest)
+    | Some _ -> find_match ()
+  in
+  find_match ()
 ;;
 
 let format_merlin_reply ~(statement : destructable_statement) (new_code : string) =
@@ -440,21 +467,22 @@ let format_merlin_reply ~(statement : destructable_statement) (new_code : string
   in
   match statement.kind with
   | MatchLine | MatchWithLine ->
-    let match_line, rest = separate_match_line new_code in
-    let rest = String.chop_suffix_if_exists rest ~suffix:")" in
-    let match_line = String.chop_prefix_if_exists match_line ~prefix:"(" in
-    let patterns = String.split ~on:'|' rest |> List.map ~f:strip_case_line in
-    match_line ^ format_match_cases patterns ~indent
-  | CaseLine -> format_match_cases (split_case_patterns new_code) ~indent
+    Option.map (separate_match_line new_code) ~f:(fun (match_line, rest) ->
+      let rest = String.chop_suffix_if_exists rest ~suffix:")" in
+      let match_line = String.chop_prefix_if_exists match_line ~prefix:"(" in
+      let patterns = String.split ~on:'|' rest |> List.map ~f:strip_case_line in
+      match_line ^ format_match_cases patterns ~indent)
+  | CaseLine -> Some (format_match_cases (split_case_patterns new_code) ~indent)
   | Hole | OffsetHole _ ->
     let lines = String.split ~on:'|' new_code in
-    (match List.hd lines, List.tl lines with
-     | None, _ | _, None -> new_code
-     | Some first_line, Some other_lines ->
-       let other_lines =
-         List.map other_lines ~f:(fun l -> indent ^ "| " ^ strip_case_line l)
-       in
-       String.concat ~sep:" -> _\n" (String.strip first_line :: other_lines))
+    Some
+      (match List.hd lines, List.tl lines with
+       | None, _ | _, None -> new_code
+       | Some first_line, Some other_lines ->
+         let other_lines =
+           List.map other_lines ~f:(fun l -> indent ^ "| " ^ strip_case_line l)
+         in
+         String.concat ~sep:" -> _\n" (String.strip first_line :: other_lines))
 ;;
 
 let code_action
@@ -476,10 +504,10 @@ let code_action
          ~action_kind
          ~range:statement.query_range
          ~postprocess:(fun (loc, newText) ->
-           adjust_reply_location ~statement loc
-           |> Option.map ~f:(fun loc ->
-             let newText = format_merlin_reply ~statement newText in
-             loc, newText)))
+           let open Option.O in
+           let* loc = adjust_reply_location ~statement loc in
+           let+ newText = format_merlin_reply ~statement newText in
+           loc, newText))
 ;;
 
 let t ~dispatch state =
