@@ -284,6 +284,39 @@ let%expect_test "FIXME: reproduce [#344](https://github.com/ocaml/ocaml-lsp/issu
     |}]
 ;;
 
+let%expect_test "empty odoc table raises an internal error" =
+  let source =
+    {ocaml|(** {table} *)
+let x = 1
+let _ = x
+|ocaml}
+  in
+  let request client =
+    let position = Position.create ~line:2 ~character:8 in
+    let* result = Fiber.collect_errors (fun () -> Hover_helpers.hover client position) in
+    match result with
+    | Error
+        [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ] ->
+      let data = Option.value_exn error.data in
+      let exn = Yojson.Safe.Util.(data |> member "exn" |> to_string) in
+      Printf.printf
+        "code: %s\nexception: %s\n"
+        (Jsonrpc.Response.Error.Code.to_string error.code)
+        exn;
+      Fiber.return ()
+    | Error errors -> Fiber.reraise_all errors
+    | Ok hover ->
+      Hover_helpers.print_hover hover;
+      Fiber.return ()
+  in
+  Helpers.test ~capabilities:Hover_helpers.markdown_capabilities source request;
+  [%expect
+    {|
+    code: InternalError
+    exception: File "ocaml-lsp-server/src/doc_to_md.ml", line 137, characters 16-22: Assertion failed
+    |}]
+;;
+
 let%expect_test "object method call" =
   let source =
     {ocaml|
