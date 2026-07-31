@@ -14,6 +14,8 @@
   returns a multiline location. (#2034, @rgrinberg)
 - Advertise Dune promotion code actions using their returned `quickfix` kind.
   (#2055, @rgrinberg)
+- Reject interface documents passed to the `ocamllsp/inferIntf` custom request
+  with `InvalidParams`. (#2051, @rgrinberg)
 - Report malformed type-enclosing custom-request parameters as `InvalidParams`
   instead of an internal error. (#2050, @rgrinberg)
 - Return `null` from the refactor-extract custom request for empty ranges.

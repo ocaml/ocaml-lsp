@@ -5,20 +5,18 @@ let infer_intf ?(uri = Helpers.uri) client =
   Test.custom_request client Req.meth (`List [ DocumentUri.yojson_of_t uri ])
 ;;
 
-let%expect_test "an interface document raises an internal error" =
+let%expect_test "an interface document is rejected as invalid params" =
   let uri = DocumentUri.of_path "test.mli" in
   let source = "val x : int" in
   let request client =
     let* result = Fiber.collect_errors (fun () -> infer_intf ~uri client) in
     match result with
-    | Error
-        [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ] ->
-      let data = Option.value_exn error.data in
-      let exn = Yojson.Safe.Util.(data |> member "exn" |> to_string) in
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+      ->
       Printf.printf
-        "code: %s\nexception: %s\n"
+        "code: %s\nmessage: %s\n"
         (Jsonrpc.Response.Error.Code.to_string error.code)
-        exn;
+        error.message;
       Fiber.return ()
     | Error errors -> Fiber.reraise_all errors
     | Ok response ->
@@ -28,8 +26,8 @@ let%expect_test "an interface document raises an internal error" =
   Helpers.test ~uri ~language_id:"ocaml.interface" source request;
   [%expect
     {|
-    code: InternalError
-    exception: Failure("expected an implementation document, got an interface instead")
+    code: InvalidParams
+    message: ocamllsp/inferIntf expects an implementation document
     |}]
 ;;
 
