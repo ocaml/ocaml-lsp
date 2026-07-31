@@ -88,6 +88,22 @@ let%expect_test "destruct-line returns an edit inside a UTF-8 scalar" =
     |}]
 ;;
 
+let%expect_test "inline action handles a deeply recovered expression" =
+  let source = "let opt[()\nlet claion A -x" in
+  let range = range ~start_line:0 ~start_character:7 ~end_line:1 ~end_character:15 in
+  Helpers.test ~extra_env:[ "OCAMLRUNPARAM=l=10000" ] source (fun client ->
+    let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
+    let only = [ CodeActionKind.RefactorInline ] in
+    let context = CodeActionContext.create ~diagnostics:[] ~only () in
+    let+ response =
+      Client.request
+        client
+        (CodeAction (CodeActionParams.create ~textDocument ~range ~context ()))
+    in
+    print_code_action_result response);
+  [%expect {| No code actions |}]
+;;
+
 let%expect_test "can destruct sum types" =
   let source =
     {ocaml|
