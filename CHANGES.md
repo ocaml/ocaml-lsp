@@ -14,6 +14,8 @@
   returns a multiline location. (#2034, @rgrinberg)
 - Advertise Dune promotion code actions using their returned `quickfix` kind.
   (#2055, @rgrinberg)
+- Return `null` from the refactor-extract custom request for empty ranges.
+  (#2049, @rgrinberg)
 - Return `null` from the destruct custom request for inapplicable ranges.
   (#2048, @rgrinberg)
 - Return `null` from the construct custom request when the cursor is not at a
