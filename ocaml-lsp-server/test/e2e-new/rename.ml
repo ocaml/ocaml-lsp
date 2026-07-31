@@ -183,6 +183,41 @@ let b = (^*$) 1
     |}]
 ;;
 
+let%expect_test "rename record-punned variable also renames the field" =
+  let source =
+    {ocaml|type t = { x : int }
+let f x = { x }
+|ocaml}
+  in
+  run source (fun client ->
+    let* response = rename ~newName:"y" client (Position.create ~line:1 ~character:6) in
+    print_workspace_edit response;
+    Fiber.return ());
+  [%expect
+    {|
+    {
+      "changes": {
+        "file:///test.ml": [
+          {
+            "newText": "y",
+            "range": {
+              "end": { "character": 13, "line": 1 },
+              "start": { "character": 12, "line": 1 }
+            }
+          },
+          {
+            "newText": "y",
+            "range": {
+              "end": { "character": 7, "line": 1 },
+              "start": { "character": 6, "line": 1 }
+            }
+          }
+        ]
+      }
+    }
+    |}]
+;;
+
 let%expect_test "rename value in a file without documentChanges capability" =
   run rename_source (fun client ->
     let* response = rename client (Position.create ~line:0 ~character:4) in
