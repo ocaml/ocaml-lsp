@@ -1703,3 +1703,29 @@ let%expect_test "completion for object methods" =
       }
     } |}]
 ;;
+
+let%expect_test "construct completion edit stays on the request line" =
+  let source = "-(\n _" in
+  let position = Position.create ~line:1 ~character:2 in
+  let only_zero =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "0")
+  in
+  print_completions ~limit:1 ~pre_print:only_zero source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "filterText": "_0",
+      "kind": 1,
+      "label": "0",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "0",
+        "range": {
+          "end": { "character": 2, "line": 1 },
+          "start": { "character": 1, "line": 1 }
+        }
+      }
+    }
+    |}]
+;;

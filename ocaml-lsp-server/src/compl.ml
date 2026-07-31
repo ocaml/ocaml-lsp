@@ -93,6 +93,18 @@ let range_prefix (lsp_position : Position.t) prefix : Range.t =
   { Range.start; end_ = lsp_position }
 ;;
 
+let edit_range doc pos =
+  let source = Document.Merlin.source doc in
+  let logical_pos = Position.logical pos in
+  let range = range_prefix pos (prefix_of_position ~short_path:true source logical_pos) in
+  let suffix =
+    let text_document = Document.Merlin.to_doc doc |> Document.text_document in
+    let offset = Text_document.absolute_position text_document pos in
+    suffix_of_position source (`Offset offset)
+  in
+  { range with end_ = { pos with character = pos.character + String.length suffix } }
+;;
+
 let sortText_width item_count =
   max 4 (String.length (Int.to_string (max 0 (item_count - 1))))
 ;;
@@ -161,19 +173,7 @@ module Complete_by_prefix = struct
         pos
         (completion : Query_protocol.completions)
     =
-    let range =
-      let source = Document.Merlin.source doc in
-      let logical_pos = Position.logical pos in
-      let range =
-        range_prefix pos (prefix_of_position ~short_path:true source logical_pos)
-      in
-      let suffix =
-        let text_document = Document.Merlin.to_doc doc |> Document.text_document in
-        let offset = Text_document.absolute_position text_document pos in
-        suffix_of_position source (`Offset offset)
-      in
-      { range with end_ = { pos with character = pos.character + String.length suffix } }
-    in
+    let range = edit_range doc pos in
     let completion_entries =
       match completion.context with
       | `Unknown -> completion.entries
@@ -286,10 +286,17 @@ module Complete_with_construct = struct
     | Error exn -> Exn_with_backtrace.reraise exn
   ;;
 
-  let process_dispatch_resp ~supportsJumpToNextHole = function
+  let process_dispatch_resp ~supportsJumpToNextHole ~fallback_range ~position = function
     | None -> []
     | Some (loc, constructed_exprs) ->
-      let range = Range.of_loc loc in
+      let range =
+        let range = Range.of_loc loc in
+        if
+          range.start.line = range.end_.line
+          && Lsp.Range.contains_position range position ~inclusive_end:true
+        then range
+        else fallback_range
+      in
       let sort_text_width = sortText_width (List.length constructed_exprs) in
       let deparen_constr_expr expr =
         if
@@ -451,6 +458,8 @@ let complete
                in
                Complete_with_construct.process_dispatch_resp
                  ~supportsJumpToNextHole
+                 ~fallback_range:(edit_range merlin pos)
+                 ~position:pos
                  construct_cmd_resp
              in
              let compl_by_prefix_completionItems =
