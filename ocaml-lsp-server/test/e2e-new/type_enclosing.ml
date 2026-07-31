@@ -30,7 +30,7 @@ module Util = struct
   ;;
 end
 
-let%expect_test "missing index is reported as an internal error" =
+let%expect_test "missing index is reported as invalid params" =
   let source = "let x = 1" in
   let request client =
     let params =
@@ -43,19 +43,12 @@ let%expect_test "missing index is reported as an internal error" =
       Fiber.collect_errors (fun () -> Test.custom_request client Req.meth params)
     in
     match result with
-    | Error
-        [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ] ->
-      let data = Option.value_exn error.data in
-      let exn = Yojson.Safe.Util.(data |> member "exn" |> to_string) in
-      let exn =
-        if String.is_prefix exn ~prefix:"Yojson__Safe.Util.Type_error"
-        then "Yojson__Safe.Util.Type_error"
-        else exn
-      in
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+      ->
       Printf.printf
-        "code: %s\nexception: %s\n"
+        "code: %s\nmessage: %s\n"
         (Jsonrpc.Response.Error.Code.to_string error.code)
-        exn;
+        error.message;
       Fiber.return ()
     | Error errors -> Fiber.reraise_all errors
     | Ok response ->
@@ -65,8 +58,8 @@ let%expect_test "missing index is reported as an internal error" =
   Helpers.test source request;
   [%expect
     {|
-    code: InternalError
-    exception: Yojson__Safe.Util.Type_error
+    code: InvalidParams
+    message: Unexpected parameter format
     |}]
 ;;
 
