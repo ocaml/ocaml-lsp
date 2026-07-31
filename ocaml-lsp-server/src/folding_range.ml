@@ -238,6 +238,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     let structure_item self structure_item =
       match structure_item.Parsetree.pstr_desc with
       | Pstr_value _
+      | Pstr_val _
       | Pstr_class _
       | Pstr_modtype _
       | Pstr_type _

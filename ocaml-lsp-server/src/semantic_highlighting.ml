@@ -894,7 +894,7 @@ end = struct
 
   let value_description
         (self : Ast_iterator.iterator)
-        ({ pval_name; pval_type; pval_prim = _; pval_attributes; pval_loc = _ } :
+        ({ pval_name; pval_type; pval_attributes; pval_loc = _ } :
           Parsetree.value_description)
     =
     add_name_token
