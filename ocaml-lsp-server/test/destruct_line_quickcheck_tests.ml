@@ -222,3 +222,30 @@ let%test_unit "record updates without a case are ignored" =
     None
     (find_case "match { r with value = A } with" ~position:0)
 ;;
+
+let%test_unit "module-type with in the scrutinee hides the outer case" =
+  (* Buggy behavior: the first empty-stack [with] is treated as the match [with],
+     so module-type constraints make the real case invisible. *)
+  check_equal
+    "case after module-type with"
+    None
+    (find_case "match (module M : S with type t = int) with | Pack _ -> _" ~position:0);
+  check_equal
+    "case after module type of with"
+    None
+    (find_case
+       "match (module M : module type of N with type t = int) with | Pack _ -> _"
+       ~position:0);
+  check_equal
+    "case after module-type with containing bars"
+    None
+    (find_case
+       "match (module M : S with type t = [ `A | `B ]) with | Pack _ -> _"
+       ~position:0);
+  check_equal
+    "case after anonymous module with struct/end"
+    None
+    (find_case
+       "match (module struct type u = int end : S with type u = int) with | Pack _ -> _"
+       ~position:0)
+;;
