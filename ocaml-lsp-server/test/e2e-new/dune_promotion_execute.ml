@@ -104,10 +104,10 @@ let%expect_test "request and execute a Dune promotion" =
     }
     promoted contents: "let answer = 42"
     missing promotion request: ignored RPC error
-    missing arguments (InternalError): uncaught exception
-    extra arguments (InternalError): uncaught exception
-    null argument (InternalError): uncaught exception
-    incomplete argument (InternalError): uncaught exception
+    missing arguments (InvalidParams): invalid Dune promotion arguments
+    extra arguments (InvalidParams): invalid Dune promotion arguments
+    null argument (InvalidParams): invalid Dune promotion arguments
+    incomplete argument (InvalidParams): invalid Dune promotion arguments
     invalid command (InvalidRequest): invalid command
     |}]
 ;;

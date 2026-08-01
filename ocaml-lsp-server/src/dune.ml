@@ -892,16 +892,27 @@ module Promote = struct
 
   let name = "dune/promote"
 
-  let run t (command : ExecuteCommandParams.t) =
+  let input arguments =
+    let invalid () =
+      Jsonrpc.Response.Error.raise
+        (Jsonrpc.Response.Error.make
+           ~code:InvalidParams
+           ~message:"invalid Dune promotion arguments"
+           ())
+    in
+    match arguments with
+    | Some [ arg ] ->
+      (match Input.t_of_yojson arg with
+       | promote -> promote
+       | exception Json.Conv.Of_yojson_error _ -> invalid ())
+    | _ -> invalid ()
+  ;;
+
+  let run t (promote : Input.t) =
     Fiber.of_thunk (fun () ->
       match !t with
       | Closed -> Fiber.return ()
       | Active active ->
-        let promote =
-          match command.arguments with
-          | Some [ arg ] -> Input.t_of_yojson arg
-          | _ -> assert false
-        in
         (match Map.find active.instances promote.dune with
          | None ->
            let message = sprintf "dune %S already disconected" promote.dune in
@@ -964,7 +975,8 @@ let on_command t (cmd : ExecuteCommandParams.t) =
     then
       Jsonrpc.Response.Error.raise
         (Jsonrpc.Response.Error.make ~code:InvalidRequest ~message:"invalid command" ());
-    let* () = Promote.run t cmd in
+    let promote = Promote.input cmd.arguments in
+    let* () = Promote.run t promote in
     Fiber.return `Null)
 ;;
 
