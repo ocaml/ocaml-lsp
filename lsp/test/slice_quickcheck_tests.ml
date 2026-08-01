@@ -90,30 +90,29 @@ let check_substring_case
   let taken = Int.min position contents_length in
   check_string
     "take"
-    (String.sub contents ~pos:0 ~len:taken)
+    (String.prefix contents taken)
     (Substring.take substring position |> Substring.to_string);
   check_string
     "drop"
-    (String.sub contents ~pos:taken ~len:(contents_length - taken))
+    (String.drop_prefix contents taken)
     (Substring.drop substring position |> Substring.to_string);
   let left, right = Substring.split_at substring position in
   check_string
     "split_at left"
-    (String.sub contents ~pos:0 ~len:position)
+    (String.prefix contents position)
     (Substring.to_string left);
   check_string
     "split_at right"
-    (String.sub contents ~pos:position ~len:(contents_length - position))
+    (String.drop_prefix contents position)
     (Substring.to_string right);
   let left, right = Substring.rsplit_at substring position in
-  let split = contents_length - position in
   check_string
     "rsplit_at left"
-    (String.sub contents ~pos:0 ~len:split)
+    (String.drop_suffix contents position)
     (Substring.to_string left);
   check_string
     "rsplit_at right"
-    (String.sub contents ~pos:split ~len:position)
+    (String.suffix contents position)
     (Substring.to_string right);
   let buffer = Buffer.create contents_length in
   Substring.add_buffer substring buffer;
