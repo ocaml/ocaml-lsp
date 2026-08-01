@@ -2,6 +2,7 @@
 
 module Bin = Bin
 module Compl = Compl
+module Action_destruct_line = Action_destruct_line
 module Document_symbol = Document_symbol
 module Merlin_kernel = Merlin_kernel
 module Prefix_parser = Prefix_parser

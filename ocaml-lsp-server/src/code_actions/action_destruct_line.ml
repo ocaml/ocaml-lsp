@@ -1,5 +1,107 @@
 open Import
 
+module Search = struct
+  module Lexer = Ocaml_preprocess.Lexer_raw
+  module Parser = Ocaml_preprocess.Parser_raw
+
+  type t =
+    { match_start : int
+    ; case_start : int option
+    }
+
+  type token =
+    { kind : Parser.token
+    ; start : int
+    ; end_ : int
+    }
+
+  let lexer code =
+    let lexbuf = Lexing.from_string code in
+    let lexer = Lexer.make (Lexer.keywords []) in
+    let rec finish = function
+      | Lexer.Return token -> Some token
+      | Refill refill -> finish (refill ())
+      | Fail _ -> None
+    in
+    Staged.stage (fun () ->
+      match finish (Lexer.token_without_comments lexer lexbuf) with
+      | None | Some EOF -> None
+      | Some kind ->
+        Some { kind; start = Lexing.lexeme_start lexbuf; end_ = Lexing.lexeme_end lexbuf })
+  ;;
+
+  let find_case code ~start next =
+    (* The stack tracks the innermost open constructs: [`Match] for a nested
+     [match]/[try] and [`Brace] for a record-update brace. A [with] closes the
+     innermost [`Match]; a [with] above a [`Brace] belongs to the record
+     update; and a [with] with an empty stack belongs to the [match] we started
+     from, whose first case (if any) immediately follows. *)
+    (* The search is bounded to a few lines after the [match] to avoid lexing the
+     rest of the file when the [match] has no cases yet. *)
+    let max_lines = 100 in
+    let lines = ref 0 in
+    let prev_end = ref start in
+    let budget_ok token =
+      let len = token.start - !prev_end in
+      if len > 0
+      then (
+        let skipped = String.sub code ~pos:!prev_end ~len in
+        String.iter skipped ~f:(fun c -> if Char.equal c '\n' then incr lines));
+      prev_end := token.end_;
+      !lines <= max_lines
+    in
+    let rec loop stack =
+      match next () with
+      | None -> None
+      | Some token when not (budget_ok token) -> None
+      | Some { kind = MATCH | TRY; _ } -> loop (`Match :: stack)
+      | Some { kind = LBRACE; _ } -> loop (`Brace :: stack)
+      | Some { kind = RBRACE; _ } ->
+        (match stack with
+         | `Brace :: rest -> loop rest
+         | _ -> loop stack)
+      | Some { kind = WITH; _ } ->
+        (match stack with
+         | `Match :: rest -> loop rest
+         | `Brace :: _ -> loop stack
+         | [] ->
+           (match next () with
+            | Some ({ kind = BAR; start; _ } as token) when budget_ok token -> Some start
+            | None | Some _ -> None))
+      | Some _ -> loop stack
+    in
+    loop []
+  ;;
+
+  let find code ~position =
+    let line_end =
+      String.substr_index code ~pattern:"\n" |> Option.value ~default:(String.length code)
+    in
+    let next = Staged.unstage (lexer code) in
+    match next () with
+    | None -> None
+    | Some first ->
+      let rec loop token =
+        if token.start >= line_end
+        then None
+        else (
+          match token.kind with
+          | MATCH
+            when token.start = first.start
+                 || (token.start <= position && position <= token.end_) ->
+            Some
+              { match_start = token.start
+              ; case_start = find_case code ~start:token.end_ next
+              }
+          | MATCH | _ ->
+            (match next () with
+             | None -> None
+             | Some token -> loop token))
+      in
+      loop first
+  ;;
+end
+
 let action_kind = "destruct-line (enumerate cases, use existing match)"
 let kind = CodeActionKind.Other action_kind
 
@@ -164,21 +266,45 @@ let adjust_reply_location ~(statement : destructable_statement) (loc : Loc.t) : 
   { loc with loc_start; loc_end }
 ;;
 
+let statement_of_code ~prefix_len code range =
+  let code = String.make prefix_len ' ' ^ String.drop_prefix code prefix_len in
+  match get_statement_kind code range with
+  | None -> None
+  | Some kind ->
+    let query_range = get_query_range code kind range in
+    let reply_range = get_reply_range code kind query_range in
+    Some { code; kind; query_range; reply_range }
+;;
+
+let statement_at_offset doc source offset =
+  let (`Logical (line, character)) = Msource.get_logical source (`Offset offset) in
+  let position = Position.create ~line:(line - 1) ~character in
+  let range = Range.create ~start:position ~end_:position in
+  statement_of_code ~prefix_len:character (get_line doc range) range
+;;
+
 (** Tries to find a statement we know how to handle on the line where the range
-    starts. *)
+    starts. Inline matches are focused by masking their prefix, preserving all
+    character offsets used by the existing line-oriented processing. *)
 let extract_statement (doc : Document.t) (ca_range : Range.t)
   : destructable_statement option
   =
-  if not (Lsp.Range.is_single_line ca_range)
-  then None
-  else (
-    let code = get_line doc ca_range in
-    match get_statement_kind code ca_range with
-    | None -> None
-    | Some kind ->
-      let query_range = get_query_range code kind ca_range in
-      let reply_range = get_reply_range code kind query_range in
-      Some { code; kind; query_range; reply_range })
+  let multiline = not (Lsp.Range.is_single_line ca_range) in
+  let line_range : Range.t =
+    if multiline then { start = ca_range.start; end_ = ca_range.start } else ca_range
+  in
+  let code = get_line doc line_range in
+  let source = Document.source doc in
+  let (`Offset line_start) =
+    Msource.get_offset source (`Logical (line_range.start.line + 1, 0))
+  in
+  let search_code = String.drop_prefix (Document.text doc) line_start in
+  match Search.find search_code ~position:line_range.start.character with
+  | None -> if multiline then None else statement_of_code ~prefix_len:0 code line_range
+  | Some { case_start = Some case_start; _ } ->
+    statement_at_offset doc source (line_start + case_start)
+  | Some { match_start; case_start = None } ->
+    statement_of_code ~prefix_len:match_start code line_range
 ;;
 
 (** Strips " -> _ " off the rhs and " | " off the lhs of a case-line if present. *)
@@ -266,3 +392,7 @@ let code_action
 let t ~dispatch state =
   { Code_action.kind; run = `Non_batchable (code_action state dispatch) }
 ;;
+
+module Testing = struct
+  module Search = Search
+end
