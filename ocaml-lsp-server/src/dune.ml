@@ -203,6 +203,7 @@ module Instance : sig
 
   val format_dune_file : t -> Document.Dune.t -> string Fiber.t
   val stop : t -> unit Fiber.t
+  val disconnect : t -> unit Fiber.t
   val run : t -> unit Fiber.t
   val connect : t -> (unit, unit) result Fiber.t
   val source : t -> Registry.Dune.t
@@ -543,6 +544,15 @@ end = struct
       Fiber.return (Ok ())
   ;;
 
+  let disconnect t =
+    match t.state with
+    | Running running ->
+      t.state <- Finished running.promotions;
+      Diagnostics.disconnect t.config.diagnostics running.diagnostics_id;
+      Diagnostics.send t.config.diagnostics `All
+    | Connected _ | Idle | Finished _ -> Fiber.return ()
+  ;;
+
   let run ({ config; source; _ } as t) =
     let* () = Fiber.return () in
     let session, where =
@@ -703,15 +713,13 @@ let run_with_cleanup ~run ~cleanup ~on_error =
       (module Monoid.Unit)
       run
       ~on_error:(fun exn ->
-        let* () = on_error exn in
-        Lazy_fiber.force cleanup)
+        let* () = Lazy_fiber.force cleanup in
+        on_error exn)
   in
   Lazy_fiber.force cleanup
 ;;
 
 let cleanup_instance active (instance : Instance.t) =
-  active.instances
-  <- Map.remove active.instances (Registry.Dune.root (Instance.source instance));
   let to_unregister =
     Instance.promotions instance
     |> Map.data
@@ -719,6 +727,12 @@ let cleanup_instance active (instance : Instance.t) =
       let path = Drpc.Diagnostic.Promotion.in_source promotion in
       Uri.of_path path)
   in
+  let* () = Instance.disconnect instance in
+  let root = Registry.Dune.root (Instance.source instance) in
+  active.instances
+  <- (match Map.find active.instances root with
+      | Some current when current == instance -> Map.remove active.instances root
+      | None | Some _ -> active.instances);
   Document_store.unregister_promotions active.config.document_store to_unregister
 ;;
 

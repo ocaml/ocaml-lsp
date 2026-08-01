@@ -2,7 +2,7 @@ module Dune = Ocaml_lsp_server.For_tests.Dune
 
 let run fiber = Lev_fiber.run (fun () -> fiber) |> Lev_fiber.Error.ok_exn
 
-let%expect_test "cleanup runs after reporting an RPC error" =
+let%expect_test "cleanup runs once before reporting an RPC error" =
   let cleanups = ref 0 in
   run
     (Dune.run_with_cleanup
@@ -16,7 +16,7 @@ let%expect_test "cleanup runs after reporting an RPC error" =
   Printf.printf "total cleanups: %d\n" !cleanups;
   [%expect
     {|
-    cleanups while reporting: 0
+    cleanups while reporting: 1
     total cleanups: 1
     |}]
 ;;
