@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Unregister Dune promotion code actions when an RPC instance finishes.
+  (#2076, @rgrinberg)
 - Avoid unregistering promotion code actions when clearing the last promotion
   for an already open document. (#2075, @rgrinberg)
 - Keep Dune RPC registry polling responsive while connected instances are
