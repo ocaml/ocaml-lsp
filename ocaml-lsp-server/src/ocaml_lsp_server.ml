@@ -201,6 +201,29 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
 
 let ocamlmerlin_reason = "ocamlmerlin-reason"
 
+let no_reason_merlin_diagnostic =
+  once (fun () ->
+    let message =
+      `String (sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason)
+    in
+    Diagnostic.create
+      ~source:Diagnostics.ocamllsp_source
+      ~range:Range.first_line
+      ~message
+      ())
+;;
+
+let compute_document_merlin_diagnostics diagnostics doc =
+  match Document.kind doc with
+  | `Other -> Fiber.return []
+  | `Merlin merlin ->
+    (match Document.syntax doc with
+     | Dune | Cram | Menhir | Ocamllex -> Fiber.return []
+     | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
+       Fiber.return [ no_reason_merlin_diagnostic () ]
+     | Reason | Ocaml | Mlx -> Diagnostics.compute_merlin_diagnostics diagnostics merlin)
+;;
+
 let set_diagnostics detached diagnostics doc =
   let uri = Document.uri doc in
   match Document.kind doc with
@@ -221,23 +244,10 @@ let set_diagnostics detached diagnostics doc =
     in
     (match Document.syntax doc with
      | Dune | Cram | Menhir | Ocamllex -> Fiber.return ()
-     | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
-       let no_reason_merlin =
-         let message =
-           `String
-             (sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason)
-         in
-         Diagnostic.create
-           ~source:Diagnostics.ocamllsp_source
-           ~range:Lsp.Range.first_line
-           ~message
-           ()
-       in
-       Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
-       async (fun () -> Diagnostics.send diagnostics (`One uri))
      | Reason | Ocaml | Mlx ->
        async (fun () ->
-         let* () = Diagnostics.merlin_diagnostics diagnostics merlin in
+         let* merlin = compute_document_merlin_diagnostics diagnostics doc in
+         Diagnostics.set diagnostics (`Merlin (uri, merlin));
          Diagnostics.send diagnostics (`One uri)))
 ;;
 
