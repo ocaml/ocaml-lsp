@@ -67,6 +67,7 @@ val wait_for_rpc_registration : string -> int -> unit
 val stop_process : int -> unit
 val create_project : string -> project
 val stop_dune : project -> unit
+val restart_dune : project -> unit
 val destroy_project : project -> unit
 val print_payload : project -> string -> Yojson.Safe.t -> unit
 val print_payloads : project -> string -> ('a -> Yojson.Safe.t) -> 'a list -> unit
