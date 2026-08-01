@@ -1,9 +1,9 @@
 open Lsp
 open Lsp.Types
-module List = ListLabels
-module String = StringLabels
+open Base
 
-let printf = Printf.printf
+let print_endline = Stdlib.print_endline
+let printf = Stdlib.Printf.printf
 
 let tuple_range start end_ =
   { Range.start =
@@ -47,7 +47,7 @@ let test_general text changes =
     let td =
       Text_document.apply_content_changes
         td
-        (ListLabels.map changes ~f:(fun (range, text) -> content_change ?range ~text ()))
+        (List.map changes ~f:(fun (range, text) -> content_change ?range ~text ()))
     in
     Text_document.text td
   in
@@ -281,8 +281,8 @@ let%expect_test "absolute_position" =
   let td = make_document (Uri.of_path "foo.ml") ~text in
   let test (line, character) =
     let offset = Text_document.absolute_position td (Position.create ~line ~character) in
-    let before = String.sub text ~pos:0 ~len:offset in
-    let after = String.sub text ~pos:offset ~len:(String.length text - offset) in
+    let before = String.prefix text offset in
+    let after = String.drop_prefix text offset in
     printf "position (%d, %d) -> offset %d: %S | %S\n" line character offset before after
   in
   test (0, 0);
@@ -352,7 +352,7 @@ let%expect_test "range_of_utf8_offsets rejects invalid offsets" =
   let doc = make_document ~position_encoding:`UTF16 (Uri.of_path "foo.ml") ~text:"a😀b" in
   let print_exception f =
     match f () with
-    | exception exn -> Printexc.to_string exn |> print_endline
+    | exception exn -> Exn.to_string exn |> print_endline
     | _ -> print_endline "<no exception>"
   in
   print_exception (fun () ->
@@ -365,10 +365,13 @@ let%expect_test "range_of_utf8_offsets rejects invalid offsets" =
     Text_document.range_of_utf8_offsets doc ~start_offset:1 ~end_offset:2);
   [%expect
     {|
-    Invalid_argument("Text_document.range_of_utf8_offsets: offset out of bounds")
-    Invalid_argument("Text_document.range_of_utf8_offsets: offset out of bounds")
-    Invalid_argument("Text_document.range_of_utf8_offsets: start follows end")
-    Invalid_argument("Text_document.range_of_utf8_offsets: offset is not a UTF-8 boundary")
+    (Invalid_argument
+      "Text_document.range_of_utf8_offsets: offset out of bounds")
+    (Invalid_argument
+      "Text_document.range_of_utf8_offsets: offset out of bounds")
+    (Invalid_argument "Text_document.range_of_utf8_offsets: start follows end")
+    (Invalid_argument
+      "Text_document.range_of_utf8_offsets: offset is not a UTF-8 boundary")
     |}]
 ;;
 

@@ -1,5 +1,4 @@
 open Base
-open Stdune
 open Base_quickcheck
 open Editing_model
 module String_zipper = Lsp.Private.String_zipper
@@ -53,11 +52,7 @@ let check state =
   let actual_text = String_zipper.to_string zipper in
   if not (String.equal text actual_text) then fail state "text differs";
   if String_zipper.offset zipper <> offset then fail state "offset differs";
-  let expected_debug =
-    Stdlib.String.sub text 0 offset
-    ^ "|"
-    ^ Stdlib.String.sub text offset (String.length text - offset)
-  in
+  let expected_debug = String.prefix text offset ^ "|" ^ String.drop_prefix text offset in
   if not (String.equal expected_debug (String_zipper.to_string_debug zipper))
   then fail state "debug rendering differs";
   let { String_zipper.Private.left; rel_pos; abs_pos; current; right; line } =

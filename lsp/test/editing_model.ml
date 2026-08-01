@@ -92,10 +92,7 @@ let ordered_cursors text encoding first second =
 ;;
 
 let replace text ~start ~stop replacement =
-  let length = String.length text in
-  Stdlib.String.sub text 0 start
-  ^ replacement
-  ^ Stdlib.String.sub text stop (length - stop)
+  String.prefix text start ^ replacement ^ String.drop_prefix text stop
 ;;
 
 let slice text ~start ~stop = Stdlib.String.sub text start (stop - start)

@@ -37,10 +37,9 @@ let get_line (doc : Document.t) (range : Range.t) =
     characters from the head and tail of a string. Used to transform [match x]
     or [match x with] to [x]. *)
 let strip_head_and_tail str ~head_offset ~tail_offset =
-  let str = String.strip str in
-  let l = String.length str in
-  let substr = String.sub str ~pos:head_offset ~len:(l - head_offset - tail_offset) in
-  String.strip substr
+  (let str = String.strip str in
+   String.drop_suffix (String.drop_prefix str head_offset) tail_offset)
+  |> String.strip
 ;;
 
 (** Finds the start and end indices of a substring for extraction. *)
