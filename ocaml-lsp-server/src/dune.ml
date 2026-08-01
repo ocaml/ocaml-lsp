@@ -151,9 +151,7 @@ end = struct
     ; diagnostics_id : Diagnostics.Dune.t
     ; id : Id.t
     ; mutable client : Client.t option
-    ; mutable promotions :
-        (* TODO we need to clean these up in the finalizer *)
-        Drpc.Diagnostic.Promotion.t Map.M(String).t
+    ; mutable promotions : Drpc.Diagnostic.Promotion.t Map.M(String).t
     }
 
   type state =
