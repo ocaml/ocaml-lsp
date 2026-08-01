@@ -6,7 +6,22 @@ module Id = struct
   module Table = Stdlib.MoreLabels.Hashtbl.Make (Id)
 end
 
-module Registration_id = Stdune.Id.Make ()
+module Registration_id : sig
+  type t
+
+  val gen : unit -> t
+  val equal : t -> t -> bool
+end = struct
+  let t = ref 0
+
+  let gen () =
+    let res = !t in
+    incr t;
+    res
+  ;;
+
+  include Int
+end
 
 module Notify = struct
   type t =
@@ -280,7 +295,7 @@ struct
       let* result =
         let sent = ref false in
         Fiber.map_reduce_errors
-          (module Stdune.Monoid.Unit)
+          (module Monoid.Unit)
           ~on_error:(fun exn_bt ->
             if !sent
             then (* TODO log *)
@@ -301,7 +316,7 @@ struct
           Fiber.Pool.task later ~f:(fun () ->
             let+ res =
               Fiber.map_reduce_errors
-                (module Stdune.Monoid.Unit)
+                (module Monoid.Unit)
                 (fun () -> Reply.send reply sender)
                 ~on_error:(fun exn_bt ->
                   if sender.called
