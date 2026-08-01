@@ -17,7 +17,9 @@ module Events : sig
   type t
 
   val dune_ready : t -> Signal.t
+  val dune_progress : t -> Signal.t
   val multiple_instances : t -> Signal.t
+  val errors : t -> LogMessageParams.t Mailbox.t
   val progress : t -> Lsp.Progress.t ProgressParams.t Mailbox.t
 
   val wait_for_diagnostics
@@ -67,6 +69,7 @@ val print_payloads : project -> string -> ('a -> Yojson.Safe.t) -> 'a list -> un
 
 val run_with_workspace
   :  ?capabilities:ClientCapabilities.t
+  -> ?trace:TraceValue.t
   -> root:string
   -> runtime_dir:string
   -> Lifecycle_events.t
@@ -76,6 +79,7 @@ val run_with_workspace
 val run
   :  ?workspace_root:string
   -> ?capabilities:ClientCapabilities.t
+  -> ?trace:TraceValue.t
   -> project
   -> Lifecycle_events.t
   -> f:(unit Client.t -> WorkspaceFolder.t -> 'a Fiber.t)
