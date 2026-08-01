@@ -6,6 +6,7 @@ include struct
   open Stdune
   module Code_error = Code_error
   module Exn_with_backtrace = Exn_with_backtrace
+  module Monoid = Monoid
 end
 
 include struct
