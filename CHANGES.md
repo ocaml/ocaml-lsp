@@ -99,6 +99,8 @@
 - Do not report Dune build progress when the client disables work-done progress.
   (#2082, @rgrinberg)
 - Reject malformed Dune promotion commands. (#2084, @rgrinberg)
+- Keep Dune promotion registrations balanced when diagnostics share a source.
+  (#2089, @rgrinberg)
 - Reject negative JSON-RPC `Content-Length` headers. (#1873, @rgrinberg)
 - Report unsupported LSP request methods as unavailable instead of internal
   server errors. (#1862, @rgrinberg)
