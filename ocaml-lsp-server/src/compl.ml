@@ -350,10 +350,10 @@ end
 
 let complete
       (state : State.t)
-      ({ textDocument = { uri }; position = pos; context; _ } : CompletionParams.t)
+      doc
+      ({ textDocument = _; position = pos; context; _ } : CompletionParams.t)
   =
   Fiber.of_thunk (fun () ->
-    let doc = Document_store.get state.store uri in
     match Document.kind doc with
     | `Other -> Fiber.return None
     | `Merlin merlin ->

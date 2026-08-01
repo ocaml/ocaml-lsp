@@ -14,6 +14,7 @@ end
 
 val complete
   :  State.t
+  -> Document.t
   -> CompletionParams.t
   -> [> `CompletionList of CompletionList.t ] option Fiber.t
 
