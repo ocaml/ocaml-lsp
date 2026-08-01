@@ -374,7 +374,7 @@ let error_to_diagnostics ~diagnostics ~merlin error =
     ()
 ;;
 
-let merlin_diagnostics diagnostics merlin =
+let merlin_diagnostics ?(refresh_load_path = false) diagnostics merlin =
   let doc = Document.Merlin.to_doc merlin in
   let uri = Document.uri doc in
   let source = Document.Merlin.source merlin in
@@ -385,6 +385,9 @@ let merlin_diagnostics diagnostics merlin =
       Query_protocol.Errors { lexing = true; parsing = true; typing = true }
     in
     Document.Merlin.with_pipeline_exn ~name:"diagnostics" merlin (fun pipeline ->
+      (* Work around ocaml/merlin#2109. A different Merlin state can refresh
+         the shared directory cache and mask this state's stale load path. *)
+      if refresh_load_path then Ocaml_utils.Load_path.reset ();
       match Query_commands.dispatch pipeline command with
       | exception Merlin_extend.Extend_main.Handshake.Error error ->
         let message =
