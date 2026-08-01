@@ -8,14 +8,14 @@ type semantic_tokens_cache =
   ; tokens : int array
   }
 
-(** The following code attempts to resolve the issue of displaying code actions
-    for unopened document.
+(** Promote code actions may target files ocamllsp does not own (any path Dune
+    can promote). Editors only request actions for associated documents, so
+    closed promotion targets need a per-URI dynamic registration (DR).
 
-    Unopened documents require a dynamic registration (DR) for code actions,
-    while open documents do not.
+    Open documents already go through the static codeAction provider, so they
+    must not keep a DR.
 
-    Here are the four states of the documents and the DR status they require.
-    "X" marks that DR is required while "O" marks that no Dr should be present
+    "X" means DR is required; "O" means it must be absent:
 
     {v
                           | Open | Closed |
@@ -24,8 +24,7 @@ type semantic_tokens_cache =
       No Promotions       |  O   |   O    |
     v}
 
-    From the above, we see that we need to unregister when transitioning from X
-    to O and to register while transitioning from X to O. *)
+    Register on transitions into X; unregister on transitions out of X. *)
 
 type doc =
   { document : Document.t option
