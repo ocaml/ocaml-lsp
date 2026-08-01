@@ -142,12 +142,22 @@
         pkgsWithoutOverlays = (import nixpkgs { inherit system; });
         # The project uses Dune language 3.24, which is newer than the Dune in
         # the current Nixpkgs snapshot.
-        duneLatest = pkgsWithoutOverlays.dune_3.overrideAttrs (_: {
-          version = "3.24.1";
+        # 3.24.1 ships an inverted RPC registry mtime skip (ocaml/dune#15630).
+        # ocaml/dune#15634 fixes Poll.poll so clients that race the first
+        # registry write still discover the Dune instance. Pin that fix until
+        # a release includes it. applyPatches so dune-rpc/stdune inherit it too
+        # (overrideAttrs patches only affect the dune package build).
+        duneSrc = pkgsWithoutOverlays.applyPatches {
+          name = "dune-3.24.1+15634-src";
           src = pkgsWithoutOverlays.fetchurl {
             url = "https://github.com/ocaml/dune/releases/download/3.24.1/dune-3.24.1.tbz";
             hash = "sha256-Co6qYt/LlFgCvK+abyAmylIoMz7jkaG97dPnCj8m6iw=";
           };
+          patches = [ ./patches/dune-rpc-registry-mtime-15634.patch ];
+        };
+        duneLatest = pkgsWithoutOverlays.dune_3.overrideAttrs (_: {
+          version = "3.24.1+15634";
+          src = duneSrc;
         });
         ocamlVersionOverlay = ocaml: _final: prev: {
           ocamlPackages = prev.ocaml-ng.${ocaml}.overrideScope (_: osuper: {
