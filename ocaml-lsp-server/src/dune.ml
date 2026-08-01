@@ -141,6 +141,7 @@ module Instance : sig
   val create : Registry.Dune.t -> config -> t
   val promotions : t -> Drpc.Diagnostic.Promotion.t Map.M(String).t
   val client : t -> Client.t option
+  val lsp_of_dune : t -> Drpc.Diagnostic.t -> Uri.t * Diagnostic.t
 end = struct
   module Id = Id.Make ()
 
@@ -182,7 +183,7 @@ end = struct
 
   let source t = t.source
 
-  let lsp_of_dune diagnostics ~include_promotions diagnostic =
+  let diagnostic_to_lsp diagnostics ~include_promotions diagnostic =
     let module D = Drpc.Diagnostic in
     let range_of_loc loc =
       let loc =
@@ -264,6 +265,22 @@ end = struct
     trace ~message ~verbose
   ;;
 
+  let uri_of_dune t diagnostic =
+    match Drpc.Diagnostic.loc diagnostic with
+    | None -> Registry.Dune.root t.source |> Uri.of_path
+    | Some loc ->
+      let { Lexing.pos_fname; _ } = Drpc.Loc.start loc in
+      Uri.of_path pos_fname
+  ;;
+
+  let lsp_of_dune t diagnostic =
+    ( uri_of_dune t diagnostic
+    , diagnostic_to_lsp
+        t.config.diagnostics
+        ~include_promotions:t.config.include_promotions
+        diagnostic )
+  ;;
+
   let progress_loop client diagnostics document_store progress trace source =
     (* We get all the progress updates even if the user can't see them to
        refresh the merlin config at the end of every build. Not very clean, but
@@ -298,7 +315,7 @@ end = struct
           Some ())
   ;;
 
-  let diagnostic_loop ~dune_root client config (running : running) diagnostics =
+  let diagnostic_loop t client config (running : running) diagnostics =
     let* res = Client.poll client Drpc.Sub.diagnostic in
     let send_diagnostics evs =
       let promotions, add, remove =
@@ -348,23 +365,10 @@ end = struct
                       assert false
                     | None -> Map.add_exn ps ~key:source ~data:promotion, promotion :: acc)
               in
-              let uri : Uri.t =
-                match Drpc.Diagnostic.loc d with
-                | None -> dune_root
-                | Some loc ->
-                  let { Lexing.pos_fname; _ } = Drpc.Loc.start loc in
-                  Uri.of_path pos_fname
-              in
+              let uri, diagnostic = lsp_of_dune t d in
               Diagnostics.set
                 diagnostics
-                (`Dune
-                    ( running.diagnostics_id
-                    , id
-                    , uri
-                    , lsp_of_dune
-                        diagnostics
-                        ~include_promotions:config.include_promotions
-                        d ));
+                (`Dune (running.diagnostics_id, id, uri, diagnostic));
               promotions, requests :: add, remove)
       in
       promotions, List.concat add, List.concat remove
@@ -533,10 +537,7 @@ end = struct
                  config.trace
                  source
              in
-             let diagnostics =
-               let dune_root = DocumentUri.of_path (Registry.Dune.root source) in
-               diagnostic_loop ~dune_root client config running diagnostics
-             in
+             let diagnostics = diagnostic_loop t client config running diagnostics in
              Fiber.all_concurrently_unit [ progress; diagnostics; Fiber.Ivar.read finish ]))
         ]
     in
@@ -858,6 +859,11 @@ let update_workspaces t workspaces =
   | Active active -> active.workspaces <- workspaces
 ;;
 
+let instances_for_uri active uri =
+  Map.fold active.instances ~init:[] ~f:(fun ~key:_ ~data:instance acc ->
+    if uri_dune_overlap uri (Instance.source instance) then instance :: acc else acc)
+;;
+
 module Promote = struct
   module Input = struct
     type t =
@@ -965,8 +971,5 @@ let on_command t (cmd : ExecuteCommandParams.t) =
 let for_doc t doc =
   match !t with
   | Closed -> []
-  | Active t ->
-    let uri = Document.Dune.uri doc in
-    Map.fold t.instances ~init:[] ~f:(fun ~key:_ ~data:instance acc ->
-      if uri_dune_overlap uri (Instance.source instance) then instance :: acc else acc)
+  | Active active -> instances_for_uri active (Document.Dune.uri doc)
 ;;
