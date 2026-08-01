@@ -25,7 +25,11 @@ let execute client ?arguments command =
 let print_command_error label = function
   | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
     ->
-    Printf.printf "%s: %s\n" label error.message;
+    Printf.printf
+      "%s (%s): %s\n"
+      label
+      (Jsonrpc.Response.Error.Code.to_string error.code)
+      error.message;
     Fiber.return ()
   | Error errors -> Fiber.reraise_all errors
   | Ok _ ->
@@ -65,6 +69,21 @@ let%expect_test "request and execute a Dune promotion" =
          if not (Poly.equal result `Null)
          then failwith "unexpected failed-promotion result";
          print_endline "missing promotion request: ignored RPC error";
+         let invalid_arguments label ?arguments () =
+           let* result =
+             Fiber.collect_errors (fun () -> execute client ?arguments "dune/promote")
+           in
+           print_command_error label result
+         in
+         let* () = invalid_arguments "missing arguments" () in
+         let* () = invalid_arguments "extra arguments" ~arguments:[ `Null; `Null ] () in
+         let* () = invalid_arguments "null argument" ~arguments:[ `Null ] () in
+         let* () =
+           invalid_arguments
+             "incomplete argument"
+             ~arguments:[ `Assoc [ "dune", `String project.root ] ]
+             ()
+         in
          let* invalid =
            Fiber.collect_errors (fun () -> execute client "dune/not-a-command")
          in
@@ -85,6 +104,10 @@ let%expect_test "request and execute a Dune promotion" =
     }
     promoted contents: "let answer = 42"
     missing promotion request: ignored RPC error
-    invalid command: invalid command
+    missing arguments (InternalError): uncaught exception
+    extra arguments (InternalError): uncaught exception
+    null argument (InternalError): uncaught exception
+    incomplete argument (InternalError): uncaught exception
+    invalid command (InvalidRequest): invalid command
     |}]
 ;;
