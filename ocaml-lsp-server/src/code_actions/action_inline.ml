@@ -1,4 +1,5 @@
 open Import
+open Fiber.O
 module H = Ocaml_parsing.Ast_helper
 
 let action_title = "Inline into uses"
@@ -251,26 +252,14 @@ let inlined_text pipeline task =
   Format.asprintf "(%a)" Pprintast.expression expr
 ;;
 
-(** [inline_edits pipeline task] returns a list of inlining edits and an
-    optional error value. An error will be generated if any of the potential
-    inlinings is not allowed due to shadowing. The successful edits will still
-    be returned *)
-let inline_edits pipeline task =
+type inline_use =
+  | Application of Typedtree.expression
+  | Identifier of Loc.t
+  | Labelled_argument of string * Loc.t
+
+let iter_inline_uses pipeline task ~f =
   let module I = Ocaml_typing.Tast_iterator in
-  let open Option.O in
-  let+ newText = inlined_text pipeline task in
-  let make_edit newText loc = TextEdit.create ~newText ~range:(Range.of_loc loc) in
-  let edits = Queue.create () in
-  let error = ref None in
-  let insert_edit newText loc = Queue.enqueue edits (make_edit newText loc) in
-  let not_shadowed env =
-    match check_shadowing task.inlined_expr env with
-    | Ok () -> true
-    | Error e ->
-      error := Some e;
-      false
-  in
-  (* inlining into an argument context has some special cases *)
+  (* Inlining into an argument context has some special cases. *)
   let arg_iter
         env
         (iter : I.iterator)
@@ -278,98 +267,150 @@ let inline_edits pipeline task =
         (m_arg_expr : Typedtree.apply_arg)
     =
     match label, m_arg_expr with
-    (* handle the labeled argument shorthand `f ~x` when inlining `x` *)
-    | Labelled name, Arg { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ }
-    (* inlining is allowed for optional arguments that are being passed a Some
-       parameter, i.e. `x` may be inlined in `let x = 1 in (fun ?(x = 0) -> x)
-       ~x` *)
+    (* Handle the labeled argument shorthand [f ~x] when inlining [x]. *)
+    | Labelled name, Arg ({ exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } as arg)
+      when Ident.same task.inlined_var id ->
+      if not (f env (Labelled_argument (name, loc))) then iter.expr iter arg
+    (* Inlining is allowed for optional arguments that are being passed a [Some]
+       parameter, i.e. [x] may be inlined in [let x = 1 in
+       (fun ?(x = 0) -> x) ~x]. *)
     | ( Optional name
       , Arg
-          { exp_desc =
-              (* construct is part of desugaring, assumed to be Some *)
-              Texp_construct
-                (_, _, [ { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } ])
-          ; _
-          } )
-      when Ident.same task.inlined_var id && not_shadowed env ->
-      let newText = sprintf "%s:%s" name newText in
-      insert_edit newText loc
-    | Optional _, Arg ({ exp_desc = Texp_construct _; _ } as arg_expr) ->
-      iter.expr iter arg_expr
-    (* inlining is _not_ allowed for optional arguments that are being passed an
-       optional parameter i.e. `x` may _not_ be inlined in `let x = Some 1 in
-       (fun ?(x = 0) -> x) ?x` *)
+          ({ exp_desc =
+               (* The construct is part of desugaring and is assumed to be [Some]. *)
+               Texp_construct
+                 (_, _, [ { exp_desc = Texp_ident (Pident id, { loc; _ }, _); _ } ])
+           ; _
+           } as arg) )
+      when Ident.same task.inlined_var id ->
+      if not (f env (Labelled_argument (name, loc))) then iter.expr iter arg
+    | Optional _, Arg ({ exp_desc = Texp_construct _; _ } as arg) -> iter.expr iter arg
+    (* Inlining is not allowed for optional arguments that are being passed an
+       optional parameter, i.e. [x] may not be inlined in [let x = Some 1 in
+       (fun ?(x = 0) -> x) ?x]. *)
     | Optional _, Arg _ -> ()
     | _, Arg arg -> iter.expr iter arg
     | _, _ -> ()
   in
-  let paths = Paths.of_typedtree task.inlined_expr in
-  let inlined_pexpr = find_parsetree_loc_exn pipeline task.inlined_expr.exp_loc in
   let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
     match expr.exp_desc with
-    (* when inlining into an application context, attempt to beta reduce the
-       result *)
-    | Texp_apply ({ exp_desc = Texp_ident (Pident id, _, _); _ }, _)
-      when Ident.same task.inlined_var id && not_shadowed expr.exp_env ->
-      let reduced_pexpr =
-        let app_pexpr = find_parsetree_loc_exn pipeline expr.exp_loc in
-        match app_pexpr.pexp_desc with
-        | Pexp_apply ({ pexp_desc = Pexp_ident _; _ }, args) ->
-          beta_reduce paths (H.Exp.apply inlined_pexpr args)
-        | _ -> app_pexpr
-      in
-      let newText =
-        Format.asprintf "(%a)" Pprintast.expression
-        @@ strip_attribute "merlin.loc" reduced_pexpr
-      in
-      insert_edit newText expr.exp_loc
+    (* When inlining into an application context, replace the entire application
+       so that the result can be beta reduced. *)
+    | Texp_apply (({ exp_desc = Texp_ident (Pident id, _, _); _ } as func), args)
+      when Ident.same task.inlined_var id ->
+      if not (f expr.exp_env (Application expr))
+      then (
+        iter.expr iter func;
+        List.iter args ~f:(fun (label, arg) -> arg_iter expr.exp_env iter label arg))
     | Texp_apply (func, args) ->
       iter.expr iter func;
-      List.iter args ~f:(fun (l, e) -> arg_iter expr.exp_env iter l e)
-    | Texp_ident (Pident id, { loc; _ }, _)
-      when Ident.same task.inlined_var id && not_shadowed expr.exp_env ->
-      insert_edit newText loc
+      List.iter args ~f:(fun (label, arg) -> arg_iter expr.exp_env iter label arg)
+    | Texp_ident (Pident id, { loc; _ }, _) when Ident.same task.inlined_var id ->
+      ignore (f expr.exp_env (Identifier loc) : bool)
     | _ -> I.default_iterator.expr iter expr
   in
   let iterator = { I.default_iterator with expr = expr_iter } in
-  let edits =
-    match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
-    | `Interface _ -> []
-    | `Implementation structure ->
-      iterator.structure iterator structure;
-      Queue.to_list edits
-  in
-  edits, !error
+  match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
+  | `Interface _ -> ()
+  | `Implementation structure -> iterator.structure iterator structure
 ;;
 
-let code_action pipeline doc (params : CodeActionParams.t) =
+let inline_applicability pipeline task =
+  let exception Applicable in
+  let error = ref None in
+  let check_use env (_ : inline_use) =
+    match check_shadowing task.inlined_expr env with
+    | Ok () -> raise_notrace Applicable
+    | Error e ->
+      error := Some e;
+      false
+  in
+  match
+    iter_inline_uses pipeline task ~f:check_use;
+    !error
+  with
+  | None -> `Not_applicable
+  | Some error -> `Disabled error
+  | exception Applicable -> `Applicable
+;;
+
+(** [inline_edits pipeline task] returns a list of inlining edits and an
+    optional error value. An error will be generated if any of the potential
+    inlinings is not allowed due to shadowing. The successful edits will still
+    be returned *)
+let inline_edits pipeline task =
+  let open Option.O in
+  let+ newText = inlined_text pipeline task in
+  let make_edit newText loc = TextEdit.create ~newText ~range:(Range.of_loc loc) in
+  let edits = Queue.create () in
+  let error = ref None in
+  let insert_edit newText loc = Queue.enqueue edits (make_edit newText loc) in
+  let shadowed env =
+    match check_shadowing task.inlined_expr env with
+    | Ok () -> false
+    | Error e ->
+      error := Some e;
+      true
+  in
+  let paths = Paths.of_typedtree task.inlined_expr in
+  let inlined_pexpr = find_parsetree_loc_exn pipeline task.inlined_expr.exp_loc in
+  let inline_use env use =
+    if shadowed env
+    then false
+    else (
+      (match use with
+       | Identifier loc -> insert_edit newText loc
+       | Labelled_argument (name, loc) -> insert_edit (sprintf "%s:%s" name newText) loc
+       | Application expr ->
+         let newText =
+           let reduced_pexpr =
+             let app_pexpr = find_parsetree_loc_exn pipeline expr.exp_loc in
+             match app_pexpr.pexp_desc with
+             | Pexp_apply ({ pexp_desc = Pexp_ident _; _ }, args) ->
+               beta_reduce paths (H.Exp.apply inlined_pexpr args)
+             | _ -> app_pexpr
+           in
+           Format.asprintf "(%a)" Pprintast.expression
+           @@ strip_attribute "merlin.loc" reduced_pexpr
+         in
+         insert_edit newText expr.exp_loc);
+      true)
+  in
+  iter_inline_uses pipeline task ~f:inline_use;
+  Queue.to_list edits, !error
+;;
+
+let inline_task pipeline (range : Range.t) =
   let open Option.O in
   let* typedtree =
     match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
     | `Interface _ -> None
     | `Implementation x -> Some x
   in
-  let* task = find_inline_task typedtree params.range.start in
-  let m_edits = inline_edits pipeline task in
-  let* edits, m_error = m_edits in
+  find_inline_task typedtree range.start
+;;
+
+let disabled_code_action error =
+  CodeAction.create
+    ~title:action_title
+    ~kind:RefactorInline
+    ~isPreferred:false
+    ~disabled:(CodeActionDisabled.create ~reason:(string_of_error error))
+    ()
+;;
+
+let code_action_for_task pipeline doc task =
+  let open Option.O in
+  let* edits, m_error = inline_edits pipeline task in
   match edits, m_error with
   | [], None -> None
-  | [], Some error ->
-    let action =
-      CodeAction.create
-        ~title:action_title
-        ~kind:CodeActionKind.RefactorInline
-        ~isPreferred:false
-        ~disabled:(CodeActionDisabled.create ~reason:(string_of_error error))
-        ()
-    in
-    Some action
+  | [], Some error -> Some (disabled_code_action error)
   | _ :: _, (Some _ | None) ->
-    let edit = Text_document.workspace_edit (Document.text_document doc) edits in
     let action =
+      let edit = Text_document.workspace_edit (Document.text_document doc) edits in
       CodeAction.create
         ~title:action_title
-        ~kind:CodeActionKind.RefactorInline
+        ~kind:RefactorInline
         ~edit
         ~isPreferred:false
         ()
@@ -377,4 +418,99 @@ let code_action pipeline doc (params : CodeActionParams.t) =
     Some action
 ;;
 
+module Resolve_data = struct
+  let action = "inline"
+
+  type t =
+    { uri : DocumentUri.t
+    ; range : Range.t
+    ; version : int
+    }
+
+  let create doc range =
+    `Assoc
+      [ "action", `String action
+      ; "uri", DocumentUri.yojson_of_t (Document.uri doc)
+      ; "range", Range.yojson_of_t range
+      ; "version", `Int (Document.version doc)
+      ]
+  ;;
+
+  let is_inline = function
+    | `Assoc fields ->
+      (match Json.field fields "action" Json.Conv.string_of_yojson with
+       | Some value -> String.equal value action
+       | None -> false)
+    | _ -> false
+  ;;
+
+  let of_json = function
+    | `Assoc fields ->
+      let uri = Json.field_exn fields "uri" DocumentUri.t_of_yojson in
+      let range = Json.field_exn fields "range" Range.t_of_yojson in
+      let version =
+        Json.field_exn fields "version" (function
+          | `Int version -> version
+          | json -> Json.error "expected an integer" json)
+      in
+      { uri; range; version }
+    | json -> Json.error "invalid inline code action data" json
+  ;;
+end
+
+let unresolved_code_action pipeline doc (params : CodeActionParams.t) =
+  let open Option.O in
+  let* task = inline_task pipeline params.range in
+  (* Only edit construction is deferred: suppress unusable actions and determine
+     [disabled] eagerly because the client may not offer to resolve that property. *)
+  match inline_applicability pipeline task with
+  | `Not_applicable -> None
+  | `Disabled error -> Some (disabled_code_action error)
+  | `Applicable ->
+    let data = Resolve_data.create doc params.range in
+    Some
+      (CodeAction.create
+         ~title:action_title
+         ~kind:CodeActionKind.RefactorInline
+         ~data
+         ~isPreferred:false
+         ())
+;;
+
+let content_modified () =
+  Jsonrpc.Response.Error.make
+    ~code:Jsonrpc.Response.Error.Code.ContentModified
+    ~message:"The document changed before the code action was resolved"
+    ()
+  |> Jsonrpc.Response.Error.raise
+;;
+
+let resolve (state : State.t) (action : CodeAction.t) =
+  match action.data with
+  | None -> None
+  | Some data when not (Resolve_data.is_inline data) -> None
+  | Some data ->
+    let { Resolve_data.uri; range; version } = Resolve_data.of_json data in
+    let resolve () =
+      (let doc =
+         match Document_store.get_opt state.store uri with
+         | Some doc when Int.equal (Document.version doc) version -> doc
+         | None | Some _ -> content_modified ()
+       in
+       let merlin = Document.merlin_exn doc in
+       Document.Merlin.with_pipeline_exn ~name:"resolve-inline-code-action" merlin
+       @@ fun pipeline ->
+       inline_task pipeline range |> Option.bind ~f:(code_action_for_task pipeline doc))
+      >>| function
+      | None -> content_modified ()
+      | Some resolved -> { resolved with data = action.data }
+    in
+    Some (resolve ())
+;;
+
+let code_action pipeline doc (params : CodeActionParams.t) =
+  inline_task pipeline params.range |> Option.bind ~f:(code_action_for_task pipeline doc)
+;;
+
 let t = Code_action.batchable RefactorInline code_action
+let unresolved = Code_action.batchable RefactorInline unresolved_code_action

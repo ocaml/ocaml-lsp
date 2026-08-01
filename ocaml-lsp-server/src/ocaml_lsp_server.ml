@@ -51,7 +51,8 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
             ]
         |> List.dedup_and_sort ~compare:Poly.compare
       in
-      `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
+      `CodeActionOptions
+        (CodeActionOptions.create ~codeActionKinds ~resolveProvider:true ())
     | _ -> `Bool true
   in
   let textDocumentSync =
@@ -635,7 +636,7 @@ let on_request
   | DebugEcho params -> now params
   | Shutdown -> Fiber.return (Reply.now (), state)
   | WorkspaceSymbol req -> later (fun state () -> Workspace_symbol.run state req) ()
-  | CodeActionResolve ca -> now ca
+  | CodeActionResolve ca -> later (fun state () -> Code_actions.resolve state ca) ()
   | ExecuteCommand command ->
     if String.equal command.command Merlin_config_command.command_name
     then
