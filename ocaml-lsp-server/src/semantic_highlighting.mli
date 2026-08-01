@@ -7,9 +7,22 @@ val legend : config -> SemanticTokensLegend.t
 val on_request_full : State.t -> SemanticTokensParams.t -> SemanticTokens.t option Fiber.t
 
 module For_tests : sig
+  type config
+
+  val server_token_types : string list
+  val server_token_modifiers : string list
+  val create_config : token_types:string list -> token_modifiers:string list -> config
+  val legend : config -> SemanticTokensLegend.t
   val token_type_index : int
   val token_modifiers_bitset : int
-  val encode : (Position.t * int) list -> int array
+
+  val encode
+    :  ?config:config
+    -> ?token_type_index:int
+    -> ?token_modifiers:int
+    -> (Position.t * int) list
+    -> int array
+
   val find_diff : old:int array -> new_:int array -> SemanticTokensEdit.t list
 end
 
