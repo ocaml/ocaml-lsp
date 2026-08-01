@@ -80,6 +80,9 @@ type expression =
   | Nested_try
   | Nested_match_with_record
   | Nested_try_with_record
+  | Module_type_with
+  | Module_type_of_with
+  | Module_struct_with
   | Array_literal
   | Raw_string
   | String_literal
@@ -119,6 +122,9 @@ let check_existing_case
     | Nested_try -> "(try A with | _ -> A)"
     | Nested_match_with_record -> "(match { r with a = b } with | A -> B)"
     | Nested_try_with_record -> "(try { r with a = b } with | _ -> c)"
+    | Module_type_with -> "(module M : S with type t = int)"
+    | Module_type_of_with -> "(module M : module type of N with type t = int)"
+    | Module_struct_with -> "(module struct type u = int end : S with type u = int)"
     | Array_literal -> "[| 1; 2 |]"
     | Raw_string -> "{| with | |}"
     | String_literal -> "f \"with |\""
@@ -223,29 +229,27 @@ let%test_unit "record updates without a case are ignored" =
     (find_case "match { r with value = A } with" ~position:0)
 ;;
 
-let%test_unit "module-type with in the scrutinee hides the outer case" =
-  (* Buggy behavior: the first empty-stack [with] is treated as the match [with],
-     so module-type constraints make the real case invisible. *)
+let%test_unit "module-type with in the scrutinee does not hide the outer case" =
+  let before_case = "match (module M : S with type t = int) with " in
   check_equal
     "case after module-type with"
-    None
-    (find_case "match (module M : S with type t = int) with | Pack _ -> _" ~position:0);
+    (Some (String.length before_case))
+    (find_case (before_case ^ "| Pack _ -> _") ~position:0);
+  let before_case = "match (module M : module type of N with type t = int) with " in
   check_equal
     "case after module type of with"
-    None
-    (find_case
-       "match (module M : module type of N with type t = int) with | Pack _ -> _"
-       ~position:0);
+    (Some (String.length before_case))
+    (find_case (before_case ^ "| Pack _ -> _") ~position:0);
+  let before_case = "match (module M : S with type t = [ `A | `B ]) with " in
   check_equal
     "case after module-type with containing bars"
-    None
-    (find_case
-       "match (module M : S with type t = [ `A | `B ]) with | Pack _ -> _"
-       ~position:0);
+    (Some (String.length before_case))
+    (find_case (before_case ^ "| Pack _ -> _") ~position:0);
+  let before_case =
+    "match (module struct type u = int end : S with type u = int) with "
+  in
   check_equal
     "case after anonymous module with struct/end"
-    None
-    (find_case
-       "match (module struct type u = int end : S with type u = int) with | Pack _ -> _"
-       ~position:0)
+    (Some (String.length before_case))
+    (find_case (before_case ^ "| Pack _ -> _") ~position:0)
 ;;

@@ -62,6 +62,8 @@
   (#2076, @rgrinberg)
 - Avoid unregistering promotion code actions when clearing the last promotion
   for an already open document. (#2075, @rgrinberg)
+- Find destruct-line cases after module-type constraints in match scrutinees.
+  (#2072, @rgrinberg)
 - Keep Dune RPC registry polling responsive while connected instances are
   running. (#1919, @rgrinberg)
 - Fix the build on FreeBSD, where `statfs(2)` is declared in `<sys/mount.h>`
