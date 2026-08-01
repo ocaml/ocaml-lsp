@@ -237,7 +237,9 @@ let start_dune ?build_dir root runtime_dir =
 ;;
 
 let stop_abruptly client pid =
-  let+ () = Client.stop client in
+  let* () = Client.stop client in
+  (* Close the write side before killing the server so pending replies cannot hit EPIPE. *)
+  let+ () = Client.close client in
   terminate_process pid
 ;;
 
