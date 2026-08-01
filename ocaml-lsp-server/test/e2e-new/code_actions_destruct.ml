@@ -438,6 +438,23 @@ let f r = match (match { r with value = A } with | A -> B | B -> C | C -> A) wit
     |}]
 ;;
 
+let%expect_test "destruct-line finds a case after a module-type with" =
+  let source =
+    {ocaml|
+type t = A | B | C
+module type S = sig type u end
+module M : S with type u = int = struct type u = int end
+let f (x : t) = match (x, (module M : S with type u = int)) with | A, _ -> _
+|ocaml}
+  in
+  let range = range ~start_line:4 ~start_character:16 ~end_line:4 ~end_character:21 in
+  print_code_actions
+    source
+    range
+    ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
+  [%expect {| No code actions |}]
+;;
+
 let%expect_test "destruct-line returns UTF-16 edit ranges" =
   let source =
     {ocaml|
