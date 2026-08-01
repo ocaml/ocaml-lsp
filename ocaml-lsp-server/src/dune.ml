@@ -751,7 +751,8 @@ let poll active last_error =
                (* this is guaranteed not to raise since we don't connect to more
                   than one dune instance per workspace *)
                Map.add_exn acc ~key:(Registry.Dune.root source) ~data:instance);
-        Fiber.parallel_iter connected ~f:(run_instance active)
+        Fiber.parallel_iter connected ~f:(fun instance ->
+          Fiber.Pool.task active.pool ~f:(fun () -> run_instance active instance))
     in
     `No_error
 ;;
