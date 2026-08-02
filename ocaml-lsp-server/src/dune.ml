@@ -183,7 +183,7 @@ end = struct
 
   let source t = t.source
 
-  let diagnostic_to_lsp diagnostics ~include_promotions diagnostic =
+  let diagnostic_to_lsp diagnostics ~include_promotions ~uri diagnostic =
     let module D = Drpc.Diagnostic in
     let range_of_loc loc =
       let loc =
@@ -222,6 +222,27 @@ end = struct
                Location.create ~uri ~range
              in
              DiagnosticRelatedInformation.create ~location ~message))
+    in
+    (* OCaml often reports the primary ml/mli mismatch location as a line with no
+       character span. Dune turns that into a zero-width range, which is useless in
+       editors. Prefer the first related location in the same document when that
+       happens. *)
+    let range =
+      let is_empty_range (range : Range.t) =
+        Lsp.Position.compare range.start range.end_ = 0
+      in
+      match is_empty_range range with
+      | false -> range
+      | true ->
+        (match relatedInformation with
+         | None -> range
+         | Some related ->
+           (match
+              List.find related ~f:(fun (related : DiagnosticRelatedInformation.t) ->
+                Uri.equal related.location.uri uri)
+            with
+            | Some related -> related.location.range
+            | None -> range))
     in
     let message = make_message (D.message diagnostic) in
     let tags = Diagnostics.tags_of_message diagnostics ~src:`Dune message in
@@ -274,10 +295,12 @@ end = struct
   ;;
 
   let lsp_of_dune t diagnostic =
-    ( uri_of_dune t diagnostic
+    let uri = uri_of_dune t diagnostic in
+    ( uri
     , diagnostic_to_lsp
         t.config.diagnostics
         ~include_promotions:t.config.include_promotions
+        ~uri
         diagnostic )
   ;;
 

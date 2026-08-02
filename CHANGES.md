@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Prefer a same-document related location when a Dune diagnostic has an empty
+  primary range, such as ml/mli mismatches. (#2093, @rgrinberg)
 - Stop offering the inferred-interface code action when the interface already
   declares everything the implementation exports. (#2096, fixes #347, @dayangac)
 - Unregister Dune promotion code actions when an RPC instance finishes.
