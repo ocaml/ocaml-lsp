@@ -48,6 +48,26 @@ let identifier_range source loc =
     else range
 ;;
 
+let is_record_pun source ~start_offset ~end_offset =
+  let rec previous_non_whitespace offset =
+    if offset < 0
+    then None
+    else if Char.is_whitespace source.[offset]
+    then previous_non_whitespace (offset - 1)
+    else Some source.[offset]
+  in
+  let rec next_non_whitespace offset =
+    if offset >= String.length source
+    then None
+    else if Char.is_whitespace source.[offset]
+    then next_non_whitespace (offset + 1)
+    else Some source.[offset]
+  in
+  match previous_non_whitespace (start_offset - 1), next_non_whitespace end_offset with
+  | Some ('{' | ';'), Some ('}' | ';') -> true
+  | _ -> false
+;;
+
 let prepare
       (state : State.t)
       { PrepareRenameParams.textDocument = { uri }; position; workDoneToken = _ }
@@ -126,16 +146,27 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
             (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
                  when [character = 0] in a separate matching branch *);
             let source_txt = Msource.text source in
-            (* TODO: handle record field puning *)
-            (match source_txt.[index - 1] with
-             | '~' (* the occurrence is a named argument *)
-             | '?' (* is an optional argument *) ->
-               let empty_range_at_occur_end =
-                 let occur_end_pos = edit.range.end_ in
-                 { edit.range with start = occur_end_pos }
-               in
-               TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
-             | _ -> edit)))
+            let (`Offset end_index) =
+              Msource.get_offset source (Position.logical edit.range.end_)
+            in
+            if is_record_pun source_txt ~start_offset:index ~end_offset:end_index
+            then (
+              let field_name =
+                String.sub source_txt ~pos:index ~len:(end_index - index)
+              in
+              TextEdit.create
+                ~range:edit.range
+                ~newText:(Printf.sprintf "%s = %s" field_name newName))
+            else (
+              match source_txt.[index - 1] with
+              | '~' (* the occurrence is a named argument *)
+              | '?' (* is an optional argument *) ->
+                let empty_range_at_occur_end =
+                  let occur_end_pos = edit.range.end_ in
+                  { edit.range with start = occur_end_pos }
+                in
+                TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
+              | _ -> edit)))
     in
     let workspace_edits =
       let documentChanges =
