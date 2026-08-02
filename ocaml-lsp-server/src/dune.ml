@@ -561,7 +561,22 @@ end = struct
                  source
              in
              let diagnostics = diagnostic_loop t client config running diagnostics in
-             Fiber.all_concurrently_unit [ progress; diagnostics; Fiber.Ivar.read finish ]))
+             (* [Client.connect] joins this callback with its packet reader. If a
+                loop fails, close the channel so the reader can finish and the
+                error can propagate instead of leaving both fibers waiting. *)
+             let* result =
+               Fiber.map_reduce_errors
+                 (module Monoid.List (Exn_with_backtrace))
+                 (fun () ->
+                    Fiber.all_concurrently_unit
+                      [ progress; diagnostics; Fiber.Ivar.read finish ])
+                 ~on_error:(fun exn ->
+                   let+ () = Chan.stop chan in
+                   [ exn ])
+             in
+             match result with
+             | Ok () -> Fiber.return ()
+             | Error errors -> Fiber.reraise_all errors))
         ]
     in
     (* Snapshot after both fibers finish so finalization sees the last promotion set. *)

@@ -224,7 +224,15 @@ let wait_for_rpc_registration runtime_dir pid =
   let rpc_dir = Filename.concat runtime_dir "dune/rpc" in
   let registration = Filename.concat rpc_dir (Printf.sprintf "%d.csexp" pid) in
   let rec loop retries =
-    if Sys.file_exists registration
+    let registered =
+      match Fs_io.read_file registration with
+      | exception Unix.Unix_error (Unix.ENOENT, _, _) -> false
+      | Error _ -> false
+      | Ok contents ->
+        let file : Dune_rpc.Private.Registry.File.t = { path = registration; contents } in
+        Result.is_ok (Dune_rpc.Private.Registry.Dune.of_file file)
+    in
+    if registered
     then ()
     else if retries = 0
     then failwith (Printf.sprintf "Dune %d did not register its RPC endpoint" pid)
@@ -235,7 +243,7 @@ let wait_for_rpc_registration runtime_dir pid =
   loop 500
 ;;
 
-let start_dune ?build_dir root runtime_dir =
+let start_dune ?build_dir ?jobs root runtime_dir =
   let prog = Bin.which "dune" |> Option.value_exn in
   let output = Unix.openfile Test.null_device [ Unix.O_WRONLY ] 0o666 in
   let env =
@@ -251,6 +259,9 @@ let start_dune ?build_dir root runtime_dir =
     @ (match build_dir with
        | None -> []
        | Some build_dir -> [ "--build-dir"; build_dir ])
+    @ (match jobs with
+       | None -> []
+       | Some jobs -> [ "-j"; Int.to_string jobs ])
     @ [ "-w"; "@repro" ]
   in
   let pid =
