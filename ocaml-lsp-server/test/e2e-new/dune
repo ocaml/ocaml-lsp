@@ -98,6 +98,7 @@
     dune_registry_errors
     dune_workspace_removal
     metrics
+    ml_mli_mismatch_diagnostics
     refactor_extract
     registration_order
     semantic_hl_data
