@@ -3,7 +3,7 @@ open Fiber.O
 
 let position_of_offset source offset =
   let (`Logical (line, character)) = Msource.get_logical source (`Offset offset) in
-  Position.create ~line:(line - 1) ~character
+  Position.of_logical ~line ~character
 ;;
 
 let compare_text_edit (a : TextEdit.t) (b : TextEdit.t) =

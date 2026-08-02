@@ -31,7 +31,6 @@ let of_lexical_position (lex_position : Lexing.position) : t option =
 ;;
 
 let logical position =
-  let line = position.line + 1 in
-  let col = position.character in
-  `Logical (line, col)
+  let line, character = to_logical position in
+  `Logical (line, character)
 ;;

@@ -11,3 +11,5 @@ let compare t { line; character } =
 
 let min x y = if compare x y <= 0 then x else y
 let max x y = if compare x y >= 0 then x else y
+let to_logical t = t.line + 1, t.character
+let of_logical ~line ~character = create ~line:(line - 1) ~character
