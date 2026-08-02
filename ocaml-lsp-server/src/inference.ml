@@ -207,7 +207,7 @@ let build_signature_edits
   (* These are [Typedtree.signature_item]s, and we need them for the location. *)
   let in_range_tree_items =
     List.filter old_intf.sig_items ~f:(fun si ->
-      Lsp.Range.overlaps range (Range.of_loc si.sig_loc) ~touching:true)
+      Range.overlaps range (Range.of_loc si.sig_loc) ~touching:true)
   in
   let first = List.hd in_range_tree_items in
   let last = List.last in_range_tree_items in

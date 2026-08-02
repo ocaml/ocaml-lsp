@@ -35,6 +35,7 @@ module Import = struct
   module Bin = Ocaml_lsp_server.Testing.Bin
   module Client = Lsp_fiber.Client
   include Lsp.Types
+  module Range = Lsp.Range
   module Uri = Lsp.Uri
   module Position = Ocaml_lsp_server.Position
 end

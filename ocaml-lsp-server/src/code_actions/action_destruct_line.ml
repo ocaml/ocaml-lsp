@@ -289,7 +289,7 @@ let statement_at_offset doc source offset =
 let extract_statement (doc : Document.t) (ca_range : Range.t)
   : destructable_statement option
   =
-  let multiline = not (Lsp.Range.is_single_line ca_range) in
+  let multiline = not (Range.is_single_line ca_range) in
   let line_range : Range.t =
     if multiline then { start = ca_range.start; end_ = ca_range.start } else ca_range
   in

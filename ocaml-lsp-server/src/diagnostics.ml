@@ -114,7 +114,7 @@ let create
 module Range_map = Stdlib.MoreLabels.Map.Make (struct
     include Range
 
-    let compare = Lsp.Range.compare
+    let compare = Range.compare
   end)
 
 let range_map_of_diagnostics diagnostics =
@@ -397,7 +397,7 @@ let compute_merlin_diagnostics diagnostics merlin =
                "%s.\nHint: install the following packages: merlin-extend, reason"
                error)
         in
-        [ create_diagnostic ~range:Lsp.Range.first_line ~message () ]
+        [ create_diagnostic ~range:Range.first_line ~message () ]
       | errors ->
         let merlin_diagnostics =
           List.rev_map errors ~f:(error_to_diagnostics ~diagnostics ~merlin)
@@ -422,7 +422,7 @@ let compute_merlin_diagnostics diagnostics merlin =
         (* Can we use [List.merge] instead? *)
         List.rev_append holes_as_err_diags merlin_diagnostics
         |> List.sort ~compare:(fun (d1 : Diagnostic.t) (d2 : Diagnostic.t) ->
-          Lsp.Range.compare d1.range d2.range))
+          Range.compare d1.range d2.range))
   in
   all_diagnostics
 ;;

@@ -58,7 +58,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
            | `String m -> m
            | `MarkupContent { value; _ } -> value)
       and in_range () =
-        Lsp.Range.contains_position d.range params.range.start ~inclusive_end:true
+        Range.contains_position d.range params.range.start ~inclusive_end:true
       in
       in_range () && is_unbound ())
   in

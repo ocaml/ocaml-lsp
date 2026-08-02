@@ -68,7 +68,7 @@ let prepare
       then None
       else (
         let range = identifier_range source occurrence.loc in
-        if Lsp.Range.contains_position range position ~inclusive_end:true
+        if Range.contains_position range position ~inclusive_end:true
         then Some range
         else None))
 ;;

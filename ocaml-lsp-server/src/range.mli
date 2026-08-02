@@ -1,5 +1,5 @@
 open Import
-include module type of Lsp.Types.Range with type t = Lsp.Types.Range.t
+include module type of Lsp.Range with type t = Lsp.Range.t
 
 val to_dyn : t -> Dyn.t
 val of_loc_opt : Loc.t -> t option

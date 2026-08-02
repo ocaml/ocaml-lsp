@@ -42,7 +42,7 @@ let dispatch merlin (range : Range.t) =
 module Range_key = struct
   type t = Range.t
 
-  let compare = Lsp.Range.compare
+  let compare = Range.compare
   let hash = Poly.hash
   let sexp_of_t = Sexplib0.Sexp_conv.sexp_of_opaque
 end

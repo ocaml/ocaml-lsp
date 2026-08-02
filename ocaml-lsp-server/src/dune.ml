@@ -195,7 +195,7 @@ end = struct
     in
     let range =
       match D.loc diagnostic with
-      | None -> Lsp.Range.first_line
+      | None -> Range.first_line
       | Some loc -> range_of_loc loc
     in
     let severity =
