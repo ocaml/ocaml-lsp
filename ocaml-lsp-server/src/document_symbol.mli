@@ -1,7 +1,5 @@
 open Import
 
-val normalize_selection_range : range:Range.t -> Range.t option -> Range.t
-
 val run
   :  ClientCapabilities.t
   -> Document.t

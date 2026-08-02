@@ -135,7 +135,7 @@
     in {
       overlays.default = (final: prev: {
         ocamlPackages = prev.ocamlPackages.overrideScope
-          (oself: osuper: with oself; makeLocalPackages final);
+          (oself: osuper: makeLocalPackages final);
       });
     } // (flake-utils.lib.eachDefaultSystem (system:
       let
