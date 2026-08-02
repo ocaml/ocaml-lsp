@@ -706,8 +706,11 @@ let poll active last_error =
     active.instances <- remaining;
     let* connected =
       let to_create =
-        (* won't work very well with large workspaces and many instances of
-           dune *)
+        (* TODO We have no selection policy when multiple Dune instances register
+           the same root. Since [active.instances] is keyed by root, this picks the
+           first connectable registry entry in an unspecified order and silently
+           filters later entries once one becomes active. Track duplicates separately
+           and select an instance deterministically. *)
         let is_running dune = Map.mem active.instances (Registry.Dune.root dune) in
         Registry.current active.registry
         |> List.filter_map ~f:(fun dune ->
