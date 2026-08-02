@@ -96,6 +96,7 @@ let%expect_test "dune reports related diagnostics for mismatched ml/mli files" =
   Fun.protect
     ~finally:(fun () -> destroy_project project)
     (fun () ->
+       wait_for_rpc_registration project.runtime_dir project.dune_pid;
        let events = Lifecycle_events.create () in
        run_with_workspace
          ~capabilities
