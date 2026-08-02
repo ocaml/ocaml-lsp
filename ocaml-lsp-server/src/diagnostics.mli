@@ -36,7 +36,9 @@ val tags_of_message
   -> string
   -> DiagnosticTag.t list option
 
+val compute_merlin_diagnostics : t -> Document.Merlin.t -> Diagnostic.t list Fiber.t
 val merlin_diagnostics : t -> Document.Merlin.t -> unit Fiber.t
+val merge : merlin:Diagnostic.t list -> dune:Diagnostic.t list -> Diagnostic.t list
 val set_report_dune_diagnostics : t -> report_dune_diagnostics:bool -> unit Fiber.t
 val set_shorten_merlin_diagnostics : t -> shorten_merlin_diagnostics:bool -> unit Fiber.t
 

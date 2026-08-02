@@ -1,5 +1,5 @@
 open Import
-include Lsp.Types.Range
+include Lsp.Range
 
 let to_dyn { start; end_ } =
   Dyn.record [ "start", Position.to_dyn start; "end_", Position.to_dyn end_ ]

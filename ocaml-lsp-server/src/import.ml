@@ -23,6 +23,11 @@ end
 
 let sprintf = Printf.sprintf
 
+let once f =
+  let f = Lazy.from_fun f in
+  fun () -> Lazy.force f
+;;
+
 module Poly = struct
   include Base.Poly
 
