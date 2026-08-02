@@ -6,6 +6,12 @@ let position_of_offset source offset =
   Position.create ~line:(line - 1) ~character
 ;;
 
+let compare_text_edit (a : TextEdit.t) (b : TextEdit.t) =
+  match Range.compare a.range b.range with
+  | 0 -> String.compare a.newText b.newText
+  | ordering -> ordering
+;;
+
 let is_parenthesized source ~start_offset ~end_offset =
   end_offset - start_offset >= 3
   && Char.equal source.[start_offset] '('
@@ -135,7 +141,8 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
                  { edit.range with start = occur_end_pos }
                in
                TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
-             | _ -> edit)))
+             | _ -> edit))
+        |> List.stable_dedup ~compare:compare_text_edit)
     in
     let workspace_edits =
       let documentChanges =

@@ -22,6 +22,8 @@
   running. (#1919, @rgrinberg)
 - Fix the build on FreeBSD, where `statfs(2)` is declared in `<sys/mount.h>`
   rather than `<sys/statfs.h>`. (#2070, fixes #1069, @dayangac)
+- Deduplicate identical rename text edits returned by Merlin recovery.
+  (#2064, @rgrinberg)
 - Keep construct-completion text edits on the request line when Merlin recovery
   returns a multiline location. (#2034, @rgrinberg)
 - Advertise Dune promotion code actions using their returned `quickfix` kind.
