@@ -30,3 +30,5 @@ let resize_for_edit { TextEdit.range; newText } =
     in
     { range with end_ }
 ;;
+
+let contains_loc loc pos = contains_position (of_loc loc) pos ~inclusive_end:true

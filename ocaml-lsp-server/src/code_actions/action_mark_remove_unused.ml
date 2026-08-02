@@ -201,23 +201,22 @@ let action_mark_type pipeline doc pos (d : Diagnostic.t) =
   create_mark_action ~title:"Mark type as unused" doc start d
 ;;
 
-let contains loc pos = Range.contains_position (Range.of_loc loc) pos ~inclusive_end:true
-
 let action_mark_for_loop_index pipeline doc pos (d : Diagnostic.t) =
   let open Option.O in
   let module I = Ocaml_parsing.Ast_iterator in
   let exception Found of Warnings.loc in
   let iterator =
     let expr iter (e : Parsetree.expression) =
-      if contains e.pexp_loc pos
+      if Range.contains_loc e.pexp_loc pos
       then (
         match e.pexp_desc with
-        | Pexp_for ({ ppat_loc; _ }, _, _, _, _) when contains ppat_loc pos ->
+        | Pexp_for ({ ppat_loc; _ }, _, _, _, _) when Range.contains_loc ppat_loc pos ->
           raise_notrace (Found ppat_loc)
         | _ -> I.default_iterator.expr iter e)
     in
     let structure_item iter (item : Parsetree.structure_item) =
-      if contains item.pstr_loc pos then I.default_iterator.structure_item iter item
+      if Range.contains_loc item.pstr_loc pos
+      then I.default_iterator.structure_item iter item
     in
     { I.default_iterator with expr; structure_item }
   in

@@ -52,13 +52,11 @@ let string_of_error (ident, reason) =
   Format.asprintf "'%a' is %s in inlining context" Pprintast.longident ident reason
 ;;
 
-let contains loc pos = Range.contains_position (Range.of_loc loc) pos ~inclusive_end:true
-
 let find_inline_task typedtree pos =
   let exception Found of inline_task in
   let module I = Ocaml_typing.Tast_iterator in
   let expr_iter (iter : I.iterator) (expr : Typedtree.expression) =
-    if contains expr.exp_loc pos
+    if Range.contains_loc expr.exp_loc pos
     then (
       match expr.exp_desc with
       | Texp_let
@@ -69,11 +67,12 @@ let find_inline_task typedtree pos =
               }
             ]
           , _ )
-        when contains loc pos -> raise_notrace (Found { inlined_var; inlined_expr })
+        when Range.contains_loc loc pos ->
+        raise_notrace (Found { inlined_var; inlined_expr })
       | _ -> I.default_iterator.expr iter expr)
   in
   let structure_item_iter (iter : I.iterator) (item : Typedtree.structure_item) =
-    if contains item.str_loc pos
+    if Range.contains_loc item.str_loc pos
     then (
       match item.str_desc with
       | Tstr_value
@@ -83,7 +82,8 @@ let find_inline_task typedtree pos =
               ; _
               }
             ] )
-        when contains loc pos -> raise_notrace (Found { inlined_var; inlined_expr })
+        when Range.contains_loc loc pos ->
+        raise_notrace (Found { inlined_var; inlined_expr })
       | _ -> I.default_iterator.structure_item iter item)
   in
   let iterator =
