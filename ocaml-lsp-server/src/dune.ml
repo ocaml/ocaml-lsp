@@ -561,7 +561,22 @@ end = struct
                  source
              in
              let diagnostics = diagnostic_loop t client config running diagnostics in
-             Fiber.all_concurrently_unit [ progress; diagnostics; Fiber.Ivar.read finish ]))
+             (* [Client.connect] joins this callback with its packet reader. If a
+                loop fails, close the channel so the reader can finish and the
+                error can propagate instead of leaving both fibers waiting. *)
+             let* result =
+               Fiber.map_reduce_errors
+                 (module Monoid.List (Exn_with_backtrace))
+                 (fun () ->
+                    Fiber.all_concurrently_unit
+                      [ progress; diagnostics; Fiber.Ivar.read finish ])
+                 ~on_error:(fun exn ->
+                   let+ () = Chan.stop chan in
+                   [ exn ])
+             in
+             match result with
+             | Ok () -> Fiber.return ()
+             | Error errors -> Fiber.reraise_all errors))
         ]
     in
     (* Snapshot after both fibers finish so finalization sees the last promotion set. *)
@@ -706,8 +721,11 @@ let poll active last_error =
     active.instances <- remaining;
     let* connected =
       let to_create =
-        (* won't work very well with large workspaces and many instances of
-           dune *)
+        (* TODO We have no selection policy when multiple Dune instances register
+           the same root. Since [active.instances] is keyed by root, this picks the
+           first connectable registry entry in an unspecified order and silently
+           filters later entries once one becomes active. Track duplicates separately
+           and select an instance deterministically. *)
         let is_running dune = Map.mem active.instances (Registry.Dune.root dune) in
         Registry.current active.registry
         |> List.filter_map ~f:(fun dune ->

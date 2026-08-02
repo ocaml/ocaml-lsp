@@ -11,9 +11,12 @@ type project =
   }
 
 let create_project () =
-  let temp = Test.temp_dir "ocamllsp-diagnostic-aggregation-" in
-  let root = Filename.concat temp "workspace" in
-  let runtime_dir = Filename.concat temp "runtime" in
+  (* Dune uses [root/_build/.rpc/dune] as a Unix-domain socket, whose path is
+     limited to 108 bytes on Linux. Keep every fixture component short because
+     expect tests may run under an already-deep Dune sandbox directory. *)
+  let temp = Test.temp_dir "lsp-da-" in
+  let root = Filename.concat temp "r" in
+  let runtime_dir = Filename.concat temp "x" in
   Unix.mkdir root 0o700;
   Unix.mkdir runtime_dir 0o700;
   Test.write_file (Filename.concat root "dune-project") "(lang dune 3.24)\n";
@@ -63,7 +66,25 @@ let normalize_sandbox string =
   String.split string ~on:'/' |> replace |> String.concat ~sep:"/"
 ;;
 
+let normalize_diff_output string =
+  String.split string ~on:'\n'
+  |> List.filter_map ~f:(fun line ->
+    if
+      String.is_prefix line ~prefix:"diff --git "
+      || String.is_prefix line ~prefix:"index "
+    then None
+    else (
+      match String.chop_prefix line ~prefix:"--- " with
+      | Some path -> Some ("--- " ^ Filename.basename path)
+      | None ->
+        (match String.chop_prefix line ~prefix:"+++ " with
+         | Some path -> Some ("+++ " ^ Filename.basename path)
+         | None -> Some line)))
+  |> String.concat ~sep:"\n"
+;;
+
 let sanitize_string project string =
+  let string = normalize_diff_output string in
   let replacements =
     [ Uri.to_string (Uri.of_path project.source), "<source-uri>"
     ; Uri.to_string (Uri.of_path project.expected), "<expected-uri>"
@@ -112,6 +133,7 @@ let%expect_test "merge Merlin and Dune diagnostics and honor configuration" =
   Fun.protect
     ~finally:(fun () -> destroy_project project)
     (fun () ->
+       wait_for_rpc_registration project.runtime_dir project.dune_pid;
        let events = Lifecycle_events.create () in
        run_with_workspace
          ~capabilities

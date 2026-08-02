@@ -176,6 +176,9 @@ let%expect_test "multiple Dune instances for one workspace are reported" =
       stop_process second_dune;
       destroy_project project)
     (fun () ->
+       (* Both entries must be visible in the first registry poll: later same-root
+          entries are ignored once one Dune instance is active. *)
+       wait_for_rpc_registration project.runtime_dir second_dune;
        let events = Lifecycle_events.create () in
        run project events ~f:(fun client _workspace ->
          let* () = Signal.wait (Events.multiple_instances events.dune) in

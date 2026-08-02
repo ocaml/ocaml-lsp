@@ -194,7 +194,9 @@ end = struct
            in
            server_exit_status)
     in
-    Lev_fiber.run (fun () ->
+    (* Report writes to an exited server as [EPIPE] instead of letting SIGPIPE
+       terminate the entire inline-test partition without a useful backtrace. *)
+    Lev_fiber.run ~sigpipe:`Ignore (fun () ->
       let* wheel = Lev_fiber.Timer.Wheel.create ~delay:timeout in
       let+ res = init
       and+ status =

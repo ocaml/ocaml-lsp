@@ -220,7 +220,30 @@ let stop_process pid =
   ignore (Test.waitpid pid : Unix.process_status)
 ;;
 
-let start_dune ?build_dir root runtime_dir =
+let wait_for_rpc_registration runtime_dir pid =
+  let rpc_dir = Filename.concat runtime_dir "dune/rpc" in
+  let registration = Filename.concat rpc_dir (Printf.sprintf "%d.csexp" pid) in
+  let rec loop retries =
+    let registered =
+      match Fs_io.read_file registration with
+      | exception Unix.Unix_error (Unix.ENOENT, _, _) -> false
+      | Error _ -> false
+      | Ok contents ->
+        let file : Dune_rpc.Private.Registry.File.t = { path = registration; contents } in
+        Result.is_ok (Dune_rpc.Private.Registry.Dune.of_file file)
+    in
+    if registered
+    then ()
+    else if retries = 0
+    then failwith (Printf.sprintf "Dune %d did not register its RPC endpoint" pid)
+    else (
+      Unix.sleepf 0.01;
+      loop (retries - 1))
+  in
+  loop 500
+;;
+
+let start_dune ?build_dir ?jobs root runtime_dir =
   let prog = Bin.which "dune" |> Option.value_exn in
   let output = Unix.openfile Test.null_device [ Unix.O_WRONLY ] 0o666 in
   let env =
@@ -236,6 +259,9 @@ let start_dune ?build_dir root runtime_dir =
     @ (match build_dir with
        | None -> []
        | Some build_dir -> [ "--build-dir"; build_dir ])
+    @ (match jobs with
+       | None -> []
+       | Some jobs -> [ "-j"; Int.to_string jobs ])
     @ [ "-w"; "@repro" ]
   in
   let pid =
@@ -306,23 +332,7 @@ let create_project name =
   let dune_pid = start_dune root runtime_dir in
   (* These tests exercise connected lifecycle transitions, so make Dune
      discoverable before starting ocamllsp. *)
-  let rpc_dir = Filename.concat runtime_dir "dune/rpc" in
-  let rec wait_for_rpc_registration retries =
-    let registered =
-      match Sys.readdir rpc_dir with
-      | [||] -> false
-      | _ -> true
-      | exception Sys_error _ -> false
-    in
-    if registered
-    then ()
-    else if retries = 0
-    then failwith "Dune did not register its RPC endpoint"
-    else (
-      Unix.sleepf 0.01;
-      wait_for_rpc_registration (retries - 1))
-  in
-  match wait_for_rpc_registration 500 with
+  match wait_for_rpc_registration runtime_dir dune_pid with
   | () ->
     { temp
     ; root

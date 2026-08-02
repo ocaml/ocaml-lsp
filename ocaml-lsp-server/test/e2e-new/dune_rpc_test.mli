@@ -59,7 +59,11 @@ type project = private
   ; mutable dune_pid : int option
   }
 
-val start_dune : ?build_dir:string -> string -> string -> int
+val start_dune : ?build_dir:string -> ?jobs:int -> string -> string -> int
+
+(** Wait until [pid] appears in the Dune RPC registry under [runtime_dir]. *)
+val wait_for_rpc_registration : string -> int -> unit
+
 val stop_process : int -> unit
 val create_project : string -> project
 val stop_dune : project -> unit
