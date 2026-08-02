@@ -23,6 +23,9 @@ let code_action (state : State.t) doc (params : CodeActionParams.t) =
     let* intf = Inference.infer_intf state doc in
     (match intf with
      | None -> Fiber.return None
+     (* Nothing is missing from the interface, so the action would insert an
+        empty edit. Check before formatting to also skip the ocamlformat rpc. *)
+     | Some intf when String.is_empty (String.strip intf) -> Fiber.return None
      | Some intf ->
        let+ formatted_intf =
          Ocamlformat_rpc.format_type state.ocamlformat_rpc ~typ:intf

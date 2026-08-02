@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Stop offering the inferred-interface code action when the interface already
+  declares everything the implementation exports. (#2096, fixes #347, @dayangac)
 - Unregister Dune promotion code actions when an RPC instance finishes.
   (#2076, @rgrinberg)
 - Avoid unregistering promotion code actions when clearing the last promotion

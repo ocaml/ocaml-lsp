@@ -115,31 +115,7 @@ val f : t -> t
     ~prep
     ~path:"foo.mli"
     ~filter:(find_action "inferred_intf");
-  [%expect
-    {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "",
-                "range": {
-                  "end": { "character": 0, "line": 0 },
-                  "start": { "character": 0, "line": 0 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.mli", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "inferred_intf",
-      "title": "Insert inferred interface"
-    }
-    |}]
+  [%expect {| No code actions |}]
 ;;
 
 let%expect_test "update-signatures adds new function args" =
