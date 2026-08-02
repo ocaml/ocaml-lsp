@@ -303,15 +303,40 @@ let create_project name =
    (diff expected.ml %%{target}))))
 |jbuild}
        gate);
-  { temp
-  ; root
-  ; runtime_dir
-  ; expected
-  ; trigger
-  ; gate
-  ; old_source
-  ; dune_pid = Some (start_dune root runtime_dir)
-  }
+  let dune_pid = start_dune root runtime_dir in
+  (* These tests exercise connected lifecycle transitions, so make Dune
+     discoverable before starting ocamllsp. *)
+  let rpc_dir = Filename.concat runtime_dir "dune/rpc" in
+  let rec wait_for_rpc_registration retries =
+    let registered =
+      match Sys.readdir rpc_dir with
+      | [||] -> false
+      | _ -> true
+      | exception Sys_error _ -> false
+    in
+    if registered
+    then ()
+    else if retries = 0
+    then failwith "Dune did not register its RPC endpoint"
+    else (
+      Unix.sleepf 0.01;
+      wait_for_rpc_registration (retries - 1))
+  in
+  match wait_for_rpc_registration 500 with
+  | () ->
+    { temp
+    ; root
+    ; runtime_dir
+    ; expected
+    ; trigger
+    ; gate
+    ; old_source
+    ; dune_pid = Some dune_pid
+    }
+  | exception exn ->
+    stop_process dune_pid;
+    ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int);
+    raise exn
 ;;
 
 let sanitize_string project string =
