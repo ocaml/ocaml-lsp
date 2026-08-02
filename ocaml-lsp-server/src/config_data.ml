@@ -950,7 +950,7 @@ let default =
       Some
         { hint_pattern_variables = false
         ; hint_let_bindings = false
-        ; hint_function_params = false
+        ; hint_function_params = true
         }
   ; dune_diagnostics = Some { enable = true }
   ; syntax_documentation = Some { enable = false }
