@@ -74,7 +74,9 @@ module Events = struct
 
   type t =
     { dune_ready : Signal.t
+    ; dune_progress : Signal.t
     ; multiple_instances : Signal.t
+    ; errors : LogMessageParams.t Mailbox.t
     ; progress : Lsp.Progress.t ProgressParams.t Mailbox.t
     ; mutable diagnostics : PublishDiagnosticsParams.t list
     ; mutable diagnostic_waiter : diagnostic_waiter option
@@ -82,7 +84,9 @@ module Events = struct
 
   let create () =
     { dune_ready = Signal.create ()
+    ; dune_progress = Signal.create ()
     ; multiple_instances = Signal.create ()
+    ; errors = Mailbox.create ()
     ; progress = Mailbox.create ()
     ; diagnostics = []
     ; diagnostic_waiter = None
@@ -90,7 +94,9 @@ module Events = struct
   ;;
 
   let dune_ready t = t.dune_ready
+  let dune_progress t = t.dune_progress
   let multiple_instances t = t.multiple_instances
+  let errors t = t.errors
   let progress t = t.progress
 
   let rec take_matching ~f rev_prefix = function
@@ -137,6 +143,9 @@ module Events = struct
       Signal.notify t.dune_ready
     | LogMessage { message; _ } when String.is_substring message ~substring:" ignores " ->
       Signal.notify t.multiple_instances
+    | LogMessage ({ type_ = Error; _ } as params) -> Mailbox.push t.errors params
+    | LogTrace { message; _ } when String.is_prefix message ~prefix:"Dune build " ->
+      Signal.notify t.dune_progress
     | WorkDoneProgress progress -> Mailbox.push t.progress progress
     | _ -> Fiber.return ()
   ;;
@@ -349,7 +358,7 @@ let destroy_project project =
   ignore (Sys.command ("rm -rf -- " ^ Filename.quote project.temp) : int)
 ;;
 
-let run_with_workspace ?capabilities ~root ~runtime_dir events ~f =
+let run_with_workspace ?capabilities ?trace ~root ~runtime_dir events ~f =
   let ocamllsp_stderr = Unix.openfile Test.null_device [ Unix.O_WRONLY ] 0o666 in
   Fun.protect
     ~finally:(fun () -> Unix.close ocamllsp_stderr)
@@ -370,6 +379,7 @@ let run_with_workspace ?capabilities ~root ~runtime_dir events ~f =
          ~stderr:ocamllsp_stderr
          ~capabilities
          ~workspaceFolders:(Some [ workspace ])
+         ?trace
          ~on_spawn:(fun pid -> server_pid := Some pid)
        @@ fun client ->
        Fiber.finalize
@@ -377,7 +387,7 @@ let run_with_workspace ?capabilities ~root ~runtime_dir events ~f =
          ~finally:(fun () -> stop_abruptly client (Option.value_exn !server_pid)))
 ;;
 
-let run ?workspace_root ?capabilities project events ~f =
+let run ?workspace_root ?capabilities ?trace project events ~f =
   let root = Option.value workspace_root ~default:project.root in
-  run_with_workspace ~root ~runtime_dir:project.runtime_dir ?capabilities events ~f
+  run_with_workspace ~root ~runtime_dir:project.runtime_dir ?capabilities ?trace events ~f
 ;;

@@ -89,6 +89,7 @@
     dune_diagnostics
     dune_formatting
     dune_nested_root
+    dune_progress
     dune_progress_lifecycle
     dune_promotion_disconnect
     dune_promotion_execute
