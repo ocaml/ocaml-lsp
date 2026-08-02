@@ -93,6 +93,31 @@ val f : t -> t
     |}]
 ;;
 
+let%expect_test "no inferred interface when the interface is complete" =
+  let impl_source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+let f (x : t) = x
+|ocaml}
+  in
+  let uri = DocumentUri.of_path "foo.ml" in
+  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
+  let intf_source =
+    {ocaml|
+type t = Foo of int | Bar of bool
+val f : t -> t
+|ocaml}
+  in
+  let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
+  print_code_actions
+    intf_source
+    range
+    ~prep
+    ~path:"foo.mli"
+    ~filter:(find_action "inferred_intf");
+  [%expect {| No code actions |}]
+;;
+
 let%expect_test "update-signatures adds new function args" =
   let impl_source =
     {ocaml|
