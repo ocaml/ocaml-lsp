@@ -16,6 +16,15 @@ let of_loc (loc : Loc.t) : t =
   of_loc_opt loc |> Option.value ~default:Lsp.Range.first_line
 ;;
 
+let clamp_to_source source ({ start; end_ } : t) =
+  let clamp position =
+    let offset = Msource.get_offset source (Position.logical position) in
+    let (`Logical (line, character)) = Msource.get_logical source offset in
+    Position.create ~line:(line - 1) ~character
+  in
+  { start = clamp start; end_ = clamp end_ }
+;;
+
 let resize_for_edit { TextEdit.range; newText } =
   let lines = String.split_lines newText in
   match lines with

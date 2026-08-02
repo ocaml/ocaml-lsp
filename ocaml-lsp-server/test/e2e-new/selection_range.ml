@@ -221,8 +221,23 @@ let%expect_test "comment-only document without a trailing newline" =
     [
       [
         {
-          "end": { "character": 0, "line": 1 },
+          "end": { "character": 13, "line": 0 },
           "start": { "character": 0, "line": 0 }
+        }
+      ]
+    ]
+    |}]
+;;
+
+let%expect_test "selection range contains the requested position during recovery" =
+  test "\nx" [ Position.create ~line:1 ~character:1 ];
+  [%expect
+    {|
+    [
+      [
+        {
+          "end": { "character": 1, "line": 1 },
+          "start": { "character": 1, "line": 1 }
         }
       ]
     ]

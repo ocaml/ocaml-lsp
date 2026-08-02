@@ -452,17 +452,26 @@ let selection_range
   match Document.kind doc with
   | `Other -> Fiber.return []
   | `Merlin merlin ->
-    let selection_range_of_enclosings (enclosings : Warnings.loc list)
-      : SelectionRange.t option
+    let selection_range_of_enclosings position (enclosings : Warnings.loc list)
+      : SelectionRange.t
       =
-      let ranges_of_enclosing parent (enclosing : Warnings.loc) =
-        let range = Range.of_loc enclosing in
-        { SelectionRange.range; parent }
+      let source = Document.Merlin.source merlin in
+      let ranges =
+        List.filter_map enclosings ~f:(fun enclosing ->
+          let range = Range.of_loc enclosing |> Range.clamp_to_source source in
+          Option.some_if
+            (Lsp.Range.contains_position range position ~inclusive_end:true)
+            range)
       in
       List.fold_left
-        ~f:(fun parent enclosing -> Some (ranges_of_enclosing parent enclosing))
+        ~f:(fun parent range -> Some { SelectionRange.range; parent })
         ~init:None
-      @@ List.rev enclosings
+        (List.rev ranges)
+      |> Option.value
+           ~default:
+             { SelectionRange.range = { start = position; end_ = position }
+             ; parent = None
+             }
     in
     let+ ranges =
       Fiber.sequential_map positions ~f:(fun x ->
@@ -472,9 +481,9 @@ let selection_range
             merlin
             (Enclosing (Position.logical x, None))
         in
-        selection_range_of_enclosings enclosings)
+        selection_range_of_enclosings x enclosings)
     in
-    List.filter_opt ranges
+    ranges
 ;;
 
 let references
