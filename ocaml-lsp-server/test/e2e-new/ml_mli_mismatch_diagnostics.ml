@@ -119,8 +119,8 @@ let%expect_test "dune reports related diagnostics for mismatched ml/mli files" =
         {
           "message": "The implementation foo.ml does not match the interface foo.mli: \nValues do not match: val x : int is not included in val x : unit\nThe type int is not compatible with the type unit",
           "range": {
-            "end": { "character": 0, "line": 0 },
-            "start": { "character": 0, "line": 0 }
+            "end": { "character": 5, "line": 0 },
+            "start": { "character": 4, "line": 0 }
           },
           "relatedInformation": [
             {
