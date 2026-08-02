@@ -84,12 +84,7 @@ let%expect_test "Dune remains connected when work-done progress is unsupported" 
     Dune diagnostics after disconnect:
     { "diagnostics": [], "uri": "<document-uri>" }
     Dune errors:
-    [
-      {
-        "message": "Invalid_argument(\"progress reporting is not supported\")",
-        "type": 1
-      }
-    ]
+    []
     progress creations:
     []
     progress notifications:

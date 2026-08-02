@@ -53,6 +53,8 @@
   @rgrinberg)
 - Use each document's current version in multi-file rename edits. (#1958, @rgrinberg)
 - Handle zero-work Dune build progress updates. (#1896, @rgrinberg)
+- Do not report Dune build progress when the client disables work-done progress.
+  (#2082, @rgrinberg)
 - Reject negative JSON-RPC `Content-Length` headers. (#1873, @rgrinberg)
 - Report unsupported LSP request methods as unavailable instead of internal
   server errors. (#1862, @rgrinberg)
