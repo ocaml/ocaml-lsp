@@ -257,7 +257,7 @@ let%expect_test "documentOutline with a module" =
     {|
     module T = struct
       type t = int
-    end              
+    end
   |}
   in
   let request client =
@@ -824,8 +824,8 @@ let%expect_test "normalizes document-symbol selection ranges from Merlin" =
            Printf.printf
              "%s: range=%s selection=%s\n"
              label
-             (Lsp.Range.to_string symbol.range)
-             (Lsp.Range.to_string symbol.selectionRange))
+             (Range.to_string symbol.range)
+             (Range.to_string symbol.selectionRange))
       | Some (`SymbolInformation _) | None ->
         Printf.printf "%s: unexpected response\n" label
     in

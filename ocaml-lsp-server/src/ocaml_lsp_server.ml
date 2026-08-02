@@ -229,7 +229,7 @@ let set_diagnostics detached diagnostics doc =
          in
          Diagnostic.create
            ~source:Diagnostics.ocamllsp_source
-           ~range:Lsp.Range.first_line
+           ~range:Range.first_line
            ~message
            ()
        in
@@ -546,7 +546,7 @@ let highlight
         let range = Range.of_loc loc in
         (* filter out multi-line ranges, since those are very noisy and happen
            a lot with certain PPXs *)
-        match Lsp.Range.is_single_line range with
+        match Range.is_single_line range with
         | true ->
           (* using the default kind as we are lacking info to make a
              difference between assignment and usage. *)

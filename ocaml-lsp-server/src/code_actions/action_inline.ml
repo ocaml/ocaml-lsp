@@ -52,9 +52,7 @@ let string_of_error (ident, reason) =
   Format.asprintf "'%a' is %s in inlining context" Pprintast.longident ident reason
 ;;
 
-let contains loc pos =
-  Lsp.Range.contains_position (Range.of_loc loc) pos ~inclusive_end:true
-;;
+let contains loc pos = Range.contains_position (Range.of_loc loc) pos ~inclusive_end:true
 
 let find_inline_task typedtree pos =
   let exception Found of inline_task in

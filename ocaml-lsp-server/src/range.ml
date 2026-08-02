@@ -1,5 +1,5 @@
 open Import
-include Lsp.Types.Range
+include Lsp.Range
 
 let to_dyn { start; end_ } =
   Dyn.record [ "start", Position.to_dyn start; "end_", Position.to_dyn end_ ]
@@ -12,9 +12,7 @@ let of_loc_opt (loc : Loc.t) : t option =
   { start; end_ }
 ;;
 
-let of_loc (loc : Loc.t) : t =
-  of_loc_opt loc |> Option.value ~default:Lsp.Range.first_line
-;;
+let of_loc (loc : Loc.t) : t = of_loc_opt loc |> Option.value ~default:first_line
 
 let resize_for_edit { TextEdit.range; newText } =
   let lines = String.split_lines newText in

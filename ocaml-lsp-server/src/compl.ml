@@ -306,7 +306,7 @@ module Complete_with_construct = struct
         let range = Range.of_loc loc in
         if
           range.start.line = range.end_.line
-          && Lsp.Range.contains_position range position ~inclusive_end:true
+          && Range.contains_position range position ~inclusive_end:true
         then range
         else fallback_range
       in

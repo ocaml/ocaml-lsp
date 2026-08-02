@@ -4,7 +4,7 @@ let action_kind = "combine-cases"
 let kind = CodeActionKind.Other action_kind
 
 let select_complete_lines (range : Range.t) =
-  if Lsp.Range.is_single_line range
+  if Range.is_single_line range
   then None
   else (
     let start = { range.start with character = 0 } in
