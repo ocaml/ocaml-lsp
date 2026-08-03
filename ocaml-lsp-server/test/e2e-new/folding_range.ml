@@ -1547,20 +1547,8 @@ let%expect_test "line folding only omits character positions" =
   [%expect
     {|
     [
-      {
-        "endCharacter": 4,
-        "endLine": 3,
-        "kind": "region",
-        "startCharacter": 0,
-        "startLine": 0
-      },
-      {
-        "endCharacter": 4,
-        "endLine": 8,
-        "kind": "region",
-        "startCharacter": 0,
-        "startLine": 5
-      }
+      { "endLine": 3, "kind": "region", "startLine": 0 },
+      { "endLine": 8, "kind": "region", "startLine": 5 }
     ]
     |}]
 ;;
@@ -1575,20 +1563,8 @@ let%expect_test "omits unsupported folding range kinds" =
   [%expect
     {|
     [
-      {
-        "endCharacter": 4,
-        "endLine": 3,
-        "kind": "region",
-        "startCharacter": 0,
-        "startLine": 0
-      },
-      {
-        "endCharacter": 4,
-        "endLine": 8,
-        "kind": "region",
-        "startCharacter": 0,
-        "startLine": 5
-      }
+      { "endCharacter": 4, "endLine": 3, "startCharacter": 0, "startLine": 0 },
+      { "endCharacter": 4, "endLine": 8, "startCharacter": 0, "startLine": 5 }
     ]
     |}]
 ;;
@@ -1604,13 +1580,6 @@ let%expect_test "respects the client's folding range limit" =
         "kind": "region",
         "startCharacter": 0,
         "startLine": 0
-      },
-      {
-        "endCharacter": 4,
-        "endLine": 8,
-        "kind": "region",
-        "startCharacter": 0,
-        "startLine": 5
       }
     ]
     |}]

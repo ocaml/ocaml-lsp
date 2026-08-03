@@ -231,6 +231,7 @@ include struct
   module ExecuteCommandOptions = ExecuteCommandOptions
   module ExecuteCommandParams = ExecuteCommandParams
   module FoldingRange = FoldingRange
+  module FoldingRangeKind = FoldingRangeKind
   module FoldingRangeParams = FoldingRangeParams
   module Hover = Hover
   module HoverParams = HoverParams
