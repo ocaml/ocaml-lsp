@@ -9,21 +9,15 @@ let definition client position =
     (TextDocumentDefinition (DefinitionParams.create ~textDocument ~position ()))
 ;;
 
-let print_definition_error label = function
-  | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
-    ->
-    Printf.printf "%s: %s" label error.message;
-    Option.iter error.data ~f:(fun data ->
-      Printf.printf " (%s)" (Yojson.Safe.to_string data));
-    print_newline ();
+let print_definition_result label = function
+  | Ok locations ->
+    Printf.printf "%s: " label;
+    print_locations locations;
     Fiber.return ()
   | Error errors -> Fiber.reraise_all errors
-  | Ok _ ->
-    Printf.printf "%s unexpectedly succeeded\n" label;
-    Fiber.return ()
 ;;
 
-let%expect_test "reports definition lookup failures without stopping the server" =
+let%expect_test "reports no definition for lookup failures without stopping the server" =
   let source =
     "let origin = 1\n\
      let missing_use = missing\n\
@@ -34,7 +28,7 @@ let%expect_test "reports definition lookup failures without stopping the server"
   let req client =
     let check label position =
       let* result = Fiber.collect_errors (fun () -> definition client position) in
-      print_definition_error label result
+      print_definition_result label result
     in
     let* () = check "at origin" (Position.create ~line:0 ~character:4) in
     let* () = check "missing" (Position.create ~line:1 ~character:18) in
@@ -47,9 +41,9 @@ let%expect_test "reports definition lookup failures without stopping the server"
   Helpers.test source req;
   [%expect
     {|
-    at origin: Request "Jump to definition" failed. ("Locate: Already at definition point")
-    missing: Request "Jump to definition" failed. ("Locate: Not in environment: missing")
-    builtin: Request "Jump to definition" failed. ("Locate: \"int\" is a builtin, it is not possible to jump to its definition")
+    at origin: []
+    missing: []
+    builtin: []
     definition after errors:
     [
       {
