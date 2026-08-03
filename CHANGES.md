@@ -10,6 +10,9 @@
 
 ## Fixes
 
+- Respect the client's folding range capabilities: omit character positions for
+  `lineFoldingOnly` clients, omit unsupported folding range kinds, and honor
+  `rangeLimit`. (#2099, fixes #911, @dayangac)
 - Return no location instead of failing the request when a definition,
   declaration or type definition cannot be found, so clients that request them
   eagerly no longer surface spurious errors. (#2100, fixes #1161, @dayangac)
