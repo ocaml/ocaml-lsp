@@ -10,15 +10,6 @@ val show_document_contents
   -> string
   -> unit Fiber.t
 
-module Experimental_capabilities : sig
-  (** Module to store experimental client capabilities *)
-
-  type t
-
-  val of_opt_json : Json.t option -> t
-  val supportsJumpToNextHole : t -> bool
-end
-
 module Vscode : sig
   (** A collection of VS Code editor commands.
 

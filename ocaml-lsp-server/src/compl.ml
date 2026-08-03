@@ -466,8 +466,9 @@ let complete
              in
              let construct_completionItems =
                let supportsJumpToNextHole =
-                 State.experimental_client_capabilities state
-                 |> Client.Experimental_capabilities.supportsJumpToNextHole
+                 Experimental.bool
+                   (State.experimental_client_capabilities state)
+                   "jumpToNextHole"
                in
                Complete_with_construct.process_dispatch_resp
                  ~supportsJumpToNextHole

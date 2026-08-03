@@ -6,7 +6,7 @@ type init =
       { params : InitializeParams.t
       ; workspaces : Workspaces.t
       ; dune : Dune.t
-      ; exp_client_caps : Client.Experimental_capabilities.t
+      ; exp_client_caps : Experimental.t
       ; diagnostics : Diagnostics.t
       ; position_encoding : [ `UTF16 | `UTF8 ]
       }
@@ -109,8 +109,7 @@ let initialize
         ; dune
         ; diagnostics
         ; position_encoding
-        ; exp_client_caps =
-            Client.Experimental_capabilities.of_opt_json params.capabilities.experimental
+        ; exp_client_caps = Experimental.of_opt_json params.capabilities.experimental
         }
   }
 ;;
