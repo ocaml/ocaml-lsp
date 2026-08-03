@@ -20,8 +20,8 @@ let view_metrics server =
 
 let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeResult.t =
   let codeActionProvider =
-    match client_capabilities.textDocument with
-    | Some { codeAction = Some { codeActionLiteralSupport = Some _; _ }; _ } ->
+    match Capabilities.code_action_literal_support client_capabilities with
+    | Some _ ->
       let codeActionKinds =
         [ Action_destruct_line.kind
         ; Action_destruct.kind
@@ -106,11 +106,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
     in
     let executeCommandProvider =
       let commands =
-        if
-          Action_open_related.available
-            (let open Option.O in
-             let* window = client_capabilities.window in
-             window.showDocument)
+        if Action_open_related.available (Capabilities.show_document client_capabilities)
         then
           view_metrics_command_name
           :: Action_open_related.command_name
@@ -125,10 +121,9 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
     in
     let semanticTokensProvider =
       let open Option.O in
-      let* text_document = client_capabilities.textDocument in
-      let* semantic_tokens = text_document.semanticTokens in
+      let* semantic_tokens = Capabilities.semantic_tokens client_capabilities in
       let supports_relative =
-        List.mem semantic_tokens.formats Lsp.Types.TokenFormat.Relative ~equal:Poly.equal
+        Capabilities.supported semantic_tokens.formats ~tag:Relative ~equal:Poly.equal
       in
       let* full_request = semantic_tokens.requests.full in
       let* full =
@@ -152,12 +147,13 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
     in
     let positionEncoding =
       let open Option.O in
-      let* general = client_capabilities.general in
-      let* options = general.positionEncodings in
+      let* options = Capabilities.position_encodings client_capabilities in
       List.find_map
         ([ UTF8; UTF16 ] : PositionEncodingKind.t list)
         ~f:(fun encoding ->
-          Option.some_if (List.mem options ~equal:Poly.equal encoding) encoding)
+          Option.some_if
+            (Capabilities.supported options ~tag:encoding ~equal:Poly.equal)
+            encoding)
     in
     ServerCapabilities.create
       ~textDocumentSync
@@ -237,12 +233,8 @@ let set_diagnostics detached diagnostics doc =
 
 let register_dune_and_cram_text_document_sync server (capabilities : ClientCapabilities.t)
   =
-  match capabilities.textDocument with
-  | Some
-      { TextDocumentClientCapabilities.synchronization =
-          Some { TextDocumentSyncClientCapabilities.dynamicRegistration = Some true; _ }
-      ; _
-      } ->
+  if Capabilities.text_document_sync_dynamic_registration capabilities
+  then (
     let documentSelector =
       [ "cram"; "dune"; "dune-project"; "dune-workspace" ]
       |> List.map ~f:(fun language ->
@@ -258,8 +250,8 @@ let register_dune_and_cram_text_document_sync server (capabilities : ClientCapab
     in
     let registrations = [ make "textDocument/didOpen"; make "textDocument/didClose" ] in
     let params = RegistrationParams.create ~registrations in
-    Server.request server (Server_request.ClientRegisterCapability params)
-  | _ -> Fiber.return ()
+    Server.request server (Server_request.ClientRegisterCapability params))
+  else Fiber.return ()
 ;;
 
 let on_initialize server (ip : InitializeParams.t) =
@@ -275,18 +267,16 @@ let on_initialize server (ip : InitializeParams.t) =
     Diagnostics.create
       ~report_dune_diagnostics
       ~shorten_merlin_diagnostics
-      (let open Option.O in
-       let* td = ip.capabilities.textDocument in
-       td.publishDiagnostics)
+      ip.capabilities
       (function
-        | [] -> Fiber.return ()
-        | diagnostics ->
-          let state = Server.state server in
-          task_if_running state.detached ~f:(fun () ->
-            let batch = Server.Batch.create server in
-            List.iter diagnostics ~f:(fun d ->
-              Server.Batch.notification batch (PublishDiagnostics d));
-            Server.Batch.submit batch))
+      | [] -> Fiber.return ()
+      | diagnostics ->
+        let state = Server.state server in
+        task_if_running state.detached ~f:(fun () ->
+          let batch = Server.Batch.create server in
+          List.iter diagnostics ~f:(fun d ->
+            Server.Batch.notification batch (PublishDiagnostics d));
+          Server.Batch.submit batch))
   in
   let+ dune =
     let progress =
@@ -667,13 +657,9 @@ let on_request
     later
       (fun state () ->
          let markdown =
-           ClientCapabilities.markdown_support
-             (State.client_capabilities state)
-             ~field:(fun d ->
-               let open Option.O in
-               let+ completion = d.completion in
-               let* completion_item = completion.completionItem in
-               completion_item.documentationFormat)
+           Capabilities.supports_markdown
+             (Capabilities.completion_documentation_format
+                (State.client_capabilities state))
          in
          let resolve = Compl.Resolve.of_completion_item ci in
          match resolve with

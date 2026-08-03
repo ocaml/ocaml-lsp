@@ -129,15 +129,7 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
        in
        let offset = String.length prefix in
        let supports_parameter_label_offsets =
-         let open Option.O in
-         let support =
-           let* text_document = (State.client_capabilities state).textDocument in
-           let* signature_help = text_document.signatureHelp in
-           let* signature_information = signature_help.signatureInformation in
-           let* parameter_information = signature_information.parameterInformation in
-           parameter_information.labelOffsetSupport
-         in
-         Option.value support ~default:false
+         Capabilities.signature_label_offset_support (State.client_capabilities state)
        in
        let+ doc =
          Document.Merlin.doc_comment
@@ -166,12 +158,9 @@ let run (state : State.t) { SignatureHelpParams.textDocument = { uri }; position
            let open Option.O in
            let+ doc in
            let markdown =
-             ClientCapabilities.markdown_support
-               (State.client_capabilities state)
-               ~field:(fun td ->
-                 let* sh = td.signatureHelp in
-                 let+ si = sh.signatureInformation in
-                 si.documentationFormat)
+             Capabilities.supports_markdown
+               (Capabilities.signature_documentation_format
+                  (State.client_capabilities state))
            in
            format_doc ~markdown ~doc
          in

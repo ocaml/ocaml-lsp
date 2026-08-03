@@ -86,19 +86,16 @@ type t =
   }
 
 let create
-      (capabilities : PublishDiagnosticsClientCapabilities.t option)
+      (capabilities : ClientCapabilities.t)
       send
       ~report_dune_diagnostics
       ~shorten_merlin_diagnostics
   =
-  let related_information, tags =
-    match capabilities with
-    | None -> false, []
-    | Some c ->
-      ( Option.value ~default:false c.relatedInformation
-      , (match c.tagSupport with
-         | None -> []
-         | Some { valueSet } -> valueSet) )
+  let related_information =
+    Capabilities.publish_diagnostics_related_information_support capabilities
+  in
+  let tags =
+    Capabilities.publish_diagnostics_tag_support capabilities |> Option.value ~default:[]
   in
   { dune = Hashtbl.create (module Dune)
   ; merlin = Hashtbl.create (module Uri)

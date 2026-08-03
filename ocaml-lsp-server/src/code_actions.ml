@@ -26,13 +26,12 @@ module Code_action_error_monoid = struct
 end
 
 let client_can_resolve_edits (state : State.t) =
-  match (State.client_capabilities state).textDocument with
-  | Some
-      { codeAction =
-          Some { dataSupport = Some true; resolveSupport = Some { properties }; _ }
-      ; _
-      } -> List.mem properties "edit" ~equal:String.equal
-  | None | Some _ -> false
+  let capabilities = State.client_capabilities state in
+  Capabilities.code_action_data_support capabilities
+  &&
+  match Capabilities.code_action_resolve_properties capabilities with
+  | Some properties -> List.mem properties "edit" ~equal:String.equal
+  | None -> false
 ;;
 
 let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
@@ -130,11 +129,7 @@ let compute server (params : CodeActionParams.t) =
   match doc with
   | None -> Fiber.return (Reply.now (actions dune_actions), state)
   | Some doc ->
-    let capabilities =
-      let open Option.O in
-      let* window = (State.client_capabilities state).window in
-      window.showDocument
-    in
+    let capabilities = Capabilities.show_document (State.client_capabilities state) in
     let open_related =
       if kind_is_requested Action_open_related.kind
       then Action_open_related.for_uri capabilities doc

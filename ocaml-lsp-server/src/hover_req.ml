@@ -402,9 +402,8 @@ let type_enclosing_hover
     in
     let contents =
       let markdown =
-        let client_capabilities = State.client_capabilities state in
-        ClientCapabilities.markdown_support client_capabilities ~field:(fun td ->
-          Option.map td.hover ~f:(fun h -> h.contentFormat))
+        Capabilities.supports_markdown
+          (Capabilities.hover_content_format (State.client_capabilities state))
       in
       format_type_enclosing ~syntax ~markdown ~typ ~doc:documentation ~syntax_doc
     in

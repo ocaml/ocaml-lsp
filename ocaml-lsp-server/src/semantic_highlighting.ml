@@ -1063,12 +1063,10 @@ let compute_encoded_tokens config doc =
 ;;
 
 let client_config state =
-  let semantic_tokens =
-    let open Option.O in
-    let* text_document = (State.client_capabilities state).textDocument in
-    text_document.semanticTokens
-  in
-  Option.value_map semantic_tokens ~default:default_config ~f:create_config
+  Option.value_map
+    (Capabilities.semantic_tokens (State.client_capabilities state))
+    ~default:default_config
+    ~f:create_config
 ;;
 
 (** Contains implementation of a custom request that provides human-readable

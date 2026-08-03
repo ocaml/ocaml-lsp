@@ -381,17 +381,14 @@ let run
 let run (state : State.t) (params : WorkspaceSymbolParams.t) =
   let open Fiber.O in
   let supports_deprecated_tag =
-    Option.value
+    Option.value_map
+      (Capabilities.workspace_symbol_tag_support (State.client_capabilities state))
       ~default:false
-      (let open Option.O in
-       let* workspace = (State.client_capabilities state).workspace in
-       let* symbol = workspace.symbol in
-       let* tag_support = symbol.tagSupport in
-       Some
-         (Deprecation.tag_supported
-            tag_support.valueSet
-            ~tag:Deprecated
-            ~equal:(fun SymbolTag.Deprecated Deprecated -> true)))
+      ~f:(fun value_set ->
+        Deprecation.tag_supported
+          value_set
+          ~tag:Deprecated
+          ~equal:(fun SymbolTag.Deprecated Deprecated -> true))
   in
   let workspaces = Workspaces.workspace_folders (State.workspaces state) in
   let* thread = Lazy_fiber.force state.symbols_thread in

@@ -146,13 +146,7 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     in
     let workspace_edits =
       let documentChanges =
-        let open Option.O in
-        Option.value
-          ~default:false
-          (let client_capabilities = State.client_capabilities state in
-           let* workspace = client_capabilities.workspace in
-           let* edit = workspace.workspaceEdit in
-           edit.documentChanges)
+        Capabilities.workspace_edit_document_changes (State.client_capabilities state)
       in
       if documentChanges
       then (
