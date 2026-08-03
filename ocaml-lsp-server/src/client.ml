@@ -15,20 +15,6 @@ let show_document_contents server ~prefix ~suffix contents =
   ()
 ;;
 
-module Experimental_capabilities = struct
-  type t = bool
-
-  let of_opt_json (json : Json.t option) =
-    match json with
-    | Some (`Assoc fields) ->
-      Json.field fields "jumpToNextHole" Json.Conv.bool_of_yojson
-      |> Option.value ~default:false
-    | _ -> false
-  ;;
-
-  let supportsJumpToNextHole t = t
-end
-
 module Vscode = struct
   module Commands = struct
     let triggerSuggest =

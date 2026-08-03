@@ -3,6 +3,7 @@ module Position = Position
 module Range = Range
 module Client_notification = Client_notification
 module Client_request = Client_request
+module Experimental = Experimental
 module Extension = Extension
 module Header = Header
 module Import = Import

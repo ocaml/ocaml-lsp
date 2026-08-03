@@ -58,8 +58,7 @@ let run state doc ~(dispatch : dispatch) ~action_kind ~(range : Range.t) ~postpr
   | Ok reply ->
     let reply = postprocess reply in
     let supportsJumpToNextHole =
-      State.experimental_client_capabilities state
-      |> Client.Experimental_capabilities.supportsJumpToNextHole
+      Experimental.bool (State.experimental_client_capabilities state) "jumpToNextHole"
     in
     Some (code_action_of_case_analysis ~action_kind ~supportsJumpToNextHole doc reply)
   | Error

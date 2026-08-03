@@ -834,13 +834,9 @@ let create
        let* diagnostics = td.publishDiagnostics in
        diagnostics.dataSupport)
       |> Option.value ~default:false
-      &&
-      match client_capabilities.experimental with
-      | Some (`Assoc xs) ->
-        (match List.Assoc.find xs (fst view_promotion_capability) ~equal:String.equal with
-         | Some (`Bool b) -> b
-         | _ -> false)
-      | _ -> false
+      && Experimental.bool
+           (Experimental.of_opt_json client_capabilities.experimental)
+           (fst view_promotion_capability)
     in
     { document_store; diagnostics; progress; include_promotions; log; trace }
   in

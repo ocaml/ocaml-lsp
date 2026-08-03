@@ -230,6 +230,7 @@ include struct
   module DocumentUri = DocumentUri
   module ExecuteCommandOptions = ExecuteCommandOptions
   module ExecuteCommandParams = ExecuteCommandParams
+  module Experimental = Lsp.Experimental
   module FoldingRange = FoldingRange
   module FoldingRangeParams = FoldingRangeParams
   module Hover = Hover

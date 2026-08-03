@@ -6,7 +6,7 @@ type init =
       { params : InitializeParams.t
       ; workspaces : Workspaces.t
       ; dune : Dune.t
-      ; exp_client_caps : Client.Experimental_capabilities.t
+      ; exp_client_caps : Experimental.t
       ; diagnostics : Diagnostics.t
       ; position_encoding : [ `UTF16 | `UTF8 ]
       }
@@ -69,7 +69,7 @@ val modify_workspaces : t -> f:(Workspaces.t -> Workspaces.t) -> t
 val client_capabilities : t -> ClientCapabilities.t
 
 (** @return experimental client capabilities *)
-val experimental_client_capabilities : t -> Client.Experimental_capabilities.t
+val experimental_client_capabilities : t -> Experimental.t
 
 val diagnostics : t -> Diagnostics.t
 val log_msg : t Server.t -> type_:MessageType.t -> message:string -> unit Fiber.t
