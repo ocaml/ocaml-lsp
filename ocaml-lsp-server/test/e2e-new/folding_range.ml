@@ -9,13 +9,25 @@ let folding_range client =
 
 let print_folding_ranges = Test.print_option_list ~none:"null" FoldingRange.yojson_of_t
 
-let test source =
+let test ?capabilities source =
   let req client =
     let* response = folding_range client in
     print_folding_ranges response;
     Fiber.return ()
   in
-  Helpers.test source req
+  Helpers.test ?capabilities source req
+;;
+
+let folding_range_capabilities ?foldingRangeKind ?lineFoldingOnly ?rangeLimit () =
+  let foldingRange =
+    FoldingRangeClientCapabilities.create
+      ?foldingRangeKind
+      ?lineFoldingOnly
+      ?rangeLimit
+      ()
+  in
+  let textDocument = TextDocumentClientCapabilities.create ~foldingRange () in
+  ClientCapabilities.create ~textDocument ()
 ;;
 
 let%expect_test "returns folding ranges for `let`" =
@@ -1511,6 +1523,94 @@ else
         "kind": "region",
         "startCharacter": 2,
         "startLine": 10
+      }
+    ]
+    |}]
+;;
+
+let capability_test_source =
+  {folding_range|let a =
+  let b = 1
+  in
+  ()
+
+let c =
+  let d = 2
+  in
+  ()|folding_range}
+;;
+
+let%expect_test "line folding only omits character positions" =
+  test
+    ~capabilities:(folding_range_capabilities ~lineFoldingOnly:true ())
+    capability_test_source;
+  [%expect
+    {|
+    [
+      {
+        "endCharacter": 4,
+        "endLine": 3,
+        "kind": "region",
+        "startCharacter": 0,
+        "startLine": 0
+      },
+      {
+        "endCharacter": 4,
+        "endLine": 8,
+        "kind": "region",
+        "startCharacter": 0,
+        "startLine": 5
+      }
+    ]
+    |}]
+;;
+
+let%expect_test "omits unsupported folding range kinds" =
+  let foldingRangeKind =
+    ClientFoldingRangeKindOptions.create ~valueSet:[ FoldingRangeKind.Comment ] ()
+  in
+  test
+    ~capabilities:(folding_range_capabilities ~foldingRangeKind ())
+    capability_test_source;
+  [%expect
+    {|
+    [
+      {
+        "endCharacter": 4,
+        "endLine": 3,
+        "kind": "region",
+        "startCharacter": 0,
+        "startLine": 0
+      },
+      {
+        "endCharacter": 4,
+        "endLine": 8,
+        "kind": "region",
+        "startCharacter": 0,
+        "startLine": 5
+      }
+    ]
+    |}]
+;;
+
+let%expect_test "respects the client's folding range limit" =
+  test ~capabilities:(folding_range_capabilities ~rangeLimit:1 ()) capability_test_source;
+  [%expect
+    {|
+    [
+      {
+        "endCharacter": 4,
+        "endLine": 3,
+        "kind": "region",
+        "startCharacter": 0,
+        "startLine": 0
+      },
+      {
+        "endCharacter": 4,
+        "endLine": 8,
+        "kind": "region",
+        "startCharacter": 0,
+        "startLine": 5
       }
     ]
     |}]
