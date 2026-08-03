@@ -10,6 +10,9 @@
 
 ## Fixes
 
+- Return no location instead of failing the request when a definition,
+  declaration or type definition cannot be found, so clients that request them
+  eagerly no longer surface spurious errors. (#2100, fixes #1161, @dayangac)
 - Prefer a same-document related location when a Dune diagnostic has an empty
   primary range, such as ml/mli mismatches. (#2093, @rgrinberg)
 - Stop offering the inferred-interface code action when the interface already
