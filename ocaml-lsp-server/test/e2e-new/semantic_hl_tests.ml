@@ -1503,3 +1503,39 @@ let ((*comment*)) = ()
     let <variable|-2>x</2> = ((* comment *))
     let ((*comment*)) = () |}]
 ;;
+
+let%expect_test "module type with constraints" =
+  test_semantic_tokens_full
+  @@ String.strip
+       {|
+module type S = sig module M : sig type t end end
+module N = struct type t = int end
+module type T = S with module M = N
+      |};
+  [%expect
+    {|
+    module type <interface|-0>S</0> = sig module <namespace|definition-1>M</1> : sig type <type|definition-2>t</2> end end
+    module <namespace|definition-3>N</3> = struct type <type|definition-4>t</4> = <type|-5>int</5> end
+    module type <interface|-6>T</6> = <interface|-7>S</7> with module M = N
+    |}]
+;;
+
+let%expect_test "open in a signature" =
+  test_semantic_tokens_full
+  @@ String.strip
+       {|
+module M = struct type t = int end
+module type S = sig
+  open M
+  val x : t
+end
+      |};
+  [%expect
+    {|
+    module <namespace|definition-0>M</0> = struct type <type|definition-1>t</1> = <type|-2>int</2> end
+    module type <interface|-3>S</3> = sig
+      open M
+      val <variable|definition-4>x</4> : <type|-5>t</5>
+    end
+    |}]
+;;
