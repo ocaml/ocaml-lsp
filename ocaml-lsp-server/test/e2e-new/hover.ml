@@ -340,3 +340,30 @@ let f (o : <  g : int -> unit >) = o#g 4
     }
     |}]
 ;;
+
+let%expect_test "hover on constructor and exception declarations" =
+  let source =
+    {ocaml|exception Exn of int
+type t = A of string
+let use = Exn 1
+|ocaml}
+  in
+  Hover_helpers.test_hover
+    source
+    [ Position.create ~line:0 ~character:11
+    ; Position.create ~line:1 ~character:10
+    ; Position.create ~line:2 ~character:11
+    ];
+  [%expect
+    {|
+    no hover response
+    no hover response
+    {
+      "contents": { "kind": "plaintext", "value": "int -> exn" },
+      "range": {
+        "end": { "character": 13, "line": 2 },
+        "start": { "character": 10, "line": 2 }
+      }
+    }
+    |}]
+;;
