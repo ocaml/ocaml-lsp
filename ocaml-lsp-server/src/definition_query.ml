@@ -41,16 +41,11 @@ let run kind (state : State.t) ?prefix uri position =
     (match location_of_merlin_loc uri result with
      | Ok s -> Fiber.return s
      | Error err_msg ->
-       let kind =
-         match kind with
-         | `Definition -> "definition"
-         | `Declaration -> "declaration"
-         | `Type_definition -> "type definition"
-       in
-       Jsonrpc.Response.Error.raise
-         (Jsonrpc.Response.Error.make
-            ~code:Jsonrpc.Response.Error.Code.RequestFailed
-            ~message:(sprintf "Request \"Jump to %s\" failed." kind)
-            ~data:(`String (sprintf "Locate: %s" err_msg))
-            ()))
+       (* Merlin reports a failure for ordinary cursor positions, such as a
+          keyword or a name that is already at its definition. Clients request
+          definitions eagerly, so reporting these as request errors surfaces
+          them to the user as spurious failures. *)
+       Log.log ~section:"debug" (fun () ->
+         Log.msg "locate failed" [ "kind", `String name; "error", `String err_msg ]);
+       Fiber.return None)
 ;;
