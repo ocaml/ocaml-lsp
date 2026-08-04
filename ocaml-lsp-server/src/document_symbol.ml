@@ -36,7 +36,7 @@ let rec items_to_symbols ~supports_deprecated_tag items =
       let { Deprecation.deprecated; tags } =
         Deprecation.create
           ~deprecated
-          ~tag:Lsp.Types.SymbolTag.Deprecated
+          ~tag:SymbolTag.Deprecated
           ~supports_tag:supports_deprecated_tag
           ~supports_deprecated_field:true
       in
@@ -74,7 +74,8 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
          Some
            (Deprecation.tag_supported
               tag_support.valueSet
-              ~tag:Lsp.Types.SymbolTag.Deprecated))
+              ~tag:Deprecated
+              ~equal:(fun SymbolTag.Deprecated Deprecated -> true)))
     in
     let symbols = items_to_symbols ~supports_deprecated_tag outline in
     (match
