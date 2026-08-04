@@ -232,6 +232,7 @@ include struct
   module ExecuteCommandParams = ExecuteCommandParams
   module Experimental = Lsp.Experimental
   module FoldingRange = FoldingRange
+  module FoldingRangeKind = FoldingRangeKind
   module FoldingRangeParams = FoldingRangeParams
   module Hover = Hover
   module HoverParams = HoverParams

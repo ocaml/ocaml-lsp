@@ -1,17 +1,51 @@
 open Import
 open Fiber.O
 
-let folding_range { Range.start; end_ } =
+type client_config =
+  { line_folding_only : bool
+  ; supported_kinds : FoldingRangeKind.t list option
+  ; range_limit : int option
+  }
+
+let client_config (state : State.t) =
+  match
+    let open Option.O in
+    let* text_document = (State.client_capabilities state).textDocument in
+    text_document.foldingRange
+  with
+  | None -> { line_folding_only = false; supported_kinds = None; range_limit = None }
+  | Some { lineFoldingOnly; foldingRangeKind; rangeLimit; _ } ->
+    { line_folding_only = Option.value lineFoldingOnly ~default:false
+    ; supported_kinds = Option.bind foldingRangeKind ~f:(fun kind -> kind.valueSet)
+    ; range_limit = rangeLimit
+    }
+;;
+
+let folding_range config { Range.start; end_ } =
+  (* Clients that only fold whole lines ignore the character positions. *)
+  let startCharacter, endCharacter =
+    if config.line_folding_only
+    then None, None
+    else Some start.character, Some end_.character
+  in
+  let kind =
+    match config.supported_kinds with
+    | None -> Some FoldingRangeKind.Region
+    | Some kinds ->
+      Option.some_if
+        (List.mem kinds FoldingRangeKind.Region ~equal:Poly.equal)
+        FoldingRangeKind.Region
+  in
   FoldingRange.create
     ~startLine:start.line
-    ~startCharacter:start.character
+    ?startCharacter
     ~endLine:end_.line
-    ~endCharacter:end_.character
-    ~kind:Region
+    ?endCharacter
+    ?kind
     ()
 ;;
 
-let fold_over_parsetree (parsetree : Mreader.parsetree) =
+let fold_over_parsetree config (parsetree : Mreader.parsetree) =
   let ranges = ref [] in
   let push (range : Range.t) =
     if not (Range.is_single_line range) (* don't fold a single line *)
@@ -286,7 +320,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
     | `Interface signature -> iterator.signature iterator signature
     | `Implementation structure -> iterator.structure iterator structure
   in
-  List.rev_map !ranges ~f:folding_range
+  List.rev_map !ranges ~f:(folding_range config)
 ;;
 
 let compute (state : State.t) (params : FoldingRangeParams.t) =
@@ -295,10 +329,17 @@ let compute (state : State.t) (params : FoldingRangeParams.t) =
     match Document.kind doc with
     | `Other -> Fiber.return None
     | `Merlin m ->
+      let config = client_config state in
       let+ ranges =
         Document.Merlin.with_pipeline_exn ~name:"folding range" m (fun pipeline ->
           let parsetree = Mpipeline.reader_parsetree pipeline in
-          fold_over_parsetree parsetree)
+          fold_over_parsetree config parsetree)
+      in
+      let ranges =
+        (* [rangeLimit] is a hint, so returning fewer ranges is allowed. *)
+        match config.range_limit with
+        | Some limit when limit < List.length ranges -> List.take ranges limit
+        | Some _ | None -> ranges
       in
       Some ranges)
 ;;
