@@ -278,7 +278,7 @@ let statement_of_code ~prefix_len code range =
 
 let statement_at_offset doc source offset =
   let (`Logical (line, character)) = Msource.get_logical source (`Offset offset) in
-  let position = Position.create ~line:(line - 1) ~character in
+  let position = Position.of_logical ~line ~character in
   let range = Range.create ~start:position ~end_:position in
   statement_of_code ~prefix_len:character (get_line doc range) range
 ;;

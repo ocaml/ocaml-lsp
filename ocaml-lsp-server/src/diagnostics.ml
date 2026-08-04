@@ -306,7 +306,7 @@ let clamp_range_to_source source ({ Range.start; end_ } : Range.t) =
   let clamp position =
     let offset = Msource.get_offset source (Position.logical position) in
     let (`Logical (line, character)) = Msource.get_logical source offset in
-    Position.create ~line:(line - 1) ~character
+    Position.of_logical ~line ~character
   in
   Range.create ~start:(clamp start) ~end_:(clamp end_)
 ;;
