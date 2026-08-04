@@ -12,17 +12,6 @@ let symbol_kind_of_outline_kind = function
   | `Method -> Method
 ;;
 
-let normalize_selection_range ~(range : Range.t) = function
-  | None -> range
-  | Some (selection_range : Range.t) ->
-    let selection_is_valid =
-      Lsp.Position.compare selection_range.start selection_range.end_ <= 0
-    in
-    if selection_is_valid && Range.contains range selection_range
-    then selection_range
-    else Option.value (Range.intersection range selection_range) ~default:range
-;;
-
 let rec items_to_symbols ~supports_deprecated_tag items =
   List.rev_map
     ~f:
@@ -40,7 +29,9 @@ let rec items_to_symbols ~supports_deprecated_tag items =
          Preserve valid selections, clip non-empty overlaps, and fall back to
          [range] for ghost, invalid, touching, or disjoint selections. *)
       let selectionRange =
-        normalize_selection_range ~range (Range.of_loc_opt selection)
+        match Range.of_loc_opt selection with
+        | None -> range
+        | Some selection -> Lsp.Range.normalize_selection_range range ~selection
       in
       let { Deprecation.deprecated; tags } =
         Deprecation.create
@@ -59,27 +50,6 @@ let rec items_to_symbols ~supports_deprecated_tag items =
         ~children:(items_to_symbols ~supports_deprecated_tag children)
         ())
     items
-;;
-
-let rec flatten_document_symbols ~uri ~container_name (symbols : DocumentSymbol.t list) =
-  List.concat_map symbols ~f:(fun symbol ->
-    let symbol_information =
-      SymbolInformation.create
-        ?containerName:container_name
-        ~kind:symbol.kind
-        ~location:{ range = symbol.range; uri }
-        ~name:symbol.name
-        ?deprecated:symbol.deprecated
-        ?tags:symbol.tags
-        ()
-    in
-    let children =
-      flatten_document_symbols
-        ~uri
-        ~container_name:(Some symbol.name)
-        (Option.value symbol.children ~default:[])
-    in
-    symbol_information :: children)
 ;;
 
 let run (client_capabilities : ClientCapabilities.t) doc uri =
@@ -116,6 +86,6 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
      with
      | true -> Some (`DocumentSymbol symbols)
      | false ->
-       let flattened = flatten_document_symbols ~uri ~container_name:None symbols in
+       let flattened = Lsp.Document_symbol.flatten ~uri symbols in
        Some (`SymbolInformation flattened))
 ;;

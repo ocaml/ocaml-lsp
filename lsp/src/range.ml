@@ -28,6 +28,13 @@ let intersection x y =
   if Position.compare start end_ < 0 then Some { start; end_ } else None
 ;;
 
+let normalize_selection_range (range : t) ~(selection : t) =
+  let selection_is_valid = Position.compare selection.start selection.end_ <= 0 in
+  if selection_is_valid && contains range selection
+  then selection
+  else Option.value (intersection range selection) ~default:range
+;;
+
 let overlaps x y ~touching =
   if touching
   then Position.compare x.start y.end_ <= 0 && Position.compare y.start x.end_ <= 0
