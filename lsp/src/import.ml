@@ -1,4 +1,19 @@
-module List = Stdlib.ListLabels
+module List = struct
+  include Stdlib.ListLabels
+
+  let rec last = function
+    | [] -> None
+    | [ x ] -> Some x
+    | _ :: xs -> last xs
+  ;;
+
+  let rec last_exn = function
+    | [] -> invalid_arg "List.last_exn"
+    | [ x ] -> x
+    | _ :: xs -> last_exn xs
+  ;;
+end
+
 module Option = Stdlib.Option
 module Array = Stdlib.ArrayLabels
 module Bytes = Stdlib.BytesLabels

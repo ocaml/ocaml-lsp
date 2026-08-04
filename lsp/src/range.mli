@@ -25,4 +25,11 @@ val intersection : t -> t -> t option
 val overlaps : t -> t -> touching:bool -> bool
 
 val first_line : t
+
+(** [resize_for_edit edit] returns the range of the text after [edit] has been
+    applied: the range's start is unchanged and the end is moved to the end of
+    the inserted text. This is the range that must be replaced to undo the
+    edit. *)
+val resize_for_edit : Types.TextEdit.t -> t
+
 val to_string : t -> string
