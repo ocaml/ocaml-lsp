@@ -40,7 +40,7 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
   let enabled_actions =
     List.filter
       ~f:(fun (action : Code_action.t) ->
-        Code_action.kind_is_requested params.context.only action.kind)
+        Lsp.Code_action.kind_is_requested params.context.only action.kind)
       [ Action_destruct_line.t ~dispatch:destruct_dispatch state
       ; Action_destruct.t ~dispatch:destruct_dispatch state
       ; Action_update_signature.t state
@@ -109,7 +109,7 @@ let compute server (params : CodeActionParams.t) =
     let store = state.store in
     Document_store.get_opt store uri
   in
-  let kind_is_requested = Code_action.kind_is_requested params.context.only in
+  let kind_is_requested = Lsp.Code_action.kind_is_requested params.context.only in
   let dune_actions =
     if kind_is_requested CodeActionKind.QuickFix
     then Dune.code_actions (State.dune state) params.textDocument.uri

@@ -65,7 +65,7 @@ let code_actions
   =
   let targets =
     List.filter targets ~f:(fun target ->
-      Code_action.kind_is_requested params.context.only (kind target))
+      Lsp.Code_action.kind_is_requested params.context.only (kind target))
   in
   match Document.kind doc, targets with
   | `Merlin merlin, _ :: _ when available capabilities ->
