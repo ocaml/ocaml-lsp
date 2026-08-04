@@ -1,6 +1,5 @@
 open Import
 open Fiber.O
-module Array_view = Lsp.Private.Array_view
 module Parsetree_utils = Merlin_analysis.Parsetree_utils
 
 (* TODO:
@@ -146,54 +145,17 @@ end = struct
   ;;
 end
 
-(** [token_type_indices] is indexed by the server's token type index. Each entry
-    contains the corresponding index in the negotiated legend, or [None] when
-    the client does not support that token type.
+type config = Lsp.Semantic_tokens.Encoding.t
 
-    [token_modifier_bits] is indexed by the server's token modifier index. Each
-    entry contains the corresponding bit in the negotiated legend, or [None]
-    when the client does not support that modifier. *)
-type config =
-  { legend : SemanticTokensLegend.t
-  ; token_type_indices : int option array
-  ; token_modifier_bits : int option array
-  }
-
-let negotiate_token_type_indices ~token_types =
-  Token_type.tokenTypes
-  |> Array.of_list
-  |> Array.map ~f:(fun server_token_type ->
-    List.find_mapi token_types ~f:(fun index negotiated_token_type ->
-      Option.some_if (String.equal server_token_type negotiated_token_type) index))
-;;
-
-let negotiate_token_modifier_bits ~token_modifiers =
-  Token_modifiers_set.list
-  |> Array.of_list
-  |> Array.map ~f:(fun server_modifier ->
-    List.find_mapi token_modifiers ~f:(fun index negotiated_modifier ->
-      Option.some_if (String.equal server_modifier negotiated_modifier) (1 lsl index)))
-;;
-
-let make_config ~token_types ~token_modifiers =
-  let legend =
-    SemanticTokensLegend.create ~tokenTypes:token_types ~tokenModifiers:token_modifiers
-  in
-  let token_type_indices = negotiate_token_type_indices ~token_types in
-  let token_modifier_bits = negotiate_token_modifier_bits ~token_modifiers in
-  { legend; token_type_indices; token_modifier_bits }
+let server_legend =
+  Lsp.Semantic_tokens.Legend.create
+    ~token_types:Token_type.tokenTypes
+    ~token_modifiers:Token_modifiers_set.list
 ;;
 
 let config_of_client_values ~token_types ~token_modifiers =
-  let token_types =
-    List.filter Token_type.tokenTypes ~f:(fun value ->
-      List.mem token_types value ~equal:String.equal)
-  in
-  let token_modifiers =
-    List.filter Token_modifiers_set.list ~f:(fun value ->
-      List.mem token_modifiers value ~equal:String.equal)
-  in
-  make_config ~token_types ~token_modifiers
+  let client = Lsp.Semantic_tokens.Legend.create ~token_types ~token_modifiers in
+  Lsp.Semantic_tokens.Encoding.negotiate ~server:server_legend ~client
 ;;
 
 let create_config (semantic_tokens : SemanticTokensClientCapabilities.t) =
@@ -203,35 +165,23 @@ let create_config (semantic_tokens : SemanticTokensClientCapabilities.t) =
 ;;
 
 let default_config =
-  make_config ~token_types:Token_type.tokenTypes ~token_modifiers:Token_modifiers_set.list
+  Lsp.Semantic_tokens.Encoding.negotiate ~server:server_legend ~client:server_legend
 ;;
 
-let legend config = config.legend
+let legend config =
+  Lsp.Semantic_tokens.Legend.to_types (Lsp.Semantic_tokens.Encoding.legend config)
+;;
 
 let token_type_index config token_type =
-  config.token_type_indices.(Token_type.to_int token_type)
-;;
-
-let remap_token_modifiers config encoded =
-  let rec loop server_index encoded result =
-    if Int.equal encoded 0
-    then result
-    else (
-      let result =
-        if Int.equal (encoded land 1) 0
-        then result
-        else (
-          match config.token_modifier_bits.(server_index) with
-          | None -> result
-          | Some client_bit -> result lor client_bit)
-      in
-      loop (server_index + 1) (encoded lsr 1) result)
-  in
-  loop 0 encoded 0
+  Lsp.Semantic_tokens.Encoding.token_type_index
+    config
+    ~server_index:(Token_type.to_int token_type)
 ;;
 
 let token_modifiers_bitset config token_modifiers =
-  remap_token_modifiers config (Token_modifiers_set.to_int token_modifiers)
+  Lsp.Semantic_tokens.Encoding.token_modifiers_bitset
+    config
+    ~server_bitset:(Token_modifiers_set.to_int token_modifiers)
 ;;
 
 (** Represents a collection of semantic tokens. *)
@@ -290,22 +240,6 @@ end = struct
     t.tokens <- new_token :: t.tokens
   ;;
 
-  let set_token
-        arr
-        ~delta_line_index
-        ~delta_line
-        ~delta_start
-        ~length
-        ~token_type
-        ~token_modifiers
-    =
-    arr.(delta_line_index) <- delta_line;
-    arr.(delta_line_index + 1) <- delta_start;
-    arr.(delta_line_index + 2) <- length;
-    arr.(delta_line_index + 3) <- token_type;
-    arr.(delta_line_index + 4) <- token_modifiers
-  ;;
-
   let yojson_of_token { start; length; token_type; token_modifiers } =
     `Assoc
       [ "start_pos", Position.yojson_of_t start
@@ -321,60 +255,21 @@ end = struct
   let yojson_of_t t = Json.Conv.yojson_of_list yojson_of_token (List.rev t.tokens)
 
   let encode (t : t) (config : config) : int array =
-    (* The parsetree traversal does not always visit nodes in source order. This
-       encoder works backwards, so put the latest token first. *)
-    let tokens =
-      List.sort t.tokens ~compare:(fun left right ->
-        Lsp.Position.compare right.start left.start)
-    in
-    let supported_token_count =
-      List.fold_left tokens ~init:0 ~f:(fun count token ->
-        match token_type_index config token.token_type with
-        | None -> count
-        | Some _ -> count + 1)
-    in
-    let data = Array.create ~len:(supported_token_count * 5) 0 in
-    let rec encode_tokens index current token_type = function
-      | [] ->
-        let { start; length; token_modifiers; _ } = current in
-        set_token
-          data
-          ~delta_line_index:0
-          ~delta_line:start.line
-          ~delta_start:start.character
-          ~length
-          ~token_type
-          ~token_modifiers:(token_modifiers_bitset config token_modifiers)
-      | previous :: rest ->
-        (match token_type_index config previous.token_type with
-         | None -> encode_tokens index current token_type rest
-         | Some previous_token_type ->
-           let delta_line = current.start.line - previous.start.line in
-           let delta_start =
-             if Int.equal delta_line 0
-             then current.start.character - previous.start.character
-             else current.start.character
-           in
-           let { length; token_modifiers } = current in
-           set_token
-             data
-             ~delta_line_index:((index - 1) * 5)
-             ~delta_line
-             ~delta_start
-             ~length
-             ~token_type
-             ~token_modifiers:(token_modifiers_bitset config token_modifiers);
-           encode_tokens (index - 1) previous previous_token_type rest)
-    in
-    let rec encode_first_supported = function
-      | [] -> ()
-      | token :: rest ->
-        (match token_type_index config token.token_type with
-         | None -> encode_first_supported rest
-         | Some token_type -> encode_tokens supported_token_count token token_type rest)
-    in
-    encode_first_supported tokens;
-    data
+    (* The parsetree traversal does not always visit nodes in source order.
+       Translate supported tokens into negotiated indexes and let the shared
+       encoder sort + delta-encode them. *)
+    t.tokens
+    |> List.filter_map ~f:(fun token ->
+      match token_type_index config token.token_type with
+      | None -> None
+      | Some token_type ->
+        Some
+          { Lsp.Semantic_tokens.Token.start = token.start
+          ; length = token.length
+          ; token_type
+          ; token_modifiers = token_modifiers_bitset config token.token_modifiers
+          })
+    |> Lsp.Semantic_tokens.encode
   ;;
 end
 
@@ -1091,53 +986,7 @@ let on_request_full : State.t -> SemanticTokensParams.t -> SemanticTokens.t opti
       Some { SemanticTokens.resultId = Some resultId; data = tokens })
 ;;
 
-(* [find_diff] finds common prefix and common suffix and reports the rest as
-   array difference. This is not ideal but good enough. The idea comes from the
-   Rust Analyzer implementation of this function. *)
-let find_diff ~(old : int array) ~(new_ : int array) : SemanticTokensEdit.t list =
-  let old_len = Array.length old in
-  let new_len = Array.length new_ in
-  let left_offset =
-    let i = ref 0 in
-    let min_len = min old_len new_len in
-    while !i < min_len && Int.equal (Array.get old !i) (Array.get new_ !i) do
-      Int.incr i
-    done;
-    !i
-  in
-  if left_offset = old_len
-  then
-    if left_offset = new_len
-    then (* [old] and [new_] are simply equal *) []
-    else
-      (* [old] is prefix of [new_] *)
-      [ SemanticTokensEdit.create
-          ~start:left_offset
-          ~deleteCount:0
-          ~data:(Array.sub new_ ~pos:left_offset ~len:(new_len - left_offset))
-          ()
-      ]
-  else if left_offset = new_len
-  then
-    (* [new_] is prefix of [old] *)
-    [ SemanticTokensEdit.create ~start:left_offset ~deleteCount:(old_len - left_offset) ()
-    ]
-  else (
-    let common_suffix_len =
-      let old_noncommon = Array_view.make old ~pos:left_offset in
-      let new_noncommon = Array_view.make new_ ~pos:left_offset in
-      Array_view.common_suffix_len old_noncommon new_noncommon
-    in
-    let deleteCount =
-      let right_offset_old = old_len - common_suffix_len in
-      right_offset_old - left_offset
-    in
-    let data =
-      let right_offset_new = new_len - common_suffix_len in
-      Array.sub new_ ~pos:left_offset ~len:(right_offset_new - left_offset)
-    in
-    [ SemanticTokensEdit.create ~start:left_offset ~deleteCount ~data () ])
-;;
+let find_diff = Lsp.Semantic_tokens.find_diff
 
 module For_tests = struct
   type nonrec config = config
@@ -1145,7 +994,7 @@ module For_tests = struct
   let server_token_types = Token_type.tokenTypes
   let server_token_modifiers = Token_modifiers_set.list
   let create_config = config_of_client_values
-  let legend config = config.legend
+  let legend = legend
   let default_token_type = Token_type.of_builtin Variable
   let token_type_index = Token_type.to_int default_token_type
   let token_modifiers_bitset = Token_modifiers_set.to_int Token_modifiers_set.empty

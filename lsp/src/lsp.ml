@@ -1,6 +1,7 @@
 module Progress = Progress
 module Position = Position
 module Range = Range
+module Semantic_tokens = Semantic_tokens
 module Client_notification = Client_notification
 module Client_request = Client_request
 module Experimental = Experimental
