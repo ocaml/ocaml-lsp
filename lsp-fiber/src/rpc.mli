@@ -89,6 +89,10 @@ module Server : sig
 
   val initialized : _ t -> InitializeParams.t Fiber.t
 
+  (** Raises a [MethodNotFound] response error for requests the server does not
+      implement. *)
+  val not_supported : unit -> 'a
+
   (** Process messages until the server stops and drain detached RPC jobs. The
       output channel remains open until [close] is called. *)
   val start : _ t -> unit Fiber.t

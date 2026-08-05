@@ -456,5 +456,11 @@ module Server = struct
     make ~name:"server" h_on_request h_on_notification io initial_state
   ;;
 
+  let not_supported () =
+    let code = Response.Error.Code.MethodNotFound in
+    let message = "Request not supported yet!" in
+    raise (Jsonrpc.Response.Error.E (Jsonrpc.Response.Error.make ~code ~message ()))
+  ;;
+
   let start t = start_loop t
 end

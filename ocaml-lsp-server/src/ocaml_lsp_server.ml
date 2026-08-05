@@ -8,12 +8,6 @@ module Testing = Testing
 open Fiber.O
 
 let make_error = Jsonrpc.Response.Error.make
-
-let not_supported () =
-  Jsonrpc.Response.Error.raise
-    (make_error ~code:MethodNotFound ~message:"Request not supported yet!" ())
-;;
-
 let view_metrics_command_name = "ocamllsp/view-metrics"
 
 let view_metrics server =
@@ -755,29 +749,29 @@ let on_request
       ()
   | TextDocumentOnTypeFormatting _ -> now None
   | SelectionRange req -> later selection_range req
-  | TextDocumentImplementation _ -> not_supported ()
+  | TextDocumentImplementation _ -> Server.not_supported ()
   | SemanticTokensFull p -> later Semantic_highlighting.on_request_full p
   | SemanticTokensDelta p -> later Semantic_highlighting.on_request_full_delta p
-  | TextDocumentMoniker _ -> not_supported ()
-  | TextDocumentPrepareCallHierarchy _ -> not_supported ()
-  | CallHierarchyIncomingCalls _ -> not_supported ()
-  | CallHierarchyOutgoingCalls _ -> not_supported ()
-  | SemanticTokensRange _ -> not_supported ()
-  | LinkedEditingRange _ -> not_supported ()
-  | WillCreateFiles _ -> not_supported ()
-  | WillRenameFiles _ -> not_supported ()
-  | WillDeleteFiles _ -> not_supported ()
-  | InlayHintResolve _ -> not_supported ()
-  | TextDocumentDiagnostic _ -> not_supported ()
-  | TextDocumentInlineCompletion _ -> not_supported ()
-  | TextDocumentInlineValue _ -> not_supported ()
-  | WorkspaceSymbolResolve _ -> not_supported ()
-  | WorkspaceDiagnostic _ -> not_supported ()
-  | TextDocumentRangesFormatting _ -> not_supported ()
-  | TextDocumentPrepareTypeHierarchy _ -> not_supported ()
-  | TypeHierarchySupertypes _ -> not_supported ()
-  | TypeHierarchySubtypes _ -> not_supported ()
-  | WorkspaceTextDocumentContent _ -> not_supported ()
+  | TextDocumentMoniker _ -> Server.not_supported ()
+  | TextDocumentPrepareCallHierarchy _ -> Server.not_supported ()
+  | CallHierarchyIncomingCalls _ -> Server.not_supported ()
+  | CallHierarchyOutgoingCalls _ -> Server.not_supported ()
+  | SemanticTokensRange _ -> Server.not_supported ()
+  | LinkedEditingRange _ -> Server.not_supported ()
+  | WillCreateFiles _ -> Server.not_supported ()
+  | WillRenameFiles _ -> Server.not_supported ()
+  | WillDeleteFiles _ -> Server.not_supported ()
+  | InlayHintResolve _ -> Server.not_supported ()
+  | TextDocumentDiagnostic _ -> Server.not_supported ()
+  | TextDocumentInlineCompletion _ -> Server.not_supported ()
+  | TextDocumentInlineValue _ -> Server.not_supported ()
+  | WorkspaceSymbolResolve _ -> Server.not_supported ()
+  | WorkspaceDiagnostic _ -> Server.not_supported ()
+  | TextDocumentRangesFormatting _ -> Server.not_supported ()
+  | TextDocumentPrepareTypeHierarchy _ -> Server.not_supported ()
+  | TypeHierarchySupertypes _ -> Server.not_supported ()
+  | TypeHierarchySubtypes _ -> Server.not_supported ()
+  | WorkspaceTextDocumentContent _ -> Server.not_supported ()
 ;;
 
 let on_notification server (notification : Client_notification.t) : State.t Fiber.t =
