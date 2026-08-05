@@ -78,7 +78,7 @@ let%expect_test "reports deprecated workspace symbols" =
     |}]
 ;;
 
-let%expect_test "reproduces dropped workspace symbol deprecation tags" =
+let%expect_test "uses deprecated workspace symbol tags when supported" =
   let workspace_a, _workspace_b = setup_workspaces () in
   Test.write_file
     (Filename.concat workspace_a.path "lib/LibTypes.mli")
@@ -106,8 +106,8 @@ let%expect_test "reproduces dropped workspace symbol deprecation tags" =
   [%expect
     {|
     name: deprecated_value
-    deprecated: true
-    tags: missing
+    deprecated: missing
+    tags: present
     |}]
 ;;
 

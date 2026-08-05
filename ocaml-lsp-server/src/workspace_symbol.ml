@@ -245,34 +245,59 @@ let make_uri_resolver ~root_dir ~build_dir : (Loc.t -> Uri.t option) Staged.t =
       uri)
 ;;
 
-let rec symbol_info ~containerName resolve_uri (item : Query_protocol.item) =
+let rec symbol_info
+          ~supports_deprecated_tag
+          ~containerName
+          resolve_uri
+          (item : Query_protocol.item)
+  =
   let children =
     List.concat_map
       item.children
-      ~f:(symbol_info resolve_uri ~containerName:(Some item.outline_name))
+      ~f:
+        (symbol_info
+           ~supports_deprecated_tag
+           ~containerName:(Some item.outline_name)
+           resolve_uri)
   in
   match resolve_uri item.location with
   | None -> children
   | Some uri ->
     let kind = outline_kind item.outline_kind in
     let location = { Location.uri; range = Range.of_loc item.location } in
+    let { Deprecation.deprecated; tags } =
+      Deprecation.create
+        ~deprecated:item.deprecated
+        ~tag:Lsp.Types.SymbolTag.Deprecated
+        ~supports_tag:supports_deprecated_tag
+        ~supports_deprecated_field:true
+    in
     let info =
       SymbolInformation.create
         ~name:item.outline_name
         ~kind
-        ~deprecated:item.deprecated
+        ?deprecated
         ~location
+        ?tags
         ?containerName
         ()
     in
     info :: children
 ;;
 
-let symbols_of_outline resolve_uri outline =
-  List.concat_map ~f:(symbol_info ~containerName:None resolve_uri) outline
+let symbols_of_outline ~supports_deprecated_tag resolve_uri outline =
+  List.concat_map
+    ~f:(symbol_info ~supports_deprecated_tag ~containerName:None resolve_uri)
+    outline
 ;;
 
-let symbols_from_cm_file ~filter ~resolve_uri (cancel : Fiber.Cancel.t option) cm_file =
+let symbols_from_cm_file
+      ~supports_deprecated_tag
+      ~filter
+      ~resolve_uri
+      (cancel : Fiber.Cancel.t option)
+      cm_file
+  =
   let cmt =
     let filename = string_of_cm cm_file in
     let cancelled = Option.exists cancel ~f:Fiber.Cancel.fired in
@@ -290,7 +315,7 @@ let symbols_from_cm_file ~filter ~resolve_uri (cancel : Fiber.Cancel.t option) c
             let browse_tree = Merlin_analysis.Browse_tree.of_node browse in
             Outline.get [ browse_tree ]
           in
-          filter (symbols_of_outline resolve_uri outline))
+          filter (symbols_of_outline ~supports_deprecated_tag resolve_uri outline))
      | _ -> [])
 ;;
 
@@ -325,6 +350,7 @@ let find_cm_files dir =
 
 let run
       ({ query; _ } : WorkspaceSymbolParams.t)
+      ~supports_deprecated_tag
       (workspace_folders : WorkspaceFolder.t list)
       (cancel : Fiber.Cancel.t option)
   =
@@ -344,17 +370,35 @@ let run
          | Some build_dir ->
            let cm_files = find_cm_files build_dir in
            let resolve_uri = Staged.unstage (make_uri_resolver ~root_dir ~build_dir) in
-           List.concat_map ~f:(symbols_from_cm_file ~filter ~resolve_uri cancel) cm_files))
+           List.concat_map
+             ~f:
+               (symbols_from_cm_file ~supports_deprecated_tag ~filter ~resolve_uri cancel)
+             cm_files))
   with
   | Cancelled -> Error `Cancelled
 ;;
 
 let run (state : State.t) (params : WorkspaceSymbolParams.t) =
   let open Fiber.O in
+  let supports_deprecated_tag =
+    Option.value
+      ~default:false
+      (let open Option.O in
+       let* workspace = (State.client_capabilities state).workspace in
+       let* symbol = workspace.symbol in
+       let* tag_support = symbol.tagSupport in
+       Some
+         (Deprecation.tag_supported
+            tag_support.valueSet
+            ~tag:Lsp.Types.SymbolTag.Deprecated))
+  in
   let workspaces = Workspaces.workspace_folders (State.workspaces state) in
   let* thread = Lazy_fiber.force state.symbols_thread in
   let* cancel = Server.cancel_token () in
-  let task = Lev_fiber.Thread.task thread ~f:(fun () -> run params workspaces cancel) in
+  let task =
+    Lev_fiber.Thread.task thread ~f:(fun () ->
+      run params ~supports_deprecated_tag workspaces cancel)
+  in
   let* res, cancel =
     match task with
     | Error `Stopped -> Fiber.never

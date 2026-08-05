@@ -12,6 +12,8 @@
 
 - Tag unused and deprecated values in diagnostics, so clients can grey them out
   or strike them through. (#2110, fixes #2109, @dayangac)
+- Honor client support for deprecation tags in workspace-symbol results.
+  (#2113, @rgrinberg)
 - Respect the client's folding range capabilities: omit character positions for
   `lineFoldingOnly` clients, omit unsupported folding range kinds, and honor
   `rangeLimit`. (#2099, fixes #911, @dayangac)
