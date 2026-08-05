@@ -11,22 +11,6 @@ let setup_workspace () =
   dir
 ;;
 
-let print_locations = function
-  | None -> print_endline "[]"
-  | Some (`Location locations) ->
-    List.iter locations ~f:(fun (location : Location.t) ->
-      print_endline (DocumentUri.to_path location.uri |> Filename.basename);
-      Range.yojson_of_t location.range
-      |> Yojson.Safe.pretty_to_string ~std:false
-      |> print_endline)
-  | Some (`LocationLink links) ->
-    List.iter links ~f:(fun (location : LocationLink.t) ->
-      print_endline (DocumentUri.to_path location.targetUri |> Filename.basename);
-      Range.yojson_of_t location.targetRange
-      |> Yojson.Safe.pretty_to_string ~std:false
-      |> print_endline)
-;;
-
 let%expect_test "distinguishes a definition from a declaration" =
   let dir = setup_workspace () in
   let path = Filename.concat dir "main.ml" in
@@ -57,14 +41,14 @@ let%expect_test "distinguishes a definition from a declaration" =
        (TextDocumentDefinition (DefinitionParams.create ~textDocument ~position ()))
    in
    print_endline "definition:";
-   print_locations definition;
+   Test.print_locations definition;
    let* declaration =
      Client.request
        client
        (TextDocumentDeclaration (DeclarationParams.create ~textDocument ~position ()))
    in
    print_endline "declaration:";
-   print_locations declaration;
+   Test.print_locations declaration;
    let* () = Client.request client Shutdown in
    let* () = Fiber.Ivar.read diagnostics in
    Client.stop client);

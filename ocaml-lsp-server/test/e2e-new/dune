@@ -76,6 +76,7 @@
     hover_ocamlformat_restart
     infer_intf
     inlay_hints
+    implementation
     jump_to_typed_hole
     merlin_call_compatible
     destruct

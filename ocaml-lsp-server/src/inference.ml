@@ -65,39 +65,13 @@ let infer_intf_for_impl doc =
         Format.asprintf "%a@." Printtyp.signature sig_))
 ;;
 
-let language_id_of_fname s =
-  match Filename.extension s with
-  | ".mli" | ".eliomi" -> "ocaml.interface"
-  | ".ml" | ".eliom" -> "ocaml"
-  | ".rei" | ".re" -> "reason"
-  | ".mlx" -> "ocaml.mlx"
-  | ".mll" -> "ocaml.ocamllex"
-  | ".mly" -> "ocaml.menhir"
-  | ext -> invalid_arg ("unsupported file extension " ^ ext)
-;;
-
 let open_document_from_file (state : State.t) uri =
-  let filename = Uri.to_path uri in
-  Fiber.of_thunk (fun () ->
-    match Fs_io.read_file filename with
-    | Error _ ->
-      Log.log ~section:"debug" (fun () ->
-        Log.msg "Unable to open file" [ "filename", `String filename ]);
-      Fiber.return None
-    | Ok text ->
-      let languageId = LanguageKind.Other (language_id_of_fname filename) in
-      let text_document = TextDocumentItem.create ~uri ~languageId ~version:0 ~text in
-      let params = DidOpenTextDocumentParams.create ~textDocument:text_document in
-      let+ doc =
-        let position_encoding = State.position_encoding state in
-        Document.make
-          ~position_encoding
-          (State.wheel state)
-          state.merlin_config
-          state.merlin
-          params
-      in
-      Some doc)
+  Document.make_from_file
+    (State.wheel state)
+    state.merlin_config
+    state.merlin
+    uri
+    ~position_encoding:(State.position_encoding state)
 ;;
 
 let infer_intf (state : State.t) intf_doc =
