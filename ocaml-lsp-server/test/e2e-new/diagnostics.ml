@@ -5,7 +5,7 @@ let print_diagnostics params =
   PublishDiagnosticsParams.yojson_of_t params |> Test.print_result
 ;;
 
-let test ?(print = print_diagnostics) source =
+let test ?(print = print_diagnostics) ?capabilities source =
   let diagnostics = Fiber.Ivar.create () in
   let handler =
     Client.Handler.make
@@ -18,7 +18,7 @@ let test ?(print = print_diagnostics) source =
          | _ -> Fiber.return ())
       ()
   in
-  Test.run_initialized ~handler (fun client ->
+  Test.run_initialized ~handler ?capabilities (fun client ->
     let textDocument =
       TextDocumentItem.create
         ~uri:Helpers.uri
@@ -92,6 +92,16 @@ let%expect_test "has related diagnostics" =
     |}]
 ;;
 
+let tag_capabilities =
+  let tagSupport =
+    ClientDiagnosticsTagOptions.create
+      ~valueSet:[ DiagnosticTag.Unnecessary; DiagnosticTag.Deprecated ]
+  in
+  let publishDiagnostics = PublishDiagnosticsClientCapabilities.create ~tagSupport () in
+  let textDocument = TextDocumentClientCapabilities.create ~publishDiagnostics () in
+  ClientCapabilities.create ~textDocument ()
+;;
+
 let%expect_test "unused values have diagnostic tags" =
   let source =
     {ocaml|let () =
@@ -99,7 +109,7 @@ let%expect_test "unused values have diagnostic tags" =
   ()
 |ocaml}
   in
-  test source;
+  test ~capabilities:tag_capabilities source;
   [%expect
     {|
     textDocument/publishDiagnostics
@@ -112,7 +122,8 @@ let%expect_test "unused values have diagnostic tags" =
             "start": { "character": 6, "line": 1 }
           },
           "severity": 2,
-          "source": "ocamllsp"
+          "source": "ocamllsp",
+          "tags": [ 1 ]
         }
       ],
       "uri": "file:///test.ml"
@@ -131,7 +142,7 @@ end
 let () = ignore X.x
 |ocaml}
   in
-  test source;
+  test ~capabilities:tag_capabilities source;
   [%expect
     {|
     textDocument/publishDiagnostics
@@ -144,7 +155,8 @@ let () = ignore X.x
             "start": { "character": 16, "line": 6 }
           },
           "severity": 2,
-          "source": "ocamllsp"
+          "source": "ocamllsp",
+          "tags": [ 2 ]
         }
       ],
       "uri": "file:///test.ml"

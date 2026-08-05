@@ -10,6 +10,8 @@
 
 ## Fixes
 
+- Tag unused and deprecated values in diagnostics, so clients can grey them out
+  or strike them through. (#2110, fixes #2109, @dayangac)
 - Respect the client's folding range capabilities: omit character positions for
   `lineFoldingOnly` clients, omit unsupported folding range kinds, and honor
   `rangeLimit`. (#2099, fixes #911, @dayangac)
