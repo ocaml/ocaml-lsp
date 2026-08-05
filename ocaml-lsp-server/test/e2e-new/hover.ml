@@ -356,8 +356,20 @@ let use = Exn 1
     ];
   [%expect
     {|
-    no hover response
-    no hover response
+    {
+      "contents": { "kind": "plaintext", "value": "int -> exn" },
+      "range": {
+        "end": { "character": 13, "line": 0 },
+        "start": { "character": 10, "line": 0 }
+      }
+    }
+    {
+      "contents": { "kind": "plaintext", "value": "string -> t" },
+      "range": {
+        "end": { "character": 10, "line": 1 },
+        "start": { "character": 9, "line": 1 }
+      }
+    }
     {
       "contents": { "kind": "plaintext", "value": "int -> exn" },
       "range": {
