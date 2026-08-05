@@ -1516,7 +1516,7 @@ module type T = S with module M = N
     {|
     module type <interface|-0>S</0> = sig module <namespace|definition-1>M</1> : sig type <type|definition-2>t</2> end end
     module <namespace|definition-3>N</3> = struct type <type|definition-4>t</4> = <type|-5>int</5> end
-    module type <interface|-6>T</6> = <interface|-7>S</7> with module M = N
+    module type <interface|-6>T</6> = <interface|-7>S</7> with module <namespace|-8>M</8> = <namespace|-9>N</9>
     |}]
 ;;
 
@@ -1534,8 +1534,8 @@ end
     {|
     module <namespace|definition-0>M</0> = struct type <type|definition-1>t</1> = <type|-2>int</2> end
     module type <interface|-3>S</3> = sig
-      open M
-      val <variable|definition-4>x</4> : <type|-5>t</5>
+      open <namespace|-4>M</4>
+      val <variable|definition-5>x</5> : <type|-6>t</6>
     end
     |}]
 ;;

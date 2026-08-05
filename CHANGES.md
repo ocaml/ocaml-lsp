@@ -13,6 +13,8 @@
 - Respect the client's folding range capabilities: omit character positions for
   `lineFoldingOnly` clients, omit unsupported folding range kinds, and honor
   `rangeLimit`. (#2099, fixes #911, @dayangac)
+- Classify module names in `with` constraints and in signature `open`s in
+  semantic highlighting. (#2098, fixes #808, @dayangac)
 - Return no location instead of failing the request when a definition,
   declaration or type definition cannot be found, so clients that request them
   eagerly no longer surface spurious errors. (#2100, fixes #1161, @dayangac)
