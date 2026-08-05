@@ -122,7 +122,8 @@ let%expect_test "unused values have diagnostic tags" =
             "start": { "character": 6, "line": 1 }
           },
           "severity": 2,
-          "source": "ocamllsp"
+          "source": "ocamllsp",
+          "tags": [ 1 ]
         }
       ],
       "uri": "file:///test.ml"
@@ -154,7 +155,8 @@ let () = ignore X.x
             "start": { "character": 16, "line": 6 }
           },
           "severity": 2,
-          "source": "ocamllsp"
+          "source": "ocamllsp",
+          "tags": [ 2 ]
         }
       ],
       "uri": "file:///test.ml"
