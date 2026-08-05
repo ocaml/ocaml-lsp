@@ -897,6 +897,18 @@ end = struct
     | `Default_iterator -> Ast_iterator.default_iterator.module_expr self me
   ;;
 
+  (* An open in a structure reaches [module_expr], but one in a signature is an
+     [open_description], which the default iterator does not route through any
+     overridden method. *)
+  let open_description
+        (self : Ast_iterator.iterator)
+        ({ popen_expr; popen_attributes; popen_override = _; popen_loc = _ } :
+          Parsetree.open_description)
+    =
+    lident popen_expr Token_type.module_ ();
+    self.attributes self popen_attributes
+  ;;
+
   let module_type_declaration
         (self : Ast_iterator.iterator)
         ({ pmtd_name; pmtd_type; pmtd_attributes; pmtd_loc = _ } :
@@ -972,6 +984,21 @@ end = struct
     | `Default_iterator -> Ast_iterator.default_iterator.module_type self mt
   ;;
 
+  (* [Pmty_with] is left to the default iterator, which dispatches each
+     constraint here. Without this the constrained names receive no token. *)
+  let with_constraint (self : Ast_iterator.iterator) (wc : Parsetree.with_constraint) =
+    match wc with
+    | Pwith_type (l, td) | Pwith_typesubst (l, td) ->
+      lident l (Token_type.of_builtin Type) ();
+      self.type_declaration self td
+    | Pwith_module (l, l') | Pwith_modsubst (l, l') ->
+      lident l Token_type.module_ ();
+      lident l' Token_type.module_ ()
+    | Pwith_modtype (l, mt) | Pwith_modtypesubst (l, mt) ->
+      lident l Token_type.module_type ();
+      self.module_type self mt
+  ;;
+
   (* TODO: *)
   let attribute _self _attr = ()
 
@@ -995,6 +1022,8 @@ end = struct
     ; value_description
     ; module_type
     ; module_declaration
+    ; with_constraint
+    ; open_description
     }
   ;;
 
