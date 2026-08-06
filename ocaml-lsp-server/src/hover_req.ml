@@ -124,6 +124,22 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   let typ (_ : Ast_iterator.iterator) (typ : Parsetree.core_type) =
     if is_at_cursor typ.ptyp_loc then result := Some `Type_enclosing
   in
+  (* Hover a variant constructor where it is declared *)
+  let constructor_declaration
+        (self : Ast_iterator.iterator)
+        (decl : Parsetree.constructor_declaration)
+    =
+    if is_at_cursor decl.pcd_name.loc then result := Some `Type_enclosing;
+    Ast_iterator.default_iterator.constructor_declaration self decl
+  in
+  (* Hover an exception, or a type extension constructor, where it is declared *)
+  let extension_constructor
+        (self : Ast_iterator.iterator)
+        (ext : Parsetree.extension_constructor)
+    =
+    if is_at_cursor ext.pext_name.loc then result := Some `Type_enclosing;
+    Ast_iterator.default_iterator.extension_constructor self ext
+  in
   (* Hover a type declaration *)
   let type_declaration (self : Ast_iterator.iterator) (decl : Parsetree.type_declaration) =
     if is_at_cursor decl.ptype_name.loc
@@ -244,6 +260,8 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     ; expr
     ; typ
     ; type_declaration
+    ; constructor_declaration
+    ; extension_constructor
     ; value_description
     ; module_expr
     ; module_type
