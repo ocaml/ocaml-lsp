@@ -99,6 +99,7 @@ include struct
   module Client_request = Client_request
   module Server_request = Server_request
   module Text_document = Text_document
+  module Workspaces = Workspaces
 
   module Uri = struct
     module Uri = struct

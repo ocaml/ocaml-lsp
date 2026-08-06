@@ -1,5 +1,6 @@
-open Import
+open Types
 
+(** State and fallback handling for LSP workspace folders. *)
 type t
 
 val create : InitializeParams.t -> t
