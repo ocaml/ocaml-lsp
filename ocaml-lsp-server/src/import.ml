@@ -95,6 +95,7 @@ end
    alphabetically. Try to keep the order. *)
 include struct
   open Lsp
+  module Deprecation = Deprecation
   module Client_notification = Client_notification
   module Client_request = Client_request
   module Server_request = Server_request
@@ -290,6 +291,7 @@ include struct
   module SignatureInformation = SignatureInformation
   module SymbolInformation = SymbolInformation
   module SymbolKind = SymbolKind
+  module SymbolTag = SymbolTag
   module TextDocumentClientCapabilities = TextDocumentClientCapabilities
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
   module TextDocumentContentChangePartial = TextDocumentContentChangePartial

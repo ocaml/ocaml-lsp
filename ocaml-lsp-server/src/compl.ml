@@ -385,7 +385,10 @@ let complete
         with
         | None -> false
         | Some { valueSet } ->
-          Deprecation.tag_supported valueSet ~tag:CompletionItemTag.Deprecated
+          Deprecation.tag_supported
+            valueSet
+            ~tag:Deprecated
+            ~equal:(fun CompletionItemTag.Deprecated Deprecated -> true)
       in
       let supports_deprecated_field =
         (not supports_deprecated_tag)

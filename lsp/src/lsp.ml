@@ -5,6 +5,7 @@ module Document_symbol = Document_symbol
 module Client_notification = Client_notification
 module Client_request = Client_request
 module Code_action = Code_action
+module Deprecation = Deprecation
 module Experimental = Experimental
 module Extension = Extension
 module Header = Header

@@ -1,11 +1,9 @@
-open Import
-
 type 'tag t =
   { deprecated : bool option
   ; tags : 'tag list option
   }
 
-let tag_supported value_set ~tag = List.mem value_set tag ~equal:Poly.equal
+let tag_supported value_set ~tag ~equal = List.exists (equal tag) value_set
 
 let create ~deprecated ~tag ~supports_tag ~supports_deprecated_field =
   if not deprecated

@@ -390,7 +390,8 @@ let run (state : State.t) (params : WorkspaceSymbolParams.t) =
        Some
          (Deprecation.tag_supported
             tag_support.valueSet
-            ~tag:Lsp.Types.SymbolTag.Deprecated))
+            ~tag:Deprecated
+            ~equal:(fun SymbolTag.Deprecated Deprecated -> true)))
   in
   let workspaces = Workspaces.workspace_folders (State.workspaces state) in
   let* thread = Lazy_fiber.force state.symbols_thread in

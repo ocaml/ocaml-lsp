@@ -251,7 +251,16 @@ let tags_of_message =
   fun t ~src message ->
     match tags_of_message ~src message with
     | None -> None
-    | Some tag -> Option.some_if (List.mem t.tags tag ~equal:Poly.equal) [ tag ]
+    | Some tag ->
+      Option.some_if
+        (Deprecation.tag_supported
+           t.tags
+           ~tag
+           ~equal:(fun (left : DiagnosticTag.t) right ->
+             match left, right with
+             | Unnecessary, Unnecessary | Deprecated, Deprecated -> true
+             | Unnecessary, _ | Deprecated, _ -> false))
+        [ tag ]
 ;;
 
 let extract_related_errors uri raw_message =
