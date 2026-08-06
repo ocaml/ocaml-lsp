@@ -1,9 +1,9 @@
 open Test.Import
 
-let run_test ~title ~message source =
-  let src, range = Code_actions.parse_selection source in
+let run_test ?source ~title ~message source_text =
+  let src, range = Code_actions.parse_selection source_text in
   Code_actions.apply_code_action
-    ~diagnostics:[ Diagnostic.create ~message:(`String message) ~range () ]
+    ~diagnostics:[ Diagnostic.create ~message:(`String message) ~range ?source () ]
     title
     src
     range
@@ -47,7 +47,12 @@ let f =
   let $x$ = 1 in
   0
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let f =
+      let _x = 1 in
+      0
+    |}]
 ;;
 
 (* todo *)
@@ -59,7 +64,12 @@ let $f$ =
   let x = 1 in
   0
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let _f =
+      let x = 1 in
+      0
+    |}]
 ;;
 
 let%expect_test "mark value in match" =
@@ -69,7 +79,11 @@ let%expect_test "mark value in match" =
 let f = function
   | $x$ -> 0
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let f = function
+      | _x -> 0
+    |}]
 ;;
 
 let%expect_test "remove value in let" =
@@ -80,7 +94,11 @@ let f =
   let $x$ = 1 in
   0
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let f =
+      0
+    |}]
 ;;
 
 (* todo *)
@@ -100,7 +118,18 @@ let%expect_test "mark open" =
     {|
 $open M$
 |};
-  [%expect {| |}]
+  [%expect {| open! M |}]
+;;
+
+let%expect_test "mark open reported by Dune" =
+  run_test
+    ~source:"dune (pid=123)"
+    ~title:"Replace with open!"
+    ~message:"unused open"
+    {|
+$open M$
+|};
+  [%expect {| open! M |}]
 ;;
 
 let%expect_test "mark for loop index" =
@@ -112,7 +141,13 @@ let () =
     ()
   done
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let () =
+      for _i = 0 to 10 do
+        ()
+      done
+    |}]
 ;;
 
 let%expect_test "remove open" =
@@ -122,7 +157,7 @@ let%expect_test "remove open" =
 open A
 $open B$
 |};
-  [%expect {| |}]
+  [%expect {| open A |}]
 ;;
 
 let%expect_test "remove open!" =
@@ -131,7 +166,8 @@ let%expect_test "remove open!" =
     {|
 open A
 $open! B$
-|}
+|};
+  [%expect {| open A |}]
 ;;
 
 let%expect_test "remove type" =
@@ -141,7 +177,7 @@ let%expect_test "remove type" =
 $type t = int$
 type s = bool
 |};
-  [%expect {| |}]
+  [%expect {| type s = bool |}]
 ;;
 
 let%expect_test "remove module" =
@@ -151,7 +187,7 @@ let%expect_test "remove module" =
 $module A = struct end$
 module B = struct end
 |};
-  [%expect {| |}]
+  [%expect {| module B = struct end |}]
 ;;
 
 let%expect_test "remove case" =
@@ -162,7 +198,11 @@ let f = function
  | 0 -> 0
  | $0 -> 1$
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let f = function
+     | 0 -> 0
+    |}]
 ;;
 
 let%expect_test "remove case after Unicode" =
@@ -189,7 +229,39 @@ let f = function
     source
     range;
   [%expect
-    {| No code actions |}]
+    {|
+    Code actions:
+    {
+      "diagnostics": [
+        {
+          "message": "Warning 11: this match case is unused.",
+          "range": {
+            "end": { "character": 12, "line": 3 },
+            "start": { "character": 3, "line": 3 }
+          }
+        }
+      ],
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "",
+                "range": {
+                  "end": { "character": 12, "line": 3 },
+                  "start": { "character": 1, "line": 3 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": true,
+      "kind": "quickfix",
+      "title": "Remove unused case"
+    }
+    |}]
 ;;
 
 let%expect_test "remove rec flag after Unicode" =
@@ -210,7 +282,39 @@ let café = let rec $f$ = 0 in f
     source
     range;
   [%expect
-    {| No code actions |}]
+    {|
+    Code actions:
+    {
+      "diagnostics": [
+        {
+          "message": "Warning 39: unused rec flag.",
+          "range": {
+            "end": { "character": 20, "line": 1 },
+            "start": { "character": 19, "line": 1 }
+          }
+        }
+      ],
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "",
+                "range": {
+                  "end": { "character": 18, "line": 1 },
+                  "start": { "character": 15, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "quickfix",
+      "title": "Remove unused rec"
+    }
+    |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -219,7 +323,7 @@ let%expect_test "remove constructor" =
     {|
 type t = A $| B$
 |};
-  [%expect {| |}]
+  [%expect {| type t = A |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -230,7 +334,11 @@ type t =
   | A
  $| B$
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    type t =
+      | A
+    |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -241,7 +349,12 @@ type t =
  $| A$
  | B
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    type t =
+
+     | B
+    |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -252,7 +365,12 @@ type t =
  $A$
  | B
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    type t =
+
+     | B
+    |}]
 ;;
 
 let%expect_test "deprecated alert text is not an unused diagnostic" =

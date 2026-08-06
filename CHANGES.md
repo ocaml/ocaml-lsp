@@ -13,6 +13,9 @@
 - Return document symbol kinds the client supports, falling back to
   `Constructor` and `Class` when it does not advertise the newer kinds.
   (#2122, fixes #2121, @dayangac)
+- Offer the unused-code quick fixes again: they matched diagnostic messages the
+  server does not emit, and marking an unused `open!` produced `open!!`.
+  (#2117, fixes #2116, @dayangac)
 - Tag unused and deprecated values in diagnostics, so clients can grey them out
   or strike them through. (#2110, fixes #2109, @dayangac)
 - Honor client support for deprecation tags in workspace-symbol results.
