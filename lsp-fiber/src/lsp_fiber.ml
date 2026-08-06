@@ -1,5 +1,6 @@
 module Fiber_io = Fiber_io
 module Lazy_fiber = Lazy_fiber
+module Progress = Progress
 module Rpc = Rpc
 module Client = Client
 module Server = Server

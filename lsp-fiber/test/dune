@@ -10,6 +10,7 @@
  (libraries
   base
   fiber
+  fiber_test
   lev
   lev_fiber
   jsonrpc

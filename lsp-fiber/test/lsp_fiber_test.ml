@@ -534,3 +534,80 @@ let%expect_test "end to end run of lsp tests" =
     Successful termination of test
     [TEST] finished |}]
 ;;
+
+module Progress_lifecycle = struct
+  (* [Lsp_fiber.Progress] shadows [Lsp.Progress] because [Lsp_fiber] is opened
+     after [Lsp]. Refer to the wire format explicitly. *)
+  module Wire = Lsp.Progress
+
+  let record events params =
+    let json = ProgressParams.yojson_of_t Wire.yojson_of_t params in
+    events := Yojson.Safe.to_string json :: !events;
+    Fiber.return ()
+  ;;
+
+  let record_create events params =
+    let json = WorkDoneProgressCreateParams.yojson_of_t params in
+    events := ("create " ^ Yojson.Safe.to_string json) :: !events;
+    Fiber.return ()
+  ;;
+
+  let run events f =
+    let lifecycle =
+      Progress.create
+        ~create_task:(record_create events)
+        ~report_progress:(record events)
+        ()
+    in
+    Fiber_test.test Dyn.opaque (fun () ->
+      let+ () = f lifecycle in
+      List.iter print_endline (List.rev !events))
+  ;;
+end
+
+let%expect_test "work done progress: single task lifecycle" =
+  let events = ref [] in
+  Progress_lifecycle.run events (fun lifecycle ->
+    let* task =
+      Progress.start lifecycle ~token_name:"build" ~title:"Build" ~message:"started" ()
+    in
+    let* () = Progress.report lifecycle task ~percentage:42 ~message:"Building [1/2]" in
+    let+ () = Progress.end_ lifecycle task ~message:"Build finished" in
+    ());
+  [%expect
+    {|
+    create {"token":"build-0"}
+    {"token":"build-0","value":{"kind":"begin","message":"started","title":"Build"}}
+    {"token":"build-0","value":{"kind":"report","message":"Building [1/2]","percentage":42}}
+    {"token":"build-0","value":{"kind":"end","message":"Build finished"}}
+    <opaque>
+    |}]
+;;
+
+let%expect_test "work done progress: concurrent tasks are independent" =
+  let events = ref [] in
+  Progress_lifecycle.run events (fun lifecycle ->
+    let* build =
+      Progress.start lifecycle ~token_name:"build" ~title:"Build" ~message:"started" ()
+    in
+    let* index =
+      Progress.start lifecycle ~token_name:"index" ~title:"Index" ~message:"started" ()
+    in
+    let* () = Progress.report lifecycle build ~percentage:50 ~message:"Building [1/2]" in
+    let* () = Progress.report lifecycle index ~percentage:10 ~message:"Indexing" in
+    let* () = Progress.end_ lifecycle build ~message:"Build finished" in
+    let+ () = Progress.end_ lifecycle index ~message:"Index finished" in
+    ());
+  [%expect
+    {|
+    create {"token":"build-0"}
+    {"token":"build-0","value":{"kind":"begin","message":"started","title":"Build"}}
+    create {"token":"index-1"}
+    {"token":"index-1","value":{"kind":"begin","message":"started","title":"Index"}}
+    {"token":"build-0","value":{"kind":"report","message":"Building [1/2]","percentage":50}}
+    {"token":"index-1","value":{"kind":"report","message":"Indexing","percentage":10}}
+    {"token":"build-0","value":{"kind":"end","message":"Build finished"}}
+    {"token":"index-1","value":{"kind":"end","message":"Index finished"}}
+    <opaque>
+    |}]
+;;
