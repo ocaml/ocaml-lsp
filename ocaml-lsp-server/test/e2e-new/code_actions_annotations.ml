@@ -51,18 +51,7 @@ let foo = 123
       "kind": "type-annotate",
       "title": "Type-annotate"
     }
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    } |}]
+    |}]
 ;;
 
 let%expect_test "code action only includes nested kinds" =
@@ -168,19 +157,7 @@ let iiii = 3 + 4
       "kind": "type-annotate",
       "title": "Type-annotate"
     }
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    }
-     |}]
+    |}]
 ;;
 
 let%expect_test "does not type-annotate function" =
@@ -509,20 +486,5 @@ let%expect_test "create counterpart action, client supports resource operations"
 let%expect_test "create counterpart action, client lacks resource operations" =
   let range = range ~start_line:0 ~start_character:4 ~end_line:0 ~end_character:5 in
   print_code_actions ~filter:(find_action "switch") "let x = 1\n" range;
-  [%expect
-    {|
-    Code actions:
-    {
-      "command": {
-        "arguments": [ "file:///foo.mli" ],
-        "command": "ocamllsp/open-related-source",
-        "title": "Create foo.mli"
-      },
-      "edit": {
-        "documentChanges": [ { "kind": "create", "uri": "file:///foo.mli" } ]
-      },
-      "kind": "switch",
-      "title": "Create foo.mli"
-    }
-    |}]
+  [%expect {| No code actions |}]
 ;;
