@@ -452,7 +452,31 @@ let f (x : t) = match (x, (module M : S with type u = int)) with | A, _ -> _
     source
     range
     ~filter:(find_action "destruct-line (enumerate cases, use existing match)");
-  [%expect {| No code actions |}]
+  [%expect
+    {|
+    Code actions:
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "\n                                                                 | (B -> _\n                                                                 | C), _ -> _",
+                "range": {
+                  "end": { "character": 76, "line": 4 },
+                  "start": { "character": 76, "line": 4 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct-line (enumerate cases, use existing match)",
+      "title": "Destruct-line (enumerate cases, use existing match)"
+    }
+    |}]
 ;;
 
 let%expect_test "destruct-line returns UTF-16 edit ranges" =
