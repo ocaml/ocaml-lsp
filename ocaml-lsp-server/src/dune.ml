@@ -829,11 +829,7 @@ let create
   =
   let config =
     let include_promotions =
-      (let open Option.O in
-       let* td = client_capabilities.textDocument in
-       let* diagnostics = td.publishDiagnostics in
-       diagnostics.dataSupport)
-      |> Option.value ~default:false
+      Capabilities.publish_diagnostics_data_support client_capabilities
       && Experimental.bool
            (Experimental.of_opt_json client_capabilities.experimental)
            (fst view_promotion_capability)

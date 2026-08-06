@@ -357,55 +357,35 @@ let complete
     match Document.kind doc with
     | `Other -> Fiber.return None
     | `Merlin merlin ->
-      let completion_capability =
-        let open Option.O in
-        let capabilities = State.client_capabilities state in
-        let* td = capabilities.textDocument in
-        td.completion
-      in
-      let completion_item_capability =
-        let open Option.O in
-        let* completion = completion_capability in
-        completion.completionItem
-      in
+      let capabilities = State.client_capabilities state in
       let resolve =
-        match
-          let open Option.O in
-          let* item = completion_item_capability in
-          item.resolveSupport
-        with
+        match Capabilities.completion_resolve_properties capabilities with
         | None -> false
-        | Some { properties } -> List.mem properties ~equal:String.equal "documentation"
+        | Some properties -> List.mem properties ~equal:String.equal "documentation"
       in
       let supports_deprecated_tag =
-        match
-          let open Option.O in
-          let* item = completion_item_capability in
-          item.tagSupport
-        with
-        | None -> false
-        | Some { valueSet } ->
-          Deprecation.tag_supported
-            valueSet
-            ~tag:Deprecated
-            ~equal:(fun CompletionItemTag.Deprecated Deprecated -> true)
+        Option.value_map
+          (Capabilities.completion_tag_support capabilities)
+          ~default:false
+          ~f:(fun value_set ->
+            Deprecation.tag_supported
+              value_set
+              ~tag:CompletionItemTag.Deprecated
+              ~equal:(fun CompletionItemTag.Deprecated Deprecated -> true))
       in
       let supports_deprecated_field =
         (not supports_deprecated_tag)
-        && Option.value
-             ~default:false
-             (let open Option.O in
-              let* item = completion_item_capability in
-              item.deprecatedSupport)
+        && Capabilities.completion_deprecated_support capabilities
       in
       let supports_enum_member =
-        Option.value
+        Option.value_map
+          (Capabilities.completion_item_kind_support capabilities)
           ~default:false
-          (let open Option.O in
-           let* completion = completion_capability in
-           let* kinds = completion.completionItemKind in
-           let* valueSet = kinds.valueSet in
-           Some (List.mem valueSet CompletionItemKind.EnumMember ~equal:Poly.equal))
+          ~f:(fun value_set ->
+            Capabilities.supported
+              value_set
+              ~tag:CompletionItemKind.EnumMember
+              ~equal:Poly.equal)
       in
       let* should_provide_completions =
         match context with
@@ -442,17 +422,12 @@ let complete
                ~resolve
            else (
              let preselect_first =
-               match
-                 let open Option.O in
-                 let* item = completion_item_capability in
-                 item.preselectSupport
-               with
-               | None | Some false -> fun x -> x
-               | Some true ->
-                 (function
-                   | [] -> []
-                   | ci :: rest ->
-                     { ci with CompletionItem.preselect = Some true } :: rest)
+               if Capabilities.completion_preselect_support capabilities
+               then
+                 function
+                 | [] -> []
+                 | ci :: rest -> { ci with CompletionItem.preselect = Some true } :: rest
+               else fun x -> x
              in
              let+ construct_cmd_resp, compl_by_prefix_resp =
                Document.Merlin.with_pipeline_exn

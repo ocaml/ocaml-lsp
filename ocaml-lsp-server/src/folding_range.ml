@@ -8,17 +8,11 @@ type client_config =
   }
 
 let client_config (state : State.t) =
-  match
-    let open Option.O in
-    let* text_document = (State.client_capabilities state).textDocument in
-    text_document.foldingRange
-  with
-  | None -> { line_folding_only = false; supported_kinds = None; range_limit = None }
-  | Some { lineFoldingOnly; foldingRangeKind; rangeLimit; _ } ->
-    { line_folding_only = Option.value lineFoldingOnly ~default:false
-    ; supported_kinds = Option.bind foldingRangeKind ~f:(fun kind -> kind.valueSet)
-    ; range_limit = rangeLimit
-    }
+  let capabilities = State.client_capabilities state in
+  { line_folding_only = Capabilities.folding_range_line_folding_only capabilities
+  ; supported_kinds = Capabilities.folding_range_kinds capabilities
+  ; range_limit = Capabilities.folding_range_limit capabilities
+  }
 ;;
 
 let folding_range config { Range.start; end_ } =
@@ -33,7 +27,7 @@ let folding_range config { Range.start; end_ } =
     | None -> Some FoldingRangeKind.Region
     | Some kinds ->
       Option.some_if
-        (List.mem kinds FoldingRangeKind.Region ~equal:Poly.equal)
+        (Capabilities.supported kinds ~tag:FoldingRangeKind.Region ~equal:Poly.equal)
         FoldingRangeKind.Region
   in
   FoldingRange.create

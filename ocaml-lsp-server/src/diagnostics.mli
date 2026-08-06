@@ -6,7 +6,7 @@ val dune_source : string
 type t
 
 val create
-  :  PublishDiagnosticsClientCapabilities.t option
+  :  ClientCapabilities.t
   -> (PublishDiagnosticsParams.t list -> unit Fiber.t)
   -> report_dune_diagnostics:bool
   -> shorten_merlin_diagnostics:bool

@@ -60,31 +60,18 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
       Document.Merlin.with_pipeline_exn ~name:"document-symbols" merlin (fun pipeline ->
         Query_commands.dispatch pipeline Query_protocol.Outline)
     in
-    let document_symbol_capabilities =
-      let open Option.O in
-      let* text_document = client_capabilities.textDocument in
-      text_document.documentSymbol
-    in
     let supports_deprecated_tag =
-      Option.value
+      Option.value_map
+        (Capabilities.document_symbol_tag_support client_capabilities)
         ~default:false
-        (let open Option.O in
-         let* document_symbol = document_symbol_capabilities in
-         let* tag_support = document_symbol.tagSupport in
-         Some
-           (Deprecation.tag_supported
-              tag_support.valueSet
-              ~tag:Deprecated
-              ~equal:(fun SymbolTag.Deprecated Deprecated -> true)))
+        ~f:(fun value_set ->
+          Deprecation.tag_supported
+            value_set
+            ~tag:Deprecated
+            ~equal:(fun SymbolTag.Deprecated Deprecated -> true))
     in
     let symbols = items_to_symbols ~supports_deprecated_tag outline in
-    (match
-       Option.value
-         ~default:false
-         (let open Option.O in
-          let* document_symbol = document_symbol_capabilities in
-          document_symbol.hierarchicalDocumentSymbolSupport)
-     with
+    (match Capabilities.document_symbol_hierarchical_support client_capabilities with
      | true -> Some (`DocumentSymbol symbols)
      | false ->
        let flattened = Lsp.Document_symbol.flatten ~uri symbols in

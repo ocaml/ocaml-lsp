@@ -182,20 +182,8 @@ end
    listed alphabetically. Try to keep the order. *)
 include struct
   open Lsp.Types
-
-  module ClientCapabilities = struct
-    include ClientCapabilities
-
-    let markdown_support (client_capabilities : ClientCapabilities.t) ~field =
-      match client_capabilities.textDocument with
-      | None -> false
-      | Some td ->
-        (match field td with
-         | Some (Some (MarkupKind.Markdown :: _)) -> true
-         | None | Some None | Some (Some _) -> false)
-    ;;
-  end
-
+  module Capabilities = Lsp.Capabilities
+  module ClientCapabilities = ClientCapabilities
   module CodeAction = CodeAction
   module CodeActionDisabled = CodeActionDisabled
   module CodeActionKind = CodeActionKind
