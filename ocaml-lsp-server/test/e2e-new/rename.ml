@@ -176,7 +176,7 @@ let b = (^*$) 1
     |}]
 ;;
 
-let%expect_test "rename record-punned variable also renames the field" =
+let%expect_test "rename record-punned expression variable preserves the field" =
   let source =
     {ocaml|type t = { x : int }
 let f x = { x }
@@ -192,7 +192,77 @@ let f x = { x }
       "changes": {
         "file:///test.ml": [
           {
+            "newText": " = y",
+            "range": {
+              "end": { "character": 13, "line": 1 },
+              "start": { "character": 13, "line": 1 }
+            }
+          },
+          {
             "newText": "y",
+            "range": {
+              "end": { "character": 7, "line": 1 },
+              "start": { "character": 6, "line": 1 }
+            }
+          }
+        ]
+      }
+    }
+    |}]
+;;
+
+let%expect_test "rename record-punned pattern variable preserves the field" =
+  let source =
+    {ocaml|type t = { x : int }
+let get { x } = x
+|ocaml}
+  in
+  run source (fun client ->
+    let* response = rename ~newName:"y" client (Position.create ~line:1 ~character:10) in
+    print_workspace_edit response;
+    Fiber.return ());
+  [%expect
+    {|
+    {
+      "changes": {
+        "file:///test.ml": [
+          {
+            "newText": "y",
+            "range": {
+              "end": { "character": 17, "line": 1 },
+              "start": { "character": 16, "line": 1 }
+            }
+          },
+          {
+            "newText": " = y",
+            "range": {
+              "end": { "character": 11, "line": 1 },
+              "start": { "character": 11, "line": 1 }
+            }
+          }
+        ]
+      }
+    }
+    |}]
+;;
+
+let%expect_test "rename record field preserves a punned variable" =
+  let source =
+    {ocaml|type t = { x : int }
+let f x = { x }
+|ocaml}
+  in
+  run source (fun client ->
+    let* response = rename ~newName:"y" client (Position.create ~line:0 ~character:11) in
+    print_workspace_edit response;
+    Fiber.return ());
+  [%expect
+    {|
+    {
+      "changes": {
+        "file:///test.ml": [
+          {
+            "newText": "y = x",
             "range": {
               "end": { "character": 13, "line": 1 },
               "start": { "character": 12, "line": 1 }
@@ -201,8 +271,8 @@ let f x = { x }
           {
             "newText": "y",
             "range": {
-              "end": { "character": 7, "line": 1 },
-              "start": { "character": 6, "line": 1 }
+              "end": { "character": 12, "line": 0 },
+              "start": { "character": 11, "line": 0 }
             }
           }
         ]
