@@ -11,22 +11,29 @@ let run_test ~title ~message source =
 ;;
 
 let mark_test = function
-  | `Value -> run_test ~title:"Mark as unused" ~message:"unused value"
-  | `Open -> run_test ~title:"Replace with open!" ~message:"unused open"
+  | `Value -> run_test ~title:"Mark as unused" ~message:"Warning 26: unused variable x."
+  | `Open -> run_test ~title:"Replace with open!" ~message:"Warning 33: unused open B."
   | `For_loop_index ->
-    run_test ~title:"Mark for-loop index as unused" ~message:"unused for-loop index"
+    run_test
+      ~title:"Mark for-loop index as unused"
+      ~message:"Warning 35: unused for-loop index i."
 ;;
 
 let remove_test = function
-  | `Value -> run_test ~title:"Remove unused" ~message:"unused value"
-  | `Open -> run_test ~title:"Remove unused open" ~message:"unused open"
-  | `Open_bang -> run_test ~title:"Remove unused open!" ~message:"unused open!"
-  | `Type -> run_test ~title:"Remove unused type" ~message:"unused type"
-  | `Module -> run_test ~title:"Remove unused module" ~message:"unused module"
-  | `Case -> run_test ~title:"Remove unused case" ~message:"this match case is unused"
-  | `Rec -> run_test ~title:"Remove unused rec" ~message:"unused rec flag"
+  | `Value -> run_test ~title:"Remove unused" ~message:"Warning 26: unused variable x."
+  | `Open -> run_test ~title:"Remove unused open" ~message:"Warning 33: unused open B."
+  | `Open_bang ->
+    run_test ~title:"Remove unused open!" ~message:"Warning 66: unused open! B."
+  | `Type -> run_test ~title:"Remove unused type" ~message:"Warning 34: unused type t."
+  | `Module ->
+    run_test ~title:"Remove unused module" ~message:"Warning 60: unused module M."
+  | `Case ->
+    run_test ~title:"Remove unused case" ~message:"Warning 11: this match case is unused."
+  | `Rec -> run_test ~title:"Remove unused rec" ~message:"Warning 39: unused rec flag."
   | `Constructor ->
-    run_test ~title:"Remove unused constructor" ~message:"unused constructor"
+    run_test
+      ~title:"Remove unused constructor"
+      ~message:"Warning 37: unused constructor A."
 ;;
 
 let%expect_test "mark value in let" =
@@ -37,11 +44,7 @@ let f =
   let $x$ = 1 in
   0
 |};
-  [%expect
-    {|
-    let f =
-      let _x = 1 in
-      0 |}]
+  [%expect {| |}]
 ;;
 
 (* todo *)
@@ -53,11 +56,7 @@ let $f$ =
   let x = 1 in
   0
 |};
-  [%expect
-    {|
-    let _f =
-      let x = 1 in
-      0 |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "mark value in match" =
@@ -67,10 +66,7 @@ let%expect_test "mark value in match" =
 let f = function
   | $x$ -> 0
 |};
-  [%expect
-    {|
-    let f = function
-      | _x -> 0 |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "remove value in let" =
@@ -81,10 +77,7 @@ let f =
   let $x$ = 1 in
   0
 |};
-  [%expect
-    {|
-    let f =
-      0 |}]
+  [%expect {| |}]
 ;;
 
 (* todo *)
@@ -104,7 +97,7 @@ let%expect_test "mark open" =
     {|
 $open M$
 |};
-  [%expect {| open! M |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "mark for loop index" =
@@ -116,12 +109,7 @@ let () =
     ()
   done
 |};
-  [%expect
-    {|
-    let () =
-      for _i = 0 to 10 do
-        ()
-      done |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "remove open" =
@@ -131,7 +119,7 @@ let%expect_test "remove open" =
 open A
 $open B$
 |};
-  [%expect {| open A |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "remove open!" =
@@ -150,7 +138,7 @@ let%expect_test "remove type" =
 $type t = int$
 type s = bool
 |};
-  [%expect {| type s = bool |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "remove module" =
@@ -160,7 +148,7 @@ let%expect_test "remove module" =
 $module A = struct end$
 module B = struct end
 |};
-  [%expect {| module B = struct end |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "remove case" =
@@ -171,10 +159,7 @@ let f = function
  | 0 -> 0
  | $0 -> 1$
 |};
-  [%expect
-    {|
-    let f = function
-     | 0 -> 0 |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "remove case after Unicode" =
@@ -291,7 +276,7 @@ let%expect_test "remove constructor" =
     {|
 type t = A $| B$
 |};
-  [%expect {| type t = A |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -302,10 +287,7 @@ type t =
   | A
  $| B$
 |};
-  [%expect
-    {|
-    type t =
-      | A |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -316,11 +298,7 @@ type t =
  $| A$
  | B
 |};
-  [%expect
-    {|
-    type t =
-
-     | B |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -331,9 +309,5 @@ type t =
  $A$
  | B
 |};
-  [%expect
-    {|
-    type t =
-
-     | B |}]
+  [%expect {| |}]
 ;;
