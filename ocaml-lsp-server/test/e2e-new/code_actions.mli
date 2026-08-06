@@ -10,6 +10,7 @@ val range
 val iter_code_actions
   :  ?prep:(unit Test.Import.Client.t -> unit Fiber.t)
   -> ?path:string
+  -> ?capabilities:ClientCapabilities.t
   -> ?diagnostics:Diagnostic.t list
   -> ?only:CodeActionKind.t list
   -> source:string
@@ -28,6 +29,7 @@ val print_code_actions
   -> ?diagnostics:Diagnostic.t list
   -> ?only:CodeActionKind.t list
   -> ?filter:([ `Command of Command.t | `CodeAction of CodeAction.t ] -> bool)
+  -> ?capabilities:ClientCapabilities.t
   -> string
   -> Range.t
   -> unit
