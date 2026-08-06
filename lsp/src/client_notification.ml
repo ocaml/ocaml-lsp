@@ -19,6 +19,7 @@ type t =
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
   | SetTrace of SetTraceParams.t
   | WorkDoneProgress of Progress.t ProgressParams.t
+  | Progress of Json.t ProgressParams.t
   | NotebookDocumentDidOpen of DidOpenNotebookDocumentParams.t
   | NotebookDocumentDidChange of DidChangeNotebookDocumentParams.t
   | NotebookDocumentDidSave of DidSaveNotebookDocumentParams.t
@@ -42,7 +43,7 @@ let method_ = function
   | SetTrace _ -> "$/setTrace"
   | CancelRequest _ -> Cancel_request.meth_
   | WorkDoneProgressCancel _ -> "window/workDoneProgress/cancel"
-  | WorkDoneProgress _ -> Progress.method_
+  | WorkDoneProgress _ | Progress _ -> Progress.method_
   | NotebookDocumentDidOpen _ -> "notebookDocument/didOpen"
   | NotebookDocumentDidChange _ -> "notebookDocument/didChange"
   | NotebookDocumentDidSave _ -> "notebookDocument/didSave"
@@ -71,6 +72,7 @@ let yojson_of_t = function
   | SetTrace params -> Some (SetTraceParams.yojson_of_t params)
   | WorkDoneProgress params ->
     Some ((ProgressParams.yojson_of_t Progress.yojson_of_t) params)
+  | Progress params -> Some ((ProgressParams.yojson_of_t Fun.id) params)
   | NotebookDocumentDidOpen params ->
     Some (DidOpenNotebookDocumentParams.yojson_of_t params)
   | NotebookDocumentDidClose params ->
@@ -149,10 +151,10 @@ let of_jsonrpc (r : Jsonrpc.Notification.t) =
     in
     NotebookDocumentDidChange params
   | m when m = Progress.method_ ->
-    let+ params =
-      Json.message_params params (ProgressParams.t_of_yojson Progress.t_of_yojson)
-    in
-    WorkDoneProgress params
+    let+ params = Json.message_params params (ProgressParams.t_of_yojson Fun.id) in
+    (match Progress.t_of_yojson params.value with
+     | value -> WorkDoneProgress (ProgressParams.create ~token:params.token ~value)
+     | exception _ -> Progress params)
   | _ -> Ok (UnknownNotification r)
 ;;
 
