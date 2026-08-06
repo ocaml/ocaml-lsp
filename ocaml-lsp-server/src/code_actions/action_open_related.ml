@@ -32,7 +32,7 @@ let available (capabilities : ShowDocumentClientCapabilities.t option) =
   | Some { support = true } -> true
 ;;
 
-let for_uri (capabilities : ShowDocumentClientCapabilities.t option) doc =
+let for_uri ~can_create_file (capabilities : ShowDocumentClientCapabilities.t option) doc =
   let uri = Document.uri doc in
   let merlin_doc =
     match Document.kind doc with
@@ -43,22 +43,25 @@ let for_uri (capabilities : ShowDocumentClientCapabilities.t option) doc =
   | false, _ | true, (Dune | Cram) -> []
   | true, (Ocaml | Reason | Ocamllex | Menhir | Mlx) ->
     Document.get_impl_intf_counterparts merlin_doc uri
-    |> List.map ~f:(fun uri ->
+    |> List.filter_map ~f:(fun uri ->
       let path = Uri.to_path uri in
       let exists = Sys.file_exists path in
-      let title =
-        sprintf "%s %s" (if exists then "Open" else "Create") (Filename.basename path)
-      in
-      let command =
-        let arguments = [ DocumentUri.yojson_of_t uri ] in
-        Command.create ~title ~command:command_name ~arguments ()
-      in
-      let edit =
-        match exists with
-        | true -> None
-        | false ->
-          let documentChanges = [ `CreateFile (CreateFile.create ~uri ()) ] in
-          Some (WorkspaceEdit.create ~documentChanges ())
-      in
-      CodeAction.create ?edit ~title ~kind ~command ())
+      if (not exists) && not can_create_file
+      then None
+      else (
+        let title =
+          sprintf "%s %s" (if exists then "Open" else "Create") (Filename.basename path)
+        in
+        let command =
+          let arguments = [ DocumentUri.yojson_of_t uri ] in
+          Command.create ~title ~command:command_name ~arguments ()
+        in
+        let edit =
+          match exists with
+          | true -> None
+          | false ->
+            let documentChanges = [ `CreateFile (CreateFile.create ~uri ()) ] in
+            Some (WorkspaceEdit.create ~documentChanges ())
+        in
+        Some (CodeAction.create ?edit ~title ~kind ~command ())))
 ;;

@@ -157,10 +157,18 @@ let workspace_symbol_tag_support (t : t) =
       map symbol.tagSupport (fun tag_support -> tag_support.valueSet)))
 ;;
 
-let workspace_edit_document_changes (t : t) =
-  Option.bind t.workspace (fun w ->
-    Option.bind w.workspaceEdit (fun edit -> edit.documentChanges))
+let workspace_edit (t : t) = Option.bind t.workspace (fun w -> w.workspaceEdit)
+
+let workspace_edit_document_changes t =
+  Option.bind (workspace_edit t) (fun edit -> edit.documentChanges)
   |> Option.value ~default:false
+;;
+
+let workspace_edit_resource_operation t ~operation =
+  workspace_edit_document_changes t
+  && Option.bind (workspace_edit t) (fun edit -> edit.resourceOperations)
+     |> Option.value ~default:[]
+     |> List.exists ~f:(fun supported -> supported = operation)
 ;;
 
 (* Window *)
