@@ -1,20 +1,21 @@
 open Import
 open Option.O
 
+(* Merlin prefixes the description with the warning number, as in
+   "Warning 33: unused open B.", and uses "Error (warning 33 [unused-open]): ..."
+   when warnings are fatal. Match the description anywhere in the message rather
+   than anchoring it.
+
+   [unused open!] precedes [unused open] because [Re] keeps the first matching
+   alternative, and an [open!] diagnostic must not be marked as an [open]. *)
 let diagnostic_regex, diagnostic_regex_marks =
   let msgs =
-    ( Re.mark
-        (Re.alt
-           [ Re.str "Error (warning 26)"
-           ; Re.str "Error (warning 27)"
-           ; Re.str "unused value"
-           ])
-    , `Value )
-    :: ([ "unused open", `Open
-        ; "unused open!", `Open_bang
+    (Re.mark (Re.alt [ Re.str "unused value"; Re.str "unused variable" ]), `Value)
+    :: ([ "unused open!", `Open_bang
+        ; "unused open", `Open
         ; "unused type", `Type
-        ; "unused constructor", `Constructor
         ; "unused extension constructor", `Extension
+        ; "unused constructor", `Constructor
         ; "this match case is unused", `Case
         ; "unused for-loop index", `For_loop_index
         ; "unused rec flag", `Rec
@@ -22,9 +23,7 @@ let diagnostic_regex, diagnostic_regex_marks =
         ]
         |> List.map ~f:(fun (msg, kind) -> Re.mark (Re.str msg), kind))
   in
-  let regex =
-    Re.compile (Re.seq [ Re.bol; Re.alt (List.map ~f:(fun ((_, r), _) -> r) msgs) ])
-  in
+  let regex = Re.compile (Re.alt (List.map ~f:(fun ((_, r), _) -> r) msgs)) in
   let marks = List.map ~f:(fun ((m, _), k) -> m, k) msgs in
   regex, marks
 ;;
