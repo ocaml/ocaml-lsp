@@ -44,7 +44,12 @@ let f =
   let $x$ = 1 in
   0
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let f =
+      let _x = 1 in
+      0
+    |}]
 ;;
 
 (* todo *)
@@ -56,7 +61,12 @@ let $f$ =
   let x = 1 in
   0
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let _f =
+      let x = 1 in
+      0
+    |}]
 ;;
 
 let%expect_test "mark value in match" =
@@ -66,7 +76,11 @@ let%expect_test "mark value in match" =
 let f = function
   | $x$ -> 0
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let f = function
+      | _x -> 0
+    |}]
 ;;
 
 let%expect_test "remove value in let" =
@@ -77,7 +91,11 @@ let f =
   let $x$ = 1 in
   0
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let f =
+      0
+    |}]
 ;;
 
 (* todo *)
@@ -97,7 +115,7 @@ let%expect_test "mark open" =
     {|
 $open M$
 |};
-  [%expect {| |}]
+  [%expect {| open! M |}]
 ;;
 
 let%expect_test "mark for loop index" =
@@ -109,7 +127,13 @@ let () =
     ()
   done
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let () =
+      for _i = 0 to 10 do
+        ()
+      done
+    |}]
 ;;
 
 let%expect_test "remove open" =
@@ -119,7 +143,7 @@ let%expect_test "remove open" =
 open A
 $open B$
 |};
-  [%expect {| |}]
+  [%expect {| open A |}]
 ;;
 
 let%expect_test "remove open!" =
@@ -128,7 +152,8 @@ let%expect_test "remove open!" =
     {|
 open A
 $open! B$
-|}
+|};
+  [%expect {| open A |}]
 ;;
 
 let%expect_test "remove type" =
@@ -138,7 +163,7 @@ let%expect_test "remove type" =
 $type t = int$
 type s = bool
 |};
-  [%expect {| |}]
+  [%expect {| type s = bool |}]
 ;;
 
 let%expect_test "remove module" =
@@ -148,7 +173,7 @@ let%expect_test "remove module" =
 $module A = struct end$
 module B = struct end
 |};
-  [%expect {| |}]
+  [%expect {| module B = struct end |}]
 ;;
 
 let%expect_test "remove case" =
@@ -159,7 +184,11 @@ let f = function
  | 0 -> 0
  | $0 -> 1$
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    let f = function
+     | 0 -> 0
+    |}]
 ;;
 
 let%expect_test "remove case after Unicode" =
@@ -276,7 +305,7 @@ let%expect_test "remove constructor" =
     {|
 type t = A $| B$
 |};
-  [%expect {| |}]
+  [%expect {| type t = A |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -287,7 +316,11 @@ type t =
   | A
  $| B$
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    type t =
+      | A
+    |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -298,7 +331,12 @@ type t =
  $| A$
  | B
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    type t =
+
+     | B
+    |}]
 ;;
 
 let%expect_test "remove constructor" =
@@ -309,5 +347,10 @@ type t =
  $A$
  | B
 |};
-  [%expect {| |}]
+  [%expect
+    {|
+    type t =
+
+     | B
+    |}]
 ;;

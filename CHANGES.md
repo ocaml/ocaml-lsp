@@ -10,6 +10,9 @@
 
 ## Fixes
 
+- Offer the unused-code quick fixes again: they matched diagnostic messages the
+  server does not emit, and marking an unused `open!` produced `open!!`.
+  (#2117, fixes #2116, @dayangac)
 - Tag unused and deprecated values in diagnostics, so clients can grey them out
   or strike them through. (#2110, fixes #2109, @dayangac)
 - Respect the client's folding range capabilities: omit character positions for
