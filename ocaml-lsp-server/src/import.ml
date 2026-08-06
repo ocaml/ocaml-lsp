@@ -257,6 +257,7 @@ include struct
   module PublishDiagnosticsParams = PublishDiagnosticsParams
   module PublishDiagnosticsClientCapabilities = PublishDiagnosticsClientCapabilities
   module ReferenceParams = ReferenceParams
+  module ResourceOperationKind = ResourceOperationKind
   module Registration = Registration
   module RegistrationParams = RegistrationParams
   module RenameOptions = RenameOptions
@@ -289,6 +290,7 @@ include struct
   module SignatureInformation = SignatureInformation
   module SymbolInformation = SymbolInformation
   module SymbolKind = SymbolKind
+  module WorkspaceEditClientCapabilities = WorkspaceEditClientCapabilities
   module TextDocumentClientCapabilities = TextDocumentClientCapabilities
   module TextDocumentContentChangeEvent = TextDocumentContentChangeEvent
   module TextDocumentContentChangePartial = TextDocumentContentChangePartial

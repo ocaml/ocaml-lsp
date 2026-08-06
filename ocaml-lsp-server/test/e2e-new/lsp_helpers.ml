@@ -42,6 +42,7 @@ let open_document_with_client ~prep ~path ~source client =
 let iter_lsp_response_internal
       ?(prep = fun _ -> Fiber.return ())
       ?(path = "foo.ml")
+      ?(capabilities = capabilities_with_show_document)
       ~language_id
       ~makeRequest
       ~source
@@ -50,9 +51,7 @@ let iter_lsp_response_internal
   let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
   Test.run ~handler
   @@ fun client ->
-  let run_client () =
-    Test.start_client ~capabilities:capabilities_with_show_document client
-  in
+  let run_client () = Test.start_client ~capabilities client in
   let request () =
     let* (_ : InitializeResult.t) = Client.initialized client in
     let uri = DocumentUri.of_path path in
@@ -75,8 +74,15 @@ let iter_lsp_response_internal
   Fiber.fork_and_join_unit run_client (fun () -> Fiber.finalize request ~finally:shutdown)
 ;;
 
-let iter_lsp_response ?prep ?path ~language_id ~makeRequest ~source k =
-  iter_lsp_response_internal ?prep ?path ~language_id ~makeRequest ~source (function
+let iter_lsp_response ?prep ?path ?capabilities ~language_id ~makeRequest ~source k =
+  iter_lsp_response_internal
+    ?prep
+    ?path
+    ?capabilities
+    ~language_id
+    ~makeRequest
+    ~source
+    (function
     | Ok response ->
       k response;
       Fiber.return ()

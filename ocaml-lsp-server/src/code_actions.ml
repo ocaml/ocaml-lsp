@@ -137,7 +137,14 @@ let compute server (params : CodeActionParams.t) =
     in
     let open_related =
       if kind_is_requested Action_open_related.kind
-      then Action_open_related.for_uri capabilities doc
+      then (
+        let can_create_file =
+          let open Option.O in
+          Action_open_related.can_create_file
+            (let* workspace = (State.client_capabilities state).workspace in
+             workspace.workspaceEdit)
+        in
+        Action_open_related.for_uri ~can_create_file capabilities doc)
       else []
     in
     let open_dune =
