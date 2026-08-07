@@ -17,6 +17,7 @@
    (package ocaml-lsp-server)))
  (libraries
   unix
+  csexp
   stdune
   dune-rpc
   fiber
