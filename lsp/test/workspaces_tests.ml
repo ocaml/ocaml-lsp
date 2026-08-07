@@ -17,7 +17,7 @@ let initialize ?rootPath ?rootUri ?workspaceFolders () =
 let print_folders workspace_folders =
   Workspaces.workspace_folders workspace_folders
   |> List.iter (fun (folder : WorkspaceFolder.t) ->
-    Printf.printf "%s %s\n" folder.name (Uri.to_path folder.uri))
+    Printf.printf "%s %s\n" folder.name (Uri.to_string folder.uri))
 ;;
 
 let%expect_test "workspace folders are updated" =
@@ -30,8 +30,8 @@ let%expect_test "workspace folders are updated" =
   print_folders workspaces;
   [%expect
     {|
-    first /workspace/first
-    second /workspace/second
+    first file:///workspace/first
+    second file:///workspace/second
     |}];
   let event = WorkspaceFoldersChangeEvent.create ~added:[ third ] ~removed:[ first ] in
   let workspaces =
@@ -40,8 +40,8 @@ let%expect_test "workspace folders are updated" =
   print_folders workspaces;
   [%expect
     {|
-    second /workspace/second
-    third /workspace/third
+    second file:///workspace/second
+    third file:///workspace/third
     |}]
 ;;
 
@@ -49,7 +49,7 @@ let%expect_test "workspace folder fallbacks" =
   let root_uri = Uri.of_path "/workspace/root-uri" in
   let root_uri_workspaces = Workspaces.create (initialize ~rootUri:root_uri ()) in
   print_folders root_uri_workspaces;
-  [%expect {| root-uri /workspace/root-uri |}];
+  [%expect {| root-uri file:///workspace/root-uri |}];
   let root_path_workspaces =
     Workspaces.create (initialize ~rootPath:(Some "/workspace/root-path") ())
   in
@@ -65,7 +65,7 @@ let%expect_test "workspace folder fallbacks" =
   print_folders explicit_workspaces;
   [%expect
     {|
-    root-path /workspace/root-path
-    explicit /workspace/explicit
+    root-path file:///workspace/root-path
+    explicit file:///workspace/explicit
     |}]
 ;;
