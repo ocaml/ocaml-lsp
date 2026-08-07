@@ -325,6 +325,99 @@ let add_buffer_between b start stop =
   loop bufs remaining
 ;;
 
+let rec move_right t remaining =
+  if remaining = 0
+  then t
+  else (
+    let { Substring.newlines; consumed } =
+      Substring.move_right t.current ~pos:t.rel_pos ~len:remaining
+    in
+    let t = { t with rel_pos = t.rel_pos + consumed; line = t.line + newlines } in
+    let remaining = remaining - consumed in
+    if remaining = 0
+    then t
+    else (
+      match t.right with
+      | [] -> t
+      | current :: right ->
+        move_right
+          { abs_pos = t.abs_pos + Substring.length t.current
+          ; left = t.current :: t.left
+          ; current
+          ; line = t.line
+          ; right
+          ; rel_pos = 0
+          }
+          remaining))
+;;
+
+let rec move_left t remaining =
+  if remaining = 0 || is_begin t
+  then t
+  else (
+    let { Substring.newlines; consumed } =
+      Substring.move_left t.current ~pos:t.rel_pos ~len:remaining
+    in
+    let t = { t with rel_pos = t.rel_pos - consumed; line = t.line - newlines } in
+    let remaining = remaining - consumed in
+    if remaining = 0
+    then t
+    else (
+      match t.left with
+      | [] -> t
+      | current :: left ->
+        let current_length = Substring.length current in
+        move_left
+          { abs_pos = t.abs_pos - current_length
+          ; left
+          ; current
+          ; line = t.line
+          ; right = t.current :: t.right
+          ; rel_pos = current_length
+          }
+          remaining))
+;;
+
+let goto_offset t target =
+  let current = offset t in
+  if target <= 0
+  then move_left t current
+  else if target >= current
+  then move_right t (target - current)
+  else move_left t (current - target)
+;;
+
+let utf16_code_units_between start stop =
+  let buffer = Buffer.create (offset stop - offset start) in
+  add_buffer_between buffer start stop;
+  Uutf.String.fold_utf_8
+    (fun code_units _ -> function
+       | `Uchar uchar -> code_units + (Uchar.utf_16_byte_length uchar / 2)
+       | `Malformed input -> raise (Invalid_utf (Malformed input)))
+    0
+    (Buffer.contents buffer)
+;;
+
+let position_at_cursor t encoding =
+  let start = beginning_of_line t in
+  let character =
+    match encoding with
+    | `UTF8 -> offset t - offset start
+    | `UTF16 -> utf16_code_units_between start t
+  in
+  Position.create ~line:t.line ~character
+;;
+
+let position t ~offset encoding = position_at_cursor (goto_offset t offset) encoding
+
+let range t ~start_offset_inclusive ~end_offset_exclusive encoding =
+  let t = goto_offset t start_offset_inclusive in
+  let start = position_at_cursor t encoding in
+  let t = goto_offset t end_offset_exclusive in
+  let end_ = position_at_cursor t encoding in
+  Range.create ~start ~end_
+;;
+
 let rec goto_end t = if is_end t then t else find_next_nl t |> advance_char |> goto_end
 
 let goto_position t (position : Position.t) encoding =
