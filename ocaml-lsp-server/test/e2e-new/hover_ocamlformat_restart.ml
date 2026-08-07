@@ -137,3 +137,42 @@ let%expect_test "restart ocamlformat-rpc after process exit" =
     }
     |}]
 ;;
+
+let%expect_test "reports a failed ocamlformat-rpc version negotiation" =
+  let temp = Test.temp_dir "ocamllsp-ocamlformat-negotiation-" in
+  let bin_dir = Filename.concat temp "bin" in
+  Unix.mkdir bin_dir 0o700;
+  let fake = Filename.concat bin_dir "ocamlformat-rpc" in
+  Test.write_file fake "#!/bin/sh\necho not-a-csexp-response\n";
+  Unix.chmod fake 0o700;
+  Fun.protect
+    ~finally:(fun () -> ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int))
+    (fun () ->
+       let errors = Mailbox.create () in
+       let on_notification _ = function
+         | Lsp.Server_notification.LogMessage { message; type_ = Error; _ } ->
+           Mailbox.push errors message
+         | _ -> Fiber.return ()
+       in
+       let handler = Client.Handler.make ~on_notification () in
+       let path = bin_dir ^ ":" ^ Option.value (Sys.getenv_opt "PATH") ~default:"" in
+       Test.run_initialized ~extra_env:[ "PATH=" ^ path ] ~handler
+       @@ fun client ->
+       let uri = Uri.of_path (Filename.concat temp "negotiation.ml") in
+       let text = "let map = List.map\n" in
+       let* () = Dune_rpc_test.open_document client ~uri ~text in
+       let position = Position.create ~line:0 ~character:15 in
+       let* _ = Hover_helpers.hover ~uri client position in
+       let* message = Mailbox.wait errors in
+       (* The negotiation failure payload varies (the fake can die before or
+          after writing garbage, producing different exception shapes); assert
+          the stable prefix only. *)
+       let prefix =
+         "An error happened when negotiating with the OCamlformat-RPC server: "
+       in
+       if String.is_prefix message ~prefix
+       then print_endline "negotiation failure reported"
+       else Printf.printf "unexpected message: %s\n" message;
+       Test.exit_client client);
+  [%expect {| negotiation failure reported |}]
+;;
