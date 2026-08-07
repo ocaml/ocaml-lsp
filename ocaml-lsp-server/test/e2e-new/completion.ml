@@ -1729,3 +1729,119 @@ let%expect_test "construct completion edit stays on the request line" =
     }
     |}]
 ;;
+
+let%expect_test "completes the in keyword after a partial prefix" =
+  let source = "let x = 1 i" in
+  let only_in =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "in")
+  in
+  print_completions
+    ~limit:1
+    ~pre_print:only_in
+    source
+    (Position.create ~line:0 ~character:11);
+  [%expect
+    {|
+    Completions:
+    {
+      "kind": 14,
+      "label": "in",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "in",
+        "range": {
+          "end": { "character": 11, "line": 0 },
+          "start": { "character": 10, "line": 0 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "construct completion includes the next-hole command" =
+  let source = "let x : int = _" in
+  let position = Position.create ~line:0 ~character:15 in
+  let only_zero =
+    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "0")
+  in
+  let capabilities =
+    ClientCapabilities.create ~experimental:(`Assoc [ "jumpToNextHole", `Bool true ]) ()
+  in
+  let req client =
+    let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
+    let context = CompletionContext.create ~triggerCharacter:"" ~triggerKind:Invoked () in
+    let* response =
+      Client.request
+        client
+        (TextDocumentCompletion
+           (CompletionParams.create ~textDocument ~position ~context ()))
+    in
+    (match response with
+     | None -> print_endline "No completion Items"
+     | Some completions ->
+       let items =
+         match completions with
+         | `CompletionList comp -> comp.items
+         | `List comp -> comp
+       in
+       items
+       |> only_zero
+       |> (function
+        | [] -> print_endline "no zero item"
+        | item :: _ ->
+          item
+          |> CompletionItem.yojson_of_t
+          |> Yojson.Safe.pretty_to_string ~std:false
+          |> print_endline));
+    Fiber.return ()
+  in
+  Helpers.test ~capabilities source req;
+  [%expect
+    {|
+    {
+      "command": {
+        "arguments": [
+          {
+            "inRange": {
+              "end": { "character": 15, "line": 0 },
+              "start": { "character": 14, "line": 0 }
+            },
+            "shouldNotifyIfNoHole": false
+          }
+        ],
+        "command": "ocaml.next-hole",
+        "title": "Jump to Next Hole"
+      },
+      "filterText": "_0",
+      "kind": 1,
+      "label": "0",
+      "sortText": "0000",
+      "textEdit": {
+        "newText": "0",
+        "range": {
+          "end": { "character": 15, "line": 0 },
+          "start": { "character": 14, "line": 0 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "completion on a non-Merlin document returns null" =
+  let source = "  $ echo hello\n" in
+  let position = Position.create ~line:0 ~character:8 in
+  let makeRequest textDocument =
+    let context = CompletionContext.create ~triggerCharacter:"" ~triggerKind:Invoked () in
+    Lsp.Client_request.TextDocumentCompletion
+      (CompletionParams.create ~textDocument ~position ~context ())
+  in
+  Lsp_helpers.iter_lsp_response
+    ~path:"test.t"
+    ~language_id:"cram"
+    ~makeRequest
+    ~source
+    (function
+    | None -> print_endline "No completion Items"
+    | Some _ -> print_endline "unexpected completions");
+  [%expect {| No completion Items |}]
+;;
