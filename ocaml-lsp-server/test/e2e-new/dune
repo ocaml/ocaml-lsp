@@ -97,6 +97,7 @@
     dune_promotion_shared_source
     dune_registry_errors
     dune_workspace_removal
+    merlin_config_command
     metrics
     ml_mli_mismatch_diagnostics
     refactor_extract
