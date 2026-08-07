@@ -286,6 +286,8 @@ include struct
   module TextDocumentContentChangeWholeDocument = TextDocumentContentChangeWholeDocument
   module TextDocumentEdit = TextDocumentEdit
   module TextDocumentFilter = TextDocumentFilter
+  module TextDocumentFilterLanguage = TextDocumentFilterLanguage
+  module TextDocumentFilterPattern = TextDocumentFilterPattern
   module TextDocumentIdentifier = TextDocumentIdentifier
   module TextDocumentItem = TextDocumentItem
   module TextDocumentRegistrationOptions = TextDocumentRegistrationOptions

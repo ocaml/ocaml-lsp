@@ -74,7 +74,10 @@ let register_request t uris =
         let registerOptions =
           let documentSelector =
             [ `TextDocumentFilter
-                (TextDocumentFilter.create ~pattern:(Uri.to_path uri) ())
+                (`TextDocumentFilterPattern
+                    (TextDocumentFilterPattern.create
+                       ~pattern:(`Pattern (Uri.to_path uri))
+                       ()))
             ]
           in
           CodeActionRegistrationOptions.create

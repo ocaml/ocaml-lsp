@@ -13,7 +13,9 @@ let check_decode label decode json =
 let%expect_test "document filter wire contract" =
   let encoded =
     DocumentFilter.yojson_of_t
-      (`TextDocumentFilter (TextDocumentFilter.create ~language:"ocaml" ()))
+      (`TextDocumentFilter
+          (`TextDocumentFilterLanguage
+              (TextDocumentFilterLanguage.create ~language:"ocaml" ())))
   in
   print_json encoded;
   check_decode
@@ -26,14 +28,16 @@ let%expect_test "document filter wire contract" =
     (`Assoc [ "baseUri", `String "file:///workspace"; "pattern", `String "**/*.ml" ]);
   [%expect
     {|
-    { "language": "ocaml", "scheme": null, "pattern": null }
-    language filter: rejected
-    relative pattern: rejected
+    { "language": "ocaml" }
+    language filter: accepted
+    relative pattern: accepted
     |}]
 ;;
 
 let%expect_test "notebook sync wire contract" =
-  print_json (NotebookDocumentSyncOptions.yojson_of_t ());
+  print_json
+    (NotebookDocumentSyncOptions.yojson_of_t
+       (NotebookDocumentSyncOptions.create ~notebookSelector:[] ()));
   check_decode
     "sync options"
     NotebookDocumentSyncOptions.t_of_yojson
@@ -48,9 +52,9 @@ let%expect_test "notebook sync wire contract" =
     (`Assoc [ "notebookType", `String "jupyter-notebook" ]);
   [%expect
     {|
-    null
-    sync options: rejected
-    registration options: rejected
-    notebook filter: rejected
+    { "notebookSelector": [] }
+    sync options: accepted
+    registration options: accepted
+    notebook filter: accepted
     |}]
 ;;

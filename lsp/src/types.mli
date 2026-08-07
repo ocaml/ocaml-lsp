@@ -31,34 +31,6 @@ module ProgressParams : sig
   include Json.Jsonable.S1 with type 'a t := 'a t
 end
 
-module NotebookDocumentSyncOptions : sig
-  type t = unit
-
-  include Json.Jsonable.S with type t := t
-end
-
-module NotebookDocumentSyncRegistrationOptions : sig
-  type t = unit
-
-  include Json.Jsonable.S with type t := t
-end
-
-module NotebookDocumentFilter : sig
-  type t = unit
-
-  include Json.Jsonable.S with type t := t
-end
-
-module TextDocumentFilter : sig
-  type t =
-    { language : string option
-    ; scheme : string option
-    ; pattern : string option
-    }
-
-  val create : ?language:string -> ?scheme:string -> ?pattern:string -> unit -> t
-end
-
 (*$ Lsp_gen.print_mli () *)
 module ApplyKind : sig
   type t =
@@ -971,11 +943,14 @@ end
 
 module RelativePattern : sig
   type t =
-    { baseUri : unit
+    { baseUri : [ `WorkspaceFolder of WorkspaceFolder.t | `DocumentUri of DocumentUri.t ]
     ; pattern : Pattern.t
     }
 
-  val create : baseUri:unit -> pattern:Pattern.t -> t
+  val create
+    :  baseUri:[ `WorkspaceFolder of WorkspaceFolder.t | `DocumentUri of DocumentUri.t ]
+    -> pattern:Pattern.t
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -1040,6 +1015,16 @@ module NotebookDocumentFilterNotebookType : sig
   include Json.Jsonable.S with type t := t
 end
 
+module NotebookDocumentFilter : sig
+  type t =
+    [ `NotebookDocumentFilterNotebookType of NotebookDocumentFilterNotebookType.t
+    | `NotebookDocumentFilterScheme of NotebookDocumentFilterScheme.t
+    | `NotebookDocumentFilterPattern of NotebookDocumentFilterPattern.t
+    ]
+
+  include Json.Jsonable.S with type t := t
+end
+
 module NotebookCellTextDocumentFilter : sig
   type t =
     { language : string option
@@ -1089,6 +1074,16 @@ module TextDocumentFilterLanguage : sig
     }
 
   val create : language:string -> ?pattern:GlobPattern.t -> ?scheme:string -> unit -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module TextDocumentFilter : sig
+  type t =
+    [ `TextDocumentFilterLanguage of TextDocumentFilterLanguage.t
+    | `TextDocumentFilterScheme of TextDocumentFilterScheme.t
+    | `TextDocumentFilterPattern of TextDocumentFilterPattern.t
+    ]
 
   include Json.Jsonable.S with type t := t
 end
@@ -4591,6 +4586,54 @@ module NotebookDocumentFilterWithNotebook : sig
     :  ?cells:NotebookCellLanguage.t list
     -> notebook:
          [ `String of string | `NotebookDocumentFilter of NotebookDocumentFilter.t ]
+    -> unit
+    -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module NotebookDocumentSyncRegistrationOptions : sig
+  type t =
+    { id : string option
+    ; notebookSelector :
+        [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+        | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+        ]
+          list
+    ; save : bool option
+    }
+
+  val create
+    :  ?id:string
+    -> notebookSelector:
+         [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+         | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+         ]
+           list
+    -> ?save:bool
+    -> unit
+    -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module NotebookDocumentSyncOptions : sig
+  type t =
+    { notebookSelector :
+        [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+        | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+        ]
+          list
+    ; save : bool option
+    }
+
+  val create
+    :  notebookSelector:
+         [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+         | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+         ]
+           list
+    -> ?save:bool
     -> unit
     -> t
 
