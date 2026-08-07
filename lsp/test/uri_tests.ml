@@ -80,9 +80,9 @@ let%expect_test "serialization disambiguates a path beginning with two slashes" 
     (Uri.to_string round_trip);
   [%expect
     {|
-    original: untitled:////Module.ml
-    serialized: untitled:////Module.ml
-    parsed serialization: untitled:////Module.ml
+    original: untitled:///%2FModule.ml
+    serialized: untitled:///%2FModule.ml
+    parsed serialization: untitled:///%2FModule.ml
     |}]
 ;;
 
@@ -110,7 +110,7 @@ let%expect_test "serialization preserves a non-letter drive-like path" =
     |}]
 ;;
 
-let%expect_test "JSON URI serialization normalizes wire spelling" =
+let%expect_test "JSON URI serialization preserves wire spelling" =
   let encoded_slash = `String "file:///pro%2Fjects/test.ml" in
   let literal_slash = `String "file:///pro/jects/test.ml" in
   let print_normalized label input =
@@ -125,7 +125,7 @@ let%expect_test "JSON URI serialization normalizes wire spelling" =
   print_normalized "literal slash" literal_slash;
   [%expect
     {|
-    encoded slash: "file:///pro%2Fjects/test.ml" -> "file:///pro/jects/test.ml"
+    encoded slash: "file:///pro%2Fjects/test.ml" -> "file:///pro%2Fjects/test.ml"
     literal slash: "file:///pro/jects/test.ml" -> "file:///pro/jects/test.ml"
     |}]
 ;;
@@ -139,7 +139,7 @@ let%expect_test "an unescaped Unicode URI query is preserved" =
   [%expect
     {|
     query: search=😀&limit=1
-    serialized: file:///foo.ml?search%3D%F0%9F%98%80%26limit%3D1
+    serialized: file:///foo.ml?search=😀&limit=1
     |}]
 ;;
 
@@ -319,7 +319,7 @@ let%expect_test "of_string -> to_path" =
     |}]
 ;;
 
-let%expect_test "of_string -> to_string" =
+let%expect_test "JSON URI strings preserve their wire spelling" =
   let test_of_string_to_string =
     let test s =
       let uri = Uri.t_of_yojson (`String s) in
@@ -343,28 +343,28 @@ let%expect_test "of_string -> to_string" =
   [%expect
     {|
     Unix:
-    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/#l12
-    file://sh%c3%a4res/path -> file://sh%C3%A4res/path
-    untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
-    untitled:C:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
-    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
-    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c%3A/Source/Z%C3%BCrich%20or%20Zurich%20%28%CB%88zj%CA%8A%C9%99r%C9%AAk%2C/Code/resources/app/plugins
-    file:foo/bar -> file:///foo/bar
-     -> file:///
-    file://LöC%2FAL/host:8080/projects/ -> file://l%C3%B6c%2Fal/host%3A8080/projects/
-    file:///pro%2Fjects/ -> file:///pro/jects/
+    file://shares/pröjects/c%23/#l12 -> file://shares/pröjects/c%23/#l12
+    file://sh%c3%a4res/path -> file://sh%c3%a4res/path
+    untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c:/Users/jrieken/Code/abc.txt
+    untitled:C:/Users/jrieken/Code/abc.txt -> untitled:C:/Users/jrieken/Code/abc.txt
+    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js
+    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins
+    file:foo/bar -> file:foo/bar
+     ->
+    file://LöC%2FAL/host:8080/projects/ -> file://LöC%2FAL/host:8080/projects/
+    file:///pro%2Fjects/ -> file:///pro%2Fjects/
     vscode://mount/test.ml -> vscode://mount/test.ml
     Windows:
-    file://shares/pröjects/c%23/#l12 -> file://shares/pr%C3%B6jects/c%23/#l12
-    file://sh%c3%a4res/path -> file://sh%C3%A4res/path
-    untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
-    untitled:C:/Users/jrieken/Code/abc.txt -> untitled:c%3A/Users/jrieken/Code/abc.txt
-    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js
-    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c%3A/Source/Z%C3%BCrich%20or%20Zurich%20%28%CB%88zj%CA%8A%C9%99r%C9%AAk%2C/Code/resources/app/plugins
-    file:foo/bar -> file:///foo/bar
-     -> file:///
-    file://LöC%2FAL/host:8080/projects/ -> file://l%C3%B6c%2Fal/host%3A8080/projects/
-    file:///pro%2Fjects/ -> file:///pro/jects/
+    file://shares/pröjects/c%23/#l12 -> file://shares/pröjects/c%23/#l12
+    file://sh%c3%a4res/path -> file://sh%c3%a4res/path
+    untitled:c:/Users/jrieken/Code/abc.txt -> untitled:c:/Users/jrieken/Code/abc.txt
+    untitled:C:/Users/jrieken/Code/abc.txt -> untitled:C:/Users/jrieken/Code/abc.txt
+    /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js -> /Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js
+    file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins -> file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins
+    file:foo/bar -> file:foo/bar
+     ->
+    file://LöC%2FAL/host:8080/projects/ -> file://LöC%2FAL/host:8080/projects/
+    file:///pro%2Fjects/ -> file:///pro%2Fjects/
     vscode://mount/test.ml -> vscode://mount/test.ml
     |}]
 ;;
