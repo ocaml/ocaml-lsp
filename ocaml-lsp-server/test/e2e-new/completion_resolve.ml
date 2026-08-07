@@ -266,3 +266,33 @@ Outer.Inner.v
   Helpers.test source req;
   [%expect {| { "documentation": "documentation for [Inner]", "label": "Inner" } |}]
 ;;
+
+let%expect_test "can get markdown documentation when the client prefers it" =
+  let documentationFormat = [ MarkupKind.Markdown ] in
+  let completionItem = ClientCompletionItemOptions.create ~documentationFormat () in
+  let completion = CompletionClientCapabilities.create ~completionItem () in
+  let textDocument = TextDocumentClientCapabilities.create ~completion () in
+  let capabilities = ClientCapabilities.create ~textDocument () in
+  let source =
+    {ocaml|List.ma
+|ocaml}
+  in
+  let req client =
+    let* response =
+      completion_item_resolve client "map2" (Position.create ~line:0 ~character:5)
+    in
+    print_completion_item response;
+    Fiber.return ()
+  in
+  Helpers.test ~capabilities source req;
+  [%expect
+    {|
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "`map2 f [a1; ...; an] [b1; ...; bn]` is `[f a1 b1; ...; f an bn]`.\n\n***@raise*** `Invalid_argument`\nif the two lists are determined to have different lengths."
+      },
+      "label": "map2"
+    }
+    |}]
+;;
