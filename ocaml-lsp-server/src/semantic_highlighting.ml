@@ -88,6 +88,8 @@ module Token_modifiers_set : sig
   val to_int : t -> int
   val of_int : int -> t
   val singleton : SemanticTokenModifiers.t -> t
+  val labeled : t
+  val optional : t
   val empty : t
   val list : string list
   val to_legend : t -> string list
@@ -111,6 +113,9 @@ end = struct
     | DefaultLibrary -> 1 lsl 9
   ;;
 
+  let labeled = 1 lsl 10
+  let optional = 1 lsl 11
+
   let list =
     [ "declaration"
     ; "definition"
@@ -122,6 +127,8 @@ end = struct
     ; "modification"
     ; "documentation"
     ; "defaultLibrary"
+    ; "labeled"
+    ; "optional"
     ]
   ;;
 
@@ -138,7 +145,7 @@ end = struct
           let is_set = Int.equal (t land 1) 1 in
           let t' = t lsr 1 in
           let acc' = if is_set then (Lazy.force array).(i) :: acc else acc in
-          if Int.equal t' 0 then List.rev acc' else translate (i + 1) t' acc'
+          if Int.equal t' 0 then List.rev acc' else translate t' (i + 1) acc'
         in
         let res = translate t 0 [] in
         Hashtbl.set cache ~key:t ~data:res;
@@ -378,9 +385,56 @@ end = struct
   ;;
 end
 
+(** Semantic classifications that require name resolution. *)
+module Typedtree_locations : sig
+  type t
+
+  val collect : Mtyper.typedtree -> t
+  val is_parameter : t -> Loc.t -> bool
+end = struct
+  type t = unit Loc.Map.t
+
+  let iter_typedtree (iterator : Ocaml_typing.Tast_iterator.iterator) = function
+    | `Interface signature -> iterator.signature iterator signature
+    | `Implementation structure -> iterator.structure iterator structure
+  ;;
+
+  let collect typedtree =
+    let module I = Ocaml_typing.Tast_iterator in
+    let parameter_ids = ref Ident.Set.empty in
+    let add_parameter_pattern pattern =
+      List.iter (Typedtree.pat_bound_idents pattern) ~f:(fun id ->
+        parameter_ids := Ident.Set.add id !parameter_ids)
+    in
+    let parameters = ref Loc.Map.empty in
+    let expr (self : I.iterator) (expr : Typedtree.expression) =
+      (match expr.exp_desc with
+       | Texp_function (params, body) ->
+         List.iter params ~f:(fun param ->
+           parameter_ids := Ident.Set.add param.fp_param !parameter_ids;
+           match param.fp_kind with
+           | Tparam_pat pattern | Tparam_optional_default (pattern, _) ->
+             add_parameter_pattern pattern);
+         (match body with
+          | Tfunction_body _ -> ()
+          | Tfunction_cases { cases; _ } ->
+            List.iter cases ~f:(fun case -> add_parameter_pattern case.c_lhs))
+       | Texp_ident (Pident id, name, _) when Ident.Set.mem id !parameter_ids ->
+         parameters := Loc.Map.add !parameters ~key:name.loc ~data:()
+       | _ -> ());
+      I.default_iterator.expr self expr
+    in
+    iter_typedtree { I.default_iterator with expr } typedtree;
+    !parameters
+  ;;
+
+  let is_parameter t loc = Loc.Map.mem loc t
+end
+
 (** To traverse OCaml parsetree and produce semantic tokens. *)
 module Parsetree_fold (M : sig
     val source : string
+    val typedtree_locations : Typedtree_locations.t
   end) : sig
   val apply : Mreader.parsetree -> Tokens.t
 end = struct
@@ -471,6 +525,22 @@ end = struct
       add_name_token loc name token_type token_modifiers)
   ;;
 
+  let parameter_modifiers = function
+    | Asttypes.Nolabel -> Token_modifiers_set.empty
+    | Labelled _ -> Token_modifiers_set.labeled
+    | Optional _ -> Token_modifiers_set.optional
+  ;;
+
+  let add_parameter_label loc = function
+    | Asttypes.Nolabel -> ()
+    | (Labelled name as label) | (Optional name as label) ->
+      add_name_token
+        loc
+        name
+        (Token_type.of_builtin Parameter)
+        (parameter_modifiers label)
+  ;;
+
   let constructor_arguments
         (self : Ast_iterator.iterator)
         (ca : Parsetree.constructor_arguments)
@@ -503,6 +573,11 @@ end = struct
         List.iter cts ~f:(fun ct -> self.typ self ct);
         lident name (Token_type.of_builtin Type) ();
         `Custom_iterator
+      | Ptyp_arrow (label, argument, result) ->
+        add_parameter_label ptyp_loc label;
+        self.typ self argument;
+        self.typ self result;
+        `Custom_iterator
       | Ptyp_poly (tps, ct) ->
         List.iter tps ~f:(fun (tp : _ Asttypes.loc) ->
           add_token tp.loc (Token_type.of_builtin TypeParameter) Token_modifiers_set.empty);
@@ -511,7 +586,6 @@ end = struct
       | Ptyp_any -> `Custom_iterator
       | Ptyp_variant (_, _, _)
       | Ptyp_alias (_, _)
-      | Ptyp_arrow _
       | Ptyp_extension _
       | Ptyp_package _
       | Ptyp_object _
@@ -645,6 +719,12 @@ end = struct
     add_token loc token_type Token_modifiers_set.empty
   ;;
 
+  let value_reference_token_type loc ~default =
+    if Typedtree_locations.is_parameter M.typedtree_locations loc
+    then Token_type.of_builtin Parameter
+    else Token_type.of_builtin default
+  ;;
+
   let pexp_apply (self : Ast_iterator.iterator) (expr : Parsetree.expression) args =
     match expr.pexp_desc with
     | Pexp_ident { txt = Ldot ({ txt = Lident "Array"; _ }, { txt = "set"; _ }); _ }
@@ -668,7 +748,7 @@ end = struct
            Token_modifiers_set.empty;
          List.iter rest ~f:(fun (_, e) -> self.expr self e)
        | _ ->
-         lident lid (Token_type.of_builtin Function) ();
+         lident lid (value_reference_token_type lid.loc ~default:Function) ();
          List.iter args ~f:(fun (_, e) -> self.expr self e));
       `Custom_iterator
     | Pexp_field (e, l) ->
@@ -676,6 +756,56 @@ end = struct
       lident l (Token_type.of_builtin Function) ();
       `Custom_iterator
     | _ -> `Default_iterator
+  ;;
+
+  let current_parameter_modifiers = ref None
+
+  let with_parameter_pattern (self : Ast_iterator.iterator) modifiers pattern =
+    let previous = !current_parameter_modifiers in
+    current_parameter_modifiers := Some modifiers;
+    match self.pat self pattern with
+    | () -> current_parameter_modifiers := previous
+    | exception exn ->
+      current_parameter_modifiers := previous;
+      raise exn
+  ;;
+
+  let function_case (self : Ast_iterator.iterator) (case : Parsetree.case) =
+    with_parameter_pattern self Token_modifiers_set.empty case.pc_lhs;
+    Option.iter case.pc_guard ~f:(fun guard -> self.expr self guard);
+    self.expr self case.pc_rhs
+  ;;
+
+  let function_param
+        (self : Ast_iterator.iterator)
+        ({ pparam_desc; pparam_loc } : Parsetree.function_param)
+    =
+    match pparam_desc with
+    | Pparam_val (label, default, pattern) ->
+      (match label with
+       | Asttypes.Nolabel -> ()
+       | Labelled name | Optional name ->
+         let label_loc = precise_name_loc pparam_loc name in
+         if Loc.compare label_loc pattern.ppat_loc <> 0
+         then add_parameter_label pparam_loc label);
+      with_parameter_pattern self (parameter_modifiers label) pattern;
+      Option.iter default ~f:(fun expr -> self.expr self expr)
+    | Pparam_newtype name ->
+      add_token name.loc (Token_type.of_builtin TypeParameter) Token_modifiers_set.empty
+  ;;
+
+  let function_constraint (self : Ast_iterator.iterator) = function
+    | Parsetree.Pconstraint typ -> self.typ self typ
+    | Pcoerce (from, to_) ->
+      Option.iter from ~f:(fun typ -> self.typ self typ);
+      self.typ self to_
+  ;;
+
+  let function_body (self : Ast_iterator.iterator) = function
+    | Parsetree.Pfunction_body expr -> self.expr self expr
+    | Pfunction_cases (cases, _, attributes) ->
+      List.iter cases ~f:(function_case self);
+      self.attributes self attributes
   ;;
 
   let expr
@@ -686,7 +816,7 @@ end = struct
     match
       match pexp_desc with
       | Parsetree.Pexp_ident l ->
-        lident l (Token_type.of_builtin Variable) ();
+        lident l (value_reference_token_type l.loc ~default:Variable) ();
         `Custom_iterator
       | Pexp_construct (c, vo) ->
         (match c.txt with
@@ -701,7 +831,12 @@ end = struct
            Option.iter vo ~f:(fun v -> self.expr self v));
         `Custom_iterator
       | Pexp_apply (expr, args) -> pexp_apply self expr args
-      | Pexp_function _ | Pexp_let (_, _, _) -> `Default_iterator
+      | Pexp_function (params, constraint_, body) ->
+        List.iter params ~f:(function_param self);
+        Option.iter constraint_ ~f:(function_constraint self);
+        function_body self body;
+        `Custom_iterator
+      | Pexp_let (_, _, _) -> `Default_iterator
       | Pexp_try (_, _)
       | Pexp_tuple _
       | Pexp_variant (_, _)
@@ -798,11 +933,21 @@ end = struct
     match
       match ppat_desc with
       | Parsetree.Ppat_var v ->
-        add_token v.loc (Token_type.of_builtin Variable) Token_modifiers_set.empty;
+        let token_type, modifiers =
+          match !current_parameter_modifiers with
+          | None -> Token_type.of_builtin Variable, Token_modifiers_set.empty
+          | Some modifiers -> Token_type.of_builtin Parameter, modifiers
+        in
+        add_token v.loc token_type modifiers;
         `Custom_iterator
       | Ppat_alias (p, a) ->
         self.pat self p;
-        add_token a.loc (Token_type.of_builtin Variable) Token_modifiers_set.empty;
+        let token_type, modifiers =
+          match !current_parameter_modifiers with
+          | None -> Token_type.of_builtin Variable, Token_modifiers_set.empty
+          | Some modifiers -> Token_type.of_builtin Parameter, modifiers
+        in
+        add_token a.loc token_type modifiers;
         `Custom_iterator
       | Ppat_construct (c, args) ->
         let process_args () =
@@ -1046,12 +1191,16 @@ let gen_new_id =
 ;;
 
 let compute_tokens doc =
-  let+ parsetree, source =
+  let+ parsetree, source, typedtree_locations =
     Document.Merlin.with_pipeline_exn ~name:"semantic highlighting" doc (fun p ->
-      Mpipeline.reader_parsetree p, Mpipeline.input_source p)
+      let typedtree_locations =
+        Mpipeline.typer_result p |> Mtyper.get_typedtree |> Typedtree_locations.collect
+      in
+      Mpipeline.reader_parsetree p, Mpipeline.input_source p, typedtree_locations)
   in
   let module Fold = Parsetree_fold (struct
       let source = Msource.text source
+      let typedtree_locations = typedtree_locations
     end)
   in
   Fold.apply parsetree

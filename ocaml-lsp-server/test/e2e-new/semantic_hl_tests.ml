@@ -636,21 +636,21 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
   [%expect
     {|
     module <namespace|definition-0>Moo</0> : sig
-      type <type|definition-1>t</1>
+      type <type|declaration-1>t</1>
 
-      type <enum|definition-2>koo</2> =
-        | <enumMember|definition-3>Foo</3> of <type|-4>string</4>
-        | <enumMember|definition-5>Bar</5> of [ `Int of <type|-6>int</6> | `String of <type|-7>string</7> ]
+      type <enum|declaration-2>koo</2> =
+        | <enumMember|declaration-3>Foo</3> of <type|-4>string</4>
+        | <enumMember|declaration-5>Bar</5> of [ `Int of <type|-6>int</6> | `String of <type|-7>string</7> ]
 
-      val <variable|definition-8>u</8> : <type|-9>unit</9>
+      val <variable|declaration-8>u</8> : <type|-9>unit</9>
 
-      val <function|definition-10>f</10> : <type|-11>unit</11> -> <type|-12>t</12>
+      val <function|declaration-10>f</10> : <type|-11>unit</11> -> <type|-12>t</12>
     end = struct
-      type <type|definition-13>t</13> = <type|-14>int</14>
+      type <type|declaration-13>t</13> = <type|-14>int</14>
 
-      type <enum|definition-15>koo</15> =
-        | <enumMember|definition-16>Foo</16> of <type|-17>string</17>
-        | <enumMember|definition-18>Bar</18> of [ `Int of <type|-19>int</19> | `String of <type|-20>string</20> ]
+      type <enum|declaration-15>koo</15> =
+        | <enumMember|declaration-16>Foo</16> of <type|-17>string</17>
+        | <enumMember|declaration-18>Bar</18> of [ `Int of <type|-19>int</19> | `String of <type|-20>string</20> ]
 
       let <variable|-21>u</21> = ()
 
@@ -658,30 +658,30 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
     end
 
     module type <interface|-24>Bar</24> = sig
-      type <struct|definition-25>t</25> =
+      type <struct|declaration-25>t</25> =
         { <property|-26>foo</26> : <namespace|-27>Moo</27>.<type|-28>t</28>
         ; <property|-29>bar</29> : <type|-30>int</30>
         }
     end
 
-    type <enum|definition-31>t</31> = <namespace|-32>Moo</32>.<type|-33>koo</33> =
-      | <enumMember|definition-34>Foo</34> of <type|-35>string</35>
-      | <enumMember|definition-36>Bar</36> of [ `BarInt of <type|-37>int</37> | `BarString of <type|-38>string</38> ]
+    type <enum|declaration-31>t</31> = <namespace|-32>Moo</32>.<type|-33>koo</33> =
+      | <enumMember|declaration-34>Foo</34> of <type|-35>string</35>
+      | <enumMember|declaration-36>Bar</36> of [ `BarInt of <type|-37>int</37> | `BarString of <type|-38>string</38> ]
 
-    let <function|definition-39>f</39> (<variable|-40>foo</40> : <type|-41>t</41>) =
-      match <variable|-42>foo</42> with
+    let <function|definition-39>f</39> (<parameter|-40>foo</40> : <type|-41>t</41>) =
+      match <parameter|-42>foo</42> with
       | <namespace|-43>Moo</43>.<enumMember|-44>Foo</44> <variable|-45>s</45> -> <variable|-46>s</46> <operator|-47>^</47> <function|-48>string_of_int</48> <number|-49>0</49>
       | <namespace|-50>Moo</50>.<enumMember|-51>Bar</51> (`BarInt <variable|-52>i</52>) -> <function|-53>string_of_int</53> <variable|-54>i</54>
       | <namespace|-55>Moo</55>.<enumMember|-56>Bar</56> (`BarString <variable|-57>s</57>) -> <variable|-58>s</58>
 
     module <namespace|definition-59>Foo</59> (<namespace|-60>Arg</60> : <interface|-61>Bar</61>) = struct
       module <namespace|definition-62>Inner_foo</62> = struct
-        type <type|definition-63>t</63> = <type|-64>string</64>
+        type <type|declaration-63>t</63> = <type|-64>string</64>
       end
     end
 
     module <namespace|definition-65>Foo_inst</65> = <namespace|-66>Foo</66> (struct
-      type <struct|definition-67>t</67> =
+      type <struct|declaration-67>t</67> =
         { <property|-68>foo</68> : <namespace|-69>Moo</69>.<type|-70>t</70>
         ; <property|-71>bar</71> : <type|-72>int</72>
         }
@@ -950,7 +950,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
       {
         "start_pos": { "character": 7, "line": 34 },
         "length": 3,
-        "type": "variable",
+        "type": "parameter",
         "modifiers": []
       },
       {
@@ -962,7 +962,7 @@ let%expect_test "tokens for ocaml_lsp_server.ml" =
       {
         "start_pos": { "character": 8, "line": 35 },
         "length": 3,
-        "type": "variable",
+        "type": "parameter",
         "modifiers": []
       },
       {
@@ -1199,7 +1199,7 @@ let x = { M . foo = 0 ; bar = "bar"}
       |};
   [%expect
     {|
-    module <namespace|definition-0>M</0> = struct type <struct|definition-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
+    module <namespace|definition-0>M</0> = struct type <struct|declaration-1>r</1> = { <property|-2>foo</2> : <type|-3>int</3> ; <property|-4>bar</4> : <type|-5>string</5> } end
 
     let <variable|-6>x</6> = { <namespace|-7>M</7> . <property|-8>foo</8> = <number|-9>0</9> ; <property|-10>bar</10> = <string|-11>"bar"</11>}
     |}]
@@ -1227,7 +1227,7 @@ let sum = ( ++ ) 1 2
     let <variable|-4>y</4> = <number|-5>1</5> <operator|-6>*</6> <number|-7>2</7>
     let <variable|-8>z</8> = <number|-9>0</9> <operator|-10>>>=</10> <number|-11>1</11>
     let <variable|-12>plus</12> = (<operator|-13>+</13>)
-    let ( <operator|definition-14>++</14> ) <variable|-15>left</15> <variable|-16>right</16> = <variable|-17>left</17> <operator|-18>+</18> <variable|-19>right</19>
+    let ( <operator|definition-14>++</14> ) <parameter|-15>left</15> <parameter|-16>right</16> = <parameter|-17>left</17> <operator|-18>+</18> <parameter|-19>right</19>
     let <variable|-20>sum</20> = ( <operator|-21>++</21> ) <number|-22>1</22> <number|-23>2</23>
     |}]
 ;;
@@ -1267,20 +1267,20 @@ let prefixed = ~!1
   [%expect
     {|
     module type <interface|-0>Operators</0> = sig
-      val ( <operator|definition-1>++</1> ) : <type|-2>int</2> -> <type|-3>int</3> -> <type|-4>int</4>
+      val ( <operator|declaration-1>++</1> ) : <type|-2>int</2> -> <type|-3>int</3> -> <type|-4>int</4>
     end
 
-    let ( <operator|definition-5>++</5> ) : int -> int -> int = fun <variable|-6>left</6> <variable|-7>right</7> -> <variable|-8>left</8> <operator|-9>+</9> <variable|-10>right</10>
+    let ( <operator|definition-5>++</5> ) : int -> int -> int = fun <parameter|-6>left</6> <parameter|-7>right</7> -> <parameter|-8>left</8> <operator|-9>+</9> <parameter|-10>right</10>
 
     let <variable|-11>modulo</11> = (<operator|-12>mod</12>)
 
-    let ( <operator|definition-13>let*</13> ) <variable|-14>option</14> <variable|-15>continuation</15> =
-      match <variable|-16>option</16> with
+    let ( <operator|definition-13>let*</13> ) <parameter|-14>option</14> <parameter|-15>continuation</15> =
+      match <parameter|-16>option</16> with
       | <enumMember|-17>None</17> -> <enumMember|-18>None</18>
-      | <enumMember|-19>Some</19> <variable|-20>value</20> -> <function|-21>continuation</21> <variable|-22>value</22>
+      | <enumMember|-19>Some</19> <variable|-20>value</20> -> <parameter|-21>continuation</21> <variable|-22>value</22>
 
-    let ( <operator|definition-23>and*</23> ) <variable|-24>left</24> <variable|-25>right</25> =
-      match <variable|-26>left</26>, <variable|-27>right</27> with
+    let ( <operator|definition-23>and*</23> ) <parameter|-24>left</24> <parameter|-25>right</25> =
+      match <parameter|-26>left</26>, <parameter|-27>right</27> with
       | <enumMember|-28>Some</28> <variable|-29>left</29>, <enumMember|-30>Some</30> <variable|-31>right</31> -> <enumMember|-32>Some</32> (<variable|-33>left</33>, <variable|-34>right</34>)
       | _ -> <enumMember|-35>None</35>
 
@@ -1289,9 +1289,9 @@ let prefixed = ~!1
       <operator|-41>and*</41> <variable|-42>right</42> = <enumMember|-43>Some</43> <number|-44>2</44> in
       <enumMember|-45>Some</45> (<variable|-46>left</46> <operator|-47>+</47> <variable|-48>right</48>)
 
-    let <function|definition-49>dereference</49> <variable|-50>reference</50> = <operator|-51>!</51><variable|-52>reference</52>
+    let <function|definition-49>dereference</49> <parameter|-50>reference</50> = <operator|-51>!</51><parameter|-52>reference</52>
 
-    let ( <operator|definition-53>~!</53> ) <variable|-54>value</54> = <variable|-55>value</55>
+    let ( <operator|definition-53>~!</53> ) <parameter|-54>value</54> = <parameter|-55>value</55>
     let <variable|-56>prefixed</56> = <operator|-57>~!</57><number|-58>1</58>
     |}]
 ;;
@@ -1330,32 +1330,32 @@ end
       |};
   [%expect
     {|
-    let <function|definition-0>f</0> ~<variable|-1>labeled</1> ?(<variable|-2>optional</2> = <number|-3>1</3>) <variable|-4>unlabeled</4> ~renamed:<variable|-5>local</5> (<variable|-6>left</6>, <variable|-7>right</7>) =
-      <variable|-8>labeled</8> <operator|-9>+</9> <variable|-10>optional</10> <operator|-11>+</11> <variable|-12>unlabeled</12> <operator|-13>+</13> <variable|-14>local</14> <operator|-15>+</15> <variable|-16>left</16> <operator|-17>+</17> <variable|-18>right</18>
+    let <function|definition-0>f</0> ~<parameter|-1>labeled</1> ?(<parameter|-2>optional</2> = <number|-3>1</3>) <parameter|-4>unlabeled</4> ~<parameter|-5>renamed</5>:<parameter|-6>local</6> (<parameter|-7>left</7>, <parameter|-8>right</8>) =
+      <parameter|-9>labeled</9> <operator|-10>+</10> <parameter|-11>optional</11> <operator|-12>+</12> <parameter|-13>unlabeled</13> <operator|-14>+</14> <parameter|-15>local</15> <operator|-16>+</16> <parameter|-17>left</17> <operator|-18>+</18> <parameter|-19>right</19>
 
-    let <function|definition-19>g</19> = function
-      | <enumMember|-20>Some</20> <variable|-21>value</21> -> <variable|-22>value</22>
-      | <enumMember|-23>None</23> -> <number|-24>0</24>
+    let <function|definition-20>g</20> = function
+      | <enumMember|-21>Some</21> <parameter|-22>value</22> -> <parameter|-23>value</23>
+      | <enumMember|-24>None</24> -> <number|-25>0</25>
 
-    let <function|definition-25>h</25> (type item) (<variable|-26>value</26> : <type|-27>item</27>) = <variable|-28>value</28>
+    let <function|definition-26>h</26> (type <typeParameter|-27>item</27>) (<parameter|-28>value</28> : <type|-29>item</29>) = <parameter|-30>value</30>
 
-    let <function|definition-29>apply</29> <variable|-30>continuation</30> <variable|-31>value</31> = <function|-32>continuation</32> <variable|-33>value</33>
+    let <function|definition-31>apply</31> <parameter|-32>continuation</32> <parameter|-33>value</33> = <parameter|-34>continuation</34> <parameter|-35>value</35>
 
-    let <function|definition-34>capture</34> <variable|-35>parameter</35> =
-      let <function|definition-36>nested</36> () = <variable|-37>parameter</37> in
-      <function|-38>nested</38> ()
+    let <function|definition-36>capture</36> <parameter|-37>parameter</37> =
+      let <function|definition-38>nested</38> () = <parameter|-39>parameter</39> in
+      <function|-40>nested</40> ()
 
-    let <function|definition-39>shadow</39> <variable|-40>parameter</40> =
-      let <variable|-41>before</41> = <variable|-42>parameter</42> in
-      let <variable|-43>parameter</43> = <number|-44>0</44> in
-      <variable|-45>before</45> <operator|-46>+</46> <variable|-47>parameter</47>
+    let <function|definition-41>shadow</41> <parameter|-42>parameter</42> =
+      let <variable|-43>before</43> = <parameter|-44>parameter</44> in
+      let <variable|-45>parameter</45> = <number|-46>0</46> in
+      <variable|-47>before</47> <operator|-48>+</48> <variable|-49>parameter</49>
 
-    let <function|definition-48>alias</48> ((<variable|-49>left</49>, <variable|-50>right</50>) as <variable|-51>pair</51>) = <variable|-52>left</52>, <variable|-53>right</53>, <variable|-54>pair</54>
+    let <function|definition-50>alias</50> ((<parameter|-51>left</51>, <parameter|-52>right</52>) as <parameter|-53>pair</53>) = <parameter|-54>left</54>, <parameter|-55>right</55>, <parameter|-56>pair</56>
 
-    let <function|definition-55>constrained</55> <variable|-56>parameter</56> : <type|-57>int</57> = <variable|-58>parameter</58>
+    let <function|definition-57>constrained</57> <parameter|-58>parameter</58> : <type|-59>int</59> = <parameter|-60>parameter</60>
 
-    module type <interface|-59>S</59> = sig
-      val <function|definition-60>f</60> : labeled:<type|-61>int</61> -> ?optional:<type|-62>string</62> -> <type|-63>float</63> -> <type|-64>unit</64>
+    module type <interface|-61>S</61> = sig
+      val <function|declaration-62>f</62> : <parameter|-63>labeled</63>:<type|-64>int</64> -> ?<parameter|-65>optional</65>:<type|-66>string</66> -> <type|-67>float</67> -> <type|-68>unit</68>
     end
     |}]
 ;;
@@ -1374,13 +1374,13 @@ type uses_qualified_builtin = Stdlib.int
       |};
   [%expect
     {|
-    type <type|definition-0>uses_builtin</0> = <type|-1>int</1> * <type|-2>string</2> * <type|-3>bool</3>
+    type <type|declaration-0>uses_builtin</0> = <type|-1>int</1> * <type|-2>string</2> * <type|-3>bool</3>
 
-    type <enum|definition-4>int</4> = <enumMember|definition-5>Shadowed</5>
+    type <enum|declaration-4>int</4> = <enumMember|declaration-5>Shadowed</5>
 
-    type <type|definition-6>uses_shadowed</6> = <type|-7>int</7>
+    type <type|declaration-6>uses_shadowed</6> = <type|-7>int</7>
 
-    type <type|definition-8>uses_qualified_builtin</8> = <namespace|-9>Stdlib</9>.<type|-10>int</10>
+    type <type|declaration-8>uses_qualified_builtin</8> = <namespace|-9>Stdlib</9>.<type|-10>int</10>
     |}]
 ;;
 
@@ -1402,14 +1402,14 @@ let f ~labeled ?optional () = ()
       {
         "start_pos": { "character": 7, "line": 0 },
         "length": 7,
-        "type": "variable",
-        "modifiers": []
+        "type": "parameter",
+        "modifiers": [ "labeled" ]
       },
       {
         "start_pos": { "character": 16, "line": 0 },
         "length": 8,
-        "type": "variable",
-        "modifiers": []
+        "type": "parameter",
+        "modifiers": [ "optional" ]
       }
     ]
     |}]
@@ -1437,21 +1437,21 @@ type builtin_after_error = string
       |};
   [%expect
     {|
-    type <type|definition-0>builtin_before_error</0> = <type|-1>int</1>
+    type <type|declaration-0>builtin_before_error</0> = <type|-1>int</1>
 
-    let <function|definition-2>mismatched</2> <variable|-3>parameter</3> = <variable|-4>parameter</4> <operator|-5>+</5> <string|-6>"not an int"</6>
+    let <function|definition-2>mismatched</2> <parameter|-3>parameter</3> = <parameter|-4>parameter</4> <operator|-5>+</5> <string|-6>"not an int"</6>
 
-    let <function|definition-7>unbound_callee</7> <variable|-8>parameter</8> = <function|-9>missing_function</9> <variable|-10>parameter</10>
+    let <function|definition-7>unbound_callee</7> <parameter|-8>parameter</8> = <function|-9>missing_function</9> <parameter|-10>parameter</10>
 
-    let <function|definition-11>annotated</11> (<variable|-12>parameter</12> : <type|-13>int</13>) : <type|-14>missing_type</14> = <variable|-15>parameter</15>
+    let <function|definition-11>annotated</11> (<parameter|-12>parameter</12> : <type|-13>int</13>) : <type|-14>missing_type</14> = <parameter|-15>parameter</15>
 
-    let <function|definition-16>later</16> <variable|-17>parameter</17> = <variable|-18>parameter</18>
+    let <function|definition-16>later</16> <parameter|-17>parameter</17> = <parameter|-18>parameter</18>
 
-    type <enum|definition-19>int</19> = <enumMember|definition-20>Shadowed</20>
+    type <enum|declaration-19>int</19> = <enumMember|declaration-20>Shadowed</20>
 
-    type <type|definition-21>shadowed_after_error</21> = <type|-22>int</22>
+    type <type|declaration-21>shadowed_after_error</21> = <type|-22>int</22>
 
-    type <type|definition-23>builtin_after_error</23> = <type|-24>string</24>
+    type <type|declaration-23>builtin_after_error</23> = <type|-24>string</24>
     |}]
 ;;
 
@@ -1473,19 +1473,19 @@ module type S = functor (M : sig type t end) -> sig type u = M.t end
 |ocaml};
   [%expect
     {|
-    type <typeParameter|-0>'a</0> <struct|definition-1>cell</1> = { mutable <property|-2>field</2> : <typeParameter|-3>'a</3> }
-    type <enum|definition-4>packed</4> = <enumMember|definition-5>Pack</5> : <typeParameter|-6>'a</6> * (<typeParameter|-7>'a</7> -> <type|-8>string</8>) -> <type|-9>packed</9>
+    type <typeParameter|-0>'a</0> <struct|declaration-1>cell</1> = { mutable <property|-2>field</2> : <typeParameter|-3>'a</3> }
+    type <enum|declaration-4>packed</4> = <enumMember|declaration-5>Pack</5> : <typeParameter|-6>'a</6> * (<typeParameter|-7>'a</7> -> <type|-8>string</8>) -> <type|-9>packed</9>
     class virtual base = object (<variable|-10>self</10>)
       method virtual value : <type|-11>int</11>
-      method get = <variable|-12>self</12>#<method|-13>value</13>
+      method get = <parameter|-12>self</12>#<method|-13>value</13>
     end
     class child = object
       inherit base
       method value = <number|-14>1</14>
     end
-    let <function|definition-15>update</15> <variable|-16>cell</16> = <variable|-17>cell</17>.<variable|-18>field</18> <- <variable|-19>cell</19>.<property|-20>field</20>
-    let <function|definition-21>use_object</21> <variable|-22>object_</22> = <variable|-23>object_</23>#<method|-24>get</24>; new <class|-25>child</25>
-    module type <interface|-26>S</26> = functor (<namespace|-27>M</27> : sig type <type|definition-28>t</28> end) -> sig type <type|definition-29>u</29> = <namespace|-30>M</30>.<type|-31>t</31> end
+    let <function|definition-15>update</15> <parameter|-16>cell</16> = <parameter|-17>cell</17>.<variable|-18>field</18> <- <parameter|-19>cell</19>.<property|-20>field</20>
+    let <function|definition-21>use_object</21> <parameter|-22>object_</22> = <parameter|-23>object_</23>#<method|-24>get</24>; new <class|-25>child</25>
+    module type <interface|-26>S</26> = functor (<namespace|-27>M</27> : sig type <type|declaration-28>t</28> end) -> sig type <type|declaration-29>u</29> = <namespace|-30>M</30>.<type|-31>t</31> end
     |}]
 ;;
 
