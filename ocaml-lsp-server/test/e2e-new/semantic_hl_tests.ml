@@ -1539,3 +1539,187 @@ end
     end
     |}]
 ;;
+
+let%expect_test "syntax matrix covers remaining highlighting branches" =
+  test_semantic_tokens_full
+    {ocaml|type 'a poly = 'a list
+type r = C of { x : int }
+type packed = Pack : 'a * ('a -> string) -> packed
+let id : int -> int = fun x -> x
+let poly : 'a. 'a -> 'a = fun x -> x
+let f = function 0 -> 1 | Pack (x, g) -> g x | _ -> 0
+let () = print_int (f 1)
+let () = ignore (Array.get [|1|] 0)
+let xs = 1 :: 2 :: []
+let x = 1 in
+let r = { x }
+let { x; y } = { x = 1; y = 2 }
+let (module M : S) = m
+let () = s#m
+let o = object end
+let p = (module M : S)
+let () = [%foo bar]
+let g (type a) (v : a) = v
+let h = (fun z -> z : int -> int)
+let* b = m in b
+let () = let module L = struct end in ()
+module F (X : S) = struct end
+module M2 : S = struct end
+module type T = S
+module type Alias = M2
+module type Constrained = S with type t = int and module N = M2
+let long = M2(F).x
+let openpat = match m with M2.(C) -> 1 | #t -> 2 | _ -> 0
+|ocaml};
+  [%expect
+    {|
+    type <typeParameter|-0>'a</0> <type|definition-1>poly</1> = <typeParameter|-2>'a</2> <type|-3>list</3>
+    type <enum|definition-4>r</4> = <enumMember|definition-5>C</5> of { <property|-6>x</6> : <type|-7>int</7> }
+    type <enum|definition-8>packed</8> = <enumMember|definition-9>Pack</9> : <typeParameter|-10>'a</10> * (<typeParameter|-11>'a</11> -> <type|-12>string</12>) -> <type|-13>packed</13>
+    let <function|definition-14>id</14> : int -> int = fun <variable|-15>x</15> -> <variable|-16>x</16>
+    let <function|definition-17>poly</17> : 'a. 'a -> 'a = fun <variable|-18>x</18> -> <variable|-19>x</19>
+    let <function|definition-20>f</20> = function <number|-21>0</21> -> <number|-22>1</22> | <enumMember|-23>Pack</23> (<variable|-24>x</24>, <variable|-25>g</25>) -> <function|-26>g</26> <variable|-27>x</27> | _ -> <number|-28>0</28>
+    let () = <function|-29>print_int</29> (<function|-30>f</30> <number|-31>1</31>)
+    let () = <function|-32>ignore</32> (Array.get [|<number|-33>1</33>|] <number|-34>0</34>)
+    let <variable|-35>xs</35> = <number|-36>1</36> :: <number|-37>2</37> :: []
+    let <variable|-38>x</38> = <number|-39>1</39> in
+    let <variable|-40>r</40> = { x }
+    let { x; y } = { <property|-41>x</41> = <number|-42>1</42>; <property|-43>y</43> = <number|-44>2</44> }
+    let (module <namespace|-45>M</45> : S) = <variable|-46>m</46>
+    let () = <variable|-47>s</47>#<method|-48>m</48>
+    let <variable|-49>o</49> = object end
+    let <variable|-50>p</50> = (module <namespace|-51>M</51> : S)
+    let () = [%foo <variable|-52>bar</52>]
+    let <function|definition-53>g</53> (type a) (<variable|-54>v</54> : <type|-55>a</55>) = <variable|-56>v</56>
+    let <variable|-57>h</57> = (fun <variable|-58>z</58> -> <variable|-59>z</59> : <type|-60>int</60> -> <type|-61>int</61>)
+    let* b <operator|-62>=</62> <function|-63>m</63> in <variable|-64>b</64>
+    let () = let module <namespace|-65>L</65> = struct end in ()
+    module <namespace|definition-66>F</66> (<namespace|-67>X</67> : <interface|-68>S</68>) = struct end
+    module <namespace|definition-69>M2</69> : <interface|-70>S</70> = struct end
+    module type <interface|-71>T</71> = <interface|-72>S</72>
+    module type <interface|-73>Alias</73> = <interface|-74>M2</74>
+    module type <interface|-75>Constrained</75> = <interface|-76>S</76> with type <type|-77>t</77> = int and module N = M2
+    let long = M2(F).x
+    let openpat = match m with M2.(C) -> 1 | #t -> 2 | _ -> 0
+    |}]
+;;
+
+let%expect_test "semantic token delta with a middle edit" =
+  let on_notification, diagnostics = Test.drain_diagnostics () in
+  let handler = Client.Handler.make ~on_notification () in
+  let source = "let x = 1\nlet y = 2\nlet z = 3\n" in
+  let updated_source = "let x = 1\nlet y = \"s\"\nlet z = 3\n" in
+  (Test.run_initialized ~handler ~capabilities:client_capabilities
+   @@ fun client ->
+   let uri = Helpers.uri in
+   let* () = Test.open_document ~client ~uri ~source () in
+   let textDocument = TextDocumentIdentifier.create ~uri in
+   let* initial =
+     Client.request
+       client
+       (SemanticTokensFull (SemanticTokensParams.create ~textDocument ()))
+   in
+   let initial_result_id, initial_data =
+     match initial with
+     | Some { SemanticTokens.resultId = Some result_id; data } -> result_id, data
+     | None | Some { resultId = None; _ } -> failwith "full response has no result id"
+   in
+   let changed_document = VersionedTextDocumentIdentifier.create ~uri ~version:1 in
+   let content_change =
+     `TextDocumentContentChangeWholeDocument
+       (TextDocumentContentChangeWholeDocument.create ~text:updated_source)
+   in
+   let* () =
+     Client.notification
+       client
+       (TextDocumentDidChange
+          (DidChangeTextDocumentParams.create
+             ~textDocument:changed_document
+             ~contentChanges:[ content_change ]))
+   in
+   let delta_params =
+     SemanticTokensDeltaParams.create ~previousResultId:initial_result_id ~textDocument ()
+   in
+   let* delta = Client.request client (SemanticTokensDelta delta_params) in
+   print_endline "initial data:";
+   semantic_token_data_json initial_data |> Test.print_result;
+   (match delta with
+    | None -> print_endline "empty delta response"
+    | Some (`SemanticTokens tokens) ->
+      print_endline "delta fell back to full data:";
+      semantic_token_data_json tokens.data |> Test.print_result
+    | Some (`SemanticTokensDelta delta) ->
+      print_endline "delta edits:";
+      SemanticTokensDelta.yojson_of_t delta
+      |> Yojson.Safe.Util.member "edits"
+      |> Test.print_result);
+   let* () = Fiber.Ivar.read diagnostics in
+   Test.exit_client client);
+  [%expect
+    {|
+    initial data:
+    [
+      0, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8, 0, 0, 4, 1, 19, 0, 1, 4, 1, 8,
+      0, 0, 4, 1, 19, 0
+    ]
+    delta edits:
+    [ { "data": [ 3, 18 ], "deleteCount": 2, "start": 17 } ]
+    |}]
+;;
+
+let%expect_test "semantic token debug request rejects bad arguments" =
+  (Test.run_initialized ~capabilities:client_capabilities
+   @@ fun client ->
+   let uri = DocumentUri.of_path "cram.t" in
+   let* () =
+     Test.open_document ~language_id:"cram" ~client ~uri ~source:"  $ echo hi\n" ()
+   in
+   let* missing =
+     Fiber.collect_errors (fun () ->
+       Client.request
+         client
+         (UnknownRequest { meth = semantic_tokens_full_debug; params = None }))
+   in
+   let* () =
+     match missing with
+     | Error
+         [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ] ->
+       Printf.printf "missing params: %s\n" error.message;
+       Fiber.return ()
+     | Error errors -> Fiber.reraise_all errors
+     | Ok _ ->
+       print_endline "missing params unexpectedly succeeded";
+       Fiber.return ()
+   in
+   let textDocument = TextDocumentIdentifier.create ~uri in
+   let params = SemanticTokensParams.create ~textDocument () in
+   let* non_merlin =
+     Fiber.collect_errors (fun () ->
+       Client.request
+         client
+         (UnknownRequest
+            { meth = semantic_tokens_full_debug
+            ; params =
+                Some
+                  (SemanticTokensParams.yojson_of_t params
+                   |> Jsonrpc.Structured.t_of_yojson)
+            }))
+   in
+   let* () =
+     match non_merlin with
+     | Error
+         [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ] ->
+       Printf.printf "non-merlin doc: %s\n" error.message;
+       Fiber.return ()
+     | Error errors -> Fiber.reraise_all errors
+     | Ok _ ->
+       print_endline "non-merlin doc unexpectedly succeeded";
+       Fiber.return ()
+   in
+   Test.shutdown_client client);
+  [%expect
+    {|
+    missing params: ocamllsp/textDocument/semanticTokens/full expects an argument but didn't receive any
+    non-merlin doc: expected a merlin document
+    |}]
+;;
