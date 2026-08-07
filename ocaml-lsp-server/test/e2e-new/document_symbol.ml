@@ -979,7 +979,7 @@ let%expect_test "symbol kinds are restricted to those the client supports" =
         "children": [
           {
             "children": [],
-            "kind": 22,
+            "kind": 9,
             "name": "A",
             "range": {
               "end": { "character": 10, "line": 0 },
@@ -992,7 +992,7 @@ let%expect_test "symbol kinds are restricted to those the client supports" =
           },
           {
             "children": [],
-            "kind": 22,
+            "kind": 9,
             "name": "B",
             "range": {
               "end": { "character": 14, "line": 0 },
@@ -1004,7 +1004,7 @@ let%expect_test "symbol kinds are restricted to those the client supports" =
             }
           }
         ],
-        "kind": 26,
+        "kind": 5,
         "name": "t",
         "range": {
           "end": { "character": 14, "line": 0 },
@@ -1017,7 +1017,7 @@ let%expect_test "symbol kinds are restricted to those the client supports" =
       },
       {
         "children": [],
-        "kind": 22,
+        "kind": 9,
         "name": "E",
         "range": {
           "end": { "character": 11, "line": 1 },

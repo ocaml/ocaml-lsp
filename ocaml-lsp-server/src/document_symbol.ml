@@ -12,7 +12,22 @@ let symbol_kind_of_outline_kind = function
   | `Method -> Method
 ;;
 
-let rec items_to_symbols ~supports_deprecated_tag items =
+(* An absent [symbolKind.valueSet] means the client only supports the kinds from
+   the initial version of the protocol, so fall back to one of those. *)
+let supported_symbol_kind supported kind =
+  match supported with
+  | None -> kind
+  | Some supported ->
+    if List.mem supported kind ~equal:Poly.equal
+    then kind
+    else (
+      match kind with
+      | SymbolKind.EnumMember -> SymbolKind.Constructor
+      | TypeParameter -> Class
+      | kind -> kind)
+;;
+
+let rec items_to_symbols ~supports_deprecated_tag ~supported_kinds items =
   List.rev_map
     ~f:
       (fun
@@ -42,12 +57,15 @@ let rec items_to_symbols ~supports_deprecated_tag items =
       in
       DocumentSymbol.create
         ~name:outline_name
-        ~kind:(symbol_kind_of_outline_kind outline_kind)
+        ~kind:
+          (supported_symbol_kind
+             supported_kinds
+             (symbol_kind_of_outline_kind outline_kind))
         ~range
         ~selectionRange
         ?deprecated
         ?tags
-        ~children:(items_to_symbols ~supports_deprecated_tag children)
+        ~children:(items_to_symbols ~supports_deprecated_tag ~supported_kinds children)
         ())
     items
 ;;
@@ -70,7 +88,8 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
             ~tag:Deprecated
             ~equal:(fun SymbolTag.Deprecated Deprecated -> true))
     in
-    let symbols = items_to_symbols ~supports_deprecated_tag outline in
+    let supported_kinds = Capabilities.document_symbol_kind_support client_capabilities in
+    let symbols = items_to_symbols ~supports_deprecated_tag ~supported_kinds outline in
     (match Capabilities.document_symbol_hierarchical_support client_capabilities with
      | true -> Some (`DocumentSymbol symbols)
      | false ->

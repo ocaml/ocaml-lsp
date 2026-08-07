@@ -36,6 +36,11 @@ val document_symbol_hierarchical_support : t -> bool
 (** The set of document symbol tags the client supports. *)
 val document_symbol_tag_support : t -> SymbolTag.t list option
 
+(** The set of document symbol kinds the client supports. When absent, the
+    client only supports the kinds from the initial version of the protocol,
+    [File] to [Array]. *)
+val document_symbol_kind_support : t -> SymbolKind.t list option
+
 (* Signature help *)
 
 (** Whether the client supports offset-based parameter labels. *)
