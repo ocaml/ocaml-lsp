@@ -219,7 +219,29 @@ let run_rpc ~logger ~bin t =
      | Disabled | Stopped -> Fiber.return ()
      | Running _ -> assert false
      | Waiting_for_init _ ->
-       let* process = Process.create ~logger ~bin () in
+       let* process =
+         Fiber.collect_errors (fun () -> Process.create ~logger ~bin ())
+         >>= function
+         | Ok process -> Fiber.return process
+         | Error exns ->
+           let+ () =
+             (* The ocamlformat-rpc process died or produced invalid output while
+                starting. Report it like a failed negotiation so that hover keeps
+                working with unformatted types instead of failing the request. *)
+             let message =
+               List.map exns ~f:(fun exn -> Printexc.to_string exn.exn)
+               |> String.concat ~sep:"; "
+             in
+             logger
+               ~type_:MessageType.Error
+               ~message:
+                 (Printf.sprintf
+                    "An error happened when negotiating with the OCamlformat-RPC server: \
+                     %s"
+                    message)
+           in
+           Error `No_process
+       in
        let* () = Fiber.Ivar.fill wait_init () in
        (match process with
         | Error `No_process ->
