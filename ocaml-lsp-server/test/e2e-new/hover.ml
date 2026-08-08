@@ -379,3 +379,69 @@ let use = Exn 1
     }
     |}]
 ;;
+
+let%expect_test "hover on module, class and signature items" =
+  let source =
+    {ocaml|
+module type S = sig
+  module N : sig end
+  open S
+end
+module M : S = struct end
+class type ct = object method m : int end
+type point = { px : int; py : int }
+let f ({ px; py } as p : point) = px + py
+|ocaml}
+  in
+  Hover_helpers.test_hover
+    source
+    [ Position.create ~line:2 ~character:9
+    ; Position.create ~line:3 ~character:7
+    ; Position.create ~line:5 ~character:7
+    ; Position.create ~line:6 ~character:11
+    ; Position.create ~line:8 ~character:9
+    ; Position.create ~line:8 ~character:11
+    ];
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "sig end" },
+      "range": {
+        "end": { "character": 10, "line": 2 },
+        "start": { "character": 9, "line": 2 }
+      }
+    }
+    {
+      "contents": {
+        "kind": "plaintext",
+        "value": "sig\n  module N : sig end\nend"
+      },
+      "range": {
+        "end": { "character": 3, "line": 4 },
+        "start": { "character": 16, "line": 1 }
+      }
+    }
+    {
+      "contents": { "kind": "plaintext", "value": "sig end" },
+      "range": {
+        "end": { "character": 8, "line": 5 },
+        "start": { "character": 7, "line": 5 }
+      }
+    }
+    no hover response
+    {
+      "contents": { "kind": "plaintext", "value": "int" },
+      "range": {
+        "end": { "character": 11, "line": 8 },
+        "start": { "character": 9, "line": 8 }
+      }
+    }
+    {
+      "contents": { "kind": "plaintext", "value": "int" },
+      "range": {
+        "end": { "character": 11, "line": 8 },
+        "start": { "character": 9, "line": 8 }
+      }
+    }
+    |}]
+;;
