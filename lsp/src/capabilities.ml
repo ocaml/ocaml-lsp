@@ -56,6 +56,11 @@ let document_symbol_tag_support (t : t) =
     map ds.tagSupport (fun tag_support -> tag_support.valueSet))
 ;;
 
+let document_symbol_kind_support (t : t) =
+  Option.bind (document_symbol t) (fun ds ->
+    Option.bind ds.symbolKind (fun symbol_kind -> symbol_kind.valueSet))
+;;
+
 (* Signature help *)
 
 let signature_help (t : t) = Option.bind t.textDocument (fun td -> td.signatureHelp)
