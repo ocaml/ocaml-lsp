@@ -1,5 +1,7 @@
 open Import
 open Fiber.O
+module Env_lookup = Merlin_analysis.Env_lookup
+module Locate = Merlin_analysis.Locate
 
 (** A documentation comment, paired with what is needed to turn the spans
     odoc-parser reports back into source positions. *)
@@ -24,6 +26,38 @@ let parse (text, (loc : Loc.t)) =
     let location = { start with Lexing.pos_cnum = offset } in
     Some { parsed = Odoc_parser.parse_comment ~location ~text; text; offset })
 ;;
+
+(** What a link in a documentation comment points at. A cross-reference has to
+    later be resolved against the environment at the place it appears. *)
+type target =
+  | Url of string
+  | Reference of string
+
+module Resolve = struct
+  type t =
+    { uri : Uri.t
+    ; position : Position.t
+    ; reference : string
+    }
+
+  let yojson_of_t { uri; position; reference } =
+    `Assoc
+      [ "uri", Uri.yojson_of_t uri
+      ; "position", Position.yojson_of_t position
+      ; "reference", `String reference
+      ]
+  ;;
+
+  let t_of_yojson json =
+    match json with
+    | `Assoc fields ->
+      { uri = Json.field_exn fields "uri" Uri.t_of_yojson
+      ; position = Json.field_exn fields "position" Position.t_of_yojson
+      ; reference = Json.field_exn fields "reference" Json.Conv.string_of_yojson
+      }
+    | json -> Json.error "invalid document link data" json
+  ;;
+end
 
 let range t (span : Odoc_parser.Loc.span) =
   let open Option.O in
@@ -82,8 +116,10 @@ let rec inline_elements
   =
   List.fold elements ~init:acc ~f:(fun acc { Odoc_parser.Loc.value; location } ->
     match value with
-    | `Link (url, content) -> inline_elements t ((location, url) :: acc) content
-    | `Reference (_, _, content) | `Styled (_, content) -> inline_elements t acc content
+    | `Link (url, content) -> inline_elements t ((location, Url url) :: acc) content
+    | `Reference (_, reference, content) ->
+      inline_elements t ((location, Reference reference.value) :: acc) content
+    | `Styled (_, content) -> inline_elements t acc content
     | `Space _ | `Word _ | `Code_span _ | `Raw_markup _ | `Math_span _ -> acc)
 ;;
 
@@ -111,7 +147,7 @@ let tag t acc ~location (tag : Odoc_parser.Ast.tag) =
     let acc =
       match see_target_span t ~tag:location ~target with
       | None -> acc
-      | Some span -> (span, target) :: acc
+      | Some span -> (span, Url target) :: acc
     in
     nestable_block_elements t acc content
   | `See (_, _, content)
@@ -133,15 +169,21 @@ let targets t =
       nestable_block_elements t acc [ { element with value } ])
 ;;
 
-let of_comment comment =
+let of_comment ~uri comment =
   match parse comment with
   | None -> []
   | Some t ->
     targets t
-    |> List.rev_filter_map ~f:(fun (span, url) ->
+    |> List.rev_filter_map ~f:(fun (span, target) ->
       let open Option.O in
       let+ range = range t span in
-      DocumentLink.create ~range ~target:(Uri.of_string url) ())
+      match target with
+      | Url url -> DocumentLink.create ~range ~target:(Uri.of_string url) ()
+      | Reference reference ->
+        let data =
+          Resolve.yojson_of_t { Resolve.uri; position = range.start; reference }
+        in
+        DocumentLink.create ~range ~data ())
 ;;
 
 let run (state : State.t) uri =
@@ -156,5 +198,27 @@ let run (state : State.t) uri =
         merlin
         Mpipeline.reader_comments
     in
-    Some (List.concat_map comments ~f:of_comment)
+    Some (List.concat_map comments ~f:(of_comment ~uri))
+;;
+
+let resolve (state : State.t) (link : DocumentLink.t) =
+  let* () = Fiber.return () in
+  match Option.map link.data ~f:Resolve.t_of_yojson with
+  | None -> Fiber.return link
+  | Some { uri; position; reference } ->
+    (match Document_store.get_opt state.store uri with
+     | None -> Fiber.return link
+     | Some doc ->
+       (match Document.kind doc with
+        | `Other -> Fiber.return link
+        | `Merlin merlin ->
+          let+ target =
+            Document.Merlin.with_pipeline_exn
+              ~name:"document-link-resolve"
+              merlin
+              (fun pipeline -> Odoc_reference.resolve pipeline ~uri ~position reference)
+          in
+          (match target with
+           | None -> link
+           | Some target -> { link with target = Some target })))
 ;;

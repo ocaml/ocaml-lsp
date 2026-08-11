@@ -61,5 +61,30 @@ let show c = Helper.describe c
    let* () = Fiber.Ivar.read diagnostics in
    Client.stop client);
   Unix.close stderr;
-  [%expect {| [] |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 28, "line": 0 },
+          "start": { "character": 10, "line": 0 }
+        },
+        "target": "file:///helper.ml#L4,5"
+      },
+      {
+        "range": {
+          "end": { "character": 50, "line": 0 },
+          "start": { "character": 35, "line": 0 }
+        },
+        "target": "file:///helper.ml#L1,6"
+      },
+      {
+        "range": {
+          "end": { "character": 79, "line": 0 },
+          "start": { "character": 66, "line": 0 }
+        },
+        "target": "file:///helper.ml#L2,5"
+      }
+    ]
+    |}]
 ;;

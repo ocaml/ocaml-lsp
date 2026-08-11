@@ -134,7 +134,23 @@ let%expect_test "links odoc cross-references" =
 
 (** Know if a value of type {!t} is {!Foo}. *)
 let is_foo Foo = true|};
-  [%expect {| [] |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 32, "line": 2 },
+          "start": { "character": 28, "line": 2 }
+        }
+      },
+      {
+        "range": {
+          "end": { "character": 42, "line": 2 },
+          "start": { "character": 36, "line": 2 }
+        }
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "resolves a cross-reference to an earlier definition" =
@@ -144,7 +160,25 @@ let%expect_test "resolves a cross-reference to an earlier definition" =
 (** Know if a value of type {!t} is {!Foo}. *)
 let is_foo Foo = true
 |};
-  [%expect {| [] |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 32, "line": 2 },
+          "start": { "character": 28, "line": 2 }
+        },
+        "target": "file:///test.ml#L1,6"
+      },
+      {
+        "range": {
+          "end": { "character": 42, "line": 2 },
+          "start": { "character": 36, "line": 2 }
+        },
+        "target": "file:///test.ml#L1,10"
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "resolves a cross-reference within a recursive group" =
@@ -156,7 +190,18 @@ and helper () = ()
 
 let other = 1
 |};
-  [%expect {| [] |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 22, "line": 0 },
+          "start": { "character": 13, "line": 0 }
+        },
+        "target": "file:///test.ml#L4,5"
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "resolves a cross-reference qualified by its kind" =
@@ -168,7 +213,25 @@ let is_foo Foo = true
 (** See {!type:t} and {!val:is_foo}. *)
 let other = 1
 |};
-  [%expect {| [] |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 17, "line": 4 },
+          "start": { "character": 8, "line": 4 }
+        },
+        "target": "file:///test.ml#L1,6"
+      },
+      {
+        "range": {
+          "end": { "character": 35, "line": 4 },
+          "start": { "character": 22, "line": 4 }
+        },
+        "target": "file:///test.ml#L3,5"
+      }
+    ]
+    |}]
 ;;
 
 (* The [t] below is [M.t], not the one at the end of the file: a reference
@@ -182,7 +245,18 @@ end
 
 type t = B
 |};
-  [%expect {| [] |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 18, "line": 1 },
+          "start": { "character": 14, "line": 1 }
+        },
+        "target": "file:///test.ml#L3,8"
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "resolves a forward cross-reference" =
@@ -192,7 +266,18 @@ let%expect_test "resolves a forward cross-reference" =
 (** Applies {!f}. *)
 let f x = x
 |};
-  [%expect {| [] |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 16, "line": 2 },
+          "start": { "character": 12, "line": 2 }
+        },
+        "target": "file:///test.ml#L4,5"
+      }
+    ]
+    |}]
 ;;
 
 (* The odoc convention puts the comment after the item it documents. *)
@@ -204,7 +289,25 @@ let%expect_test "resolves a reference to the item just above it" =
 val helper : t -> t
 (** Uses {!helper} and {!t}. *)
 |};
-  [%expect {| [] |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 18, "line": 3 },
+          "start": { "character": 9, "line": 3 }
+        },
+        "target": "file:///test.mli#L3,5"
+      },
+      {
+        "range": {
+          "end": { "character": 27, "line": 3 },
+          "start": { "character": 23, "line": 3 }
+        },
+        "target": "file:///test.mli#L1,6"
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "leaves an unknown cross-reference without a target" =
@@ -212,7 +315,17 @@ let%expect_test "leaves an unknown cross-reference without a target" =
     {|(** Refers to {!Nonexistent.thing}. *)
 let x = 1
 |};
-  [%expect {| [] |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 34, "line": 0 },
+          "start": { "character": 14, "line": 0 }
+        }
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "ignores ordinary comments" =
