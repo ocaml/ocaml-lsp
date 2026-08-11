@@ -216,6 +216,8 @@ include struct
   module DocumentHighlight = DocumentHighlight
   module DocumentHighlightKind = DocumentHighlightKind
   module DocumentHighlightParams = DocumentHighlightParams
+  module DocumentLink = DocumentLink
+  module DocumentLinkOptions = DocumentLinkOptions
   module DocumentSymbol = DocumentSymbol
   module DocumentUri = DocumentUri
   module ExecuteCommandOptions = ExecuteCommandOptions

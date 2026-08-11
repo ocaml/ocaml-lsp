@@ -49,7 +49,18 @@ let%expect_test "links the url of an odoc link" =
   test
     {|(** See {{:https://ocaml.org} the website}. *)
 let x = 1|};
-  [%expect {| null |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 42, "line": 0 },
+          "start": { "character": 8, "line": 0 }
+        },
+        "target": "https://ocaml.org/"
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "links the url of a @see tag" =
@@ -58,14 +69,36 @@ let%expect_test "links the url of a @see tag" =
 
     @see <https://ocaml.org/manual> the manual *)
 let x = 1|};
-  [%expect {| null |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 34, "line": 2 },
+          "start": { "character": 10, "line": 2 }
+        },
+        "target": "https://ocaml.org/manual"
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "preserves the query and fragment of a url" =
   test
     {|(** See {{:https://ocaml.org/p?q=1#top} releases}. *)
 let x = 1|};
-  [%expect {| null |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 49, "line": 0 },
+          "start": { "character": 8, "line": 0 }
+        },
+        "target": "https://ocaml.org/p?q=1#top"
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "finds links nested in markup" =
@@ -74,7 +107,25 @@ let%expect_test "finds links nested in markup" =
 
     - a {b bold {{:https://opam.ocaml.org} item}} *)
 let x = 1|};
-  [%expect {| null |}]
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 39, "line": 0 },
+          "start": { "character": 9, "line": 0 }
+        },
+        "target": "https://ocaml.org/"
+      },
+      {
+        "range": {
+          "end": { "character": 48, "line": 2 },
+          "start": { "character": 16, "line": 2 }
+        },
+        "target": "https://opam.ocaml.org/"
+      }
+    ]
+    |}]
 ;;
 
 let%expect_test "links odoc cross-references" =
@@ -83,7 +134,7 @@ let%expect_test "links odoc cross-references" =
 
 (** Know if a value of type {!t} is {!Foo}. *)
 let is_foo Foo = true|};
-  [%expect {| null |}]
+  [%expect {| [] |}]
 ;;
 
 let%expect_test "resolves a cross-reference to an earlier definition" =
@@ -168,5 +219,5 @@ let%expect_test "ignores ordinary comments" =
   test
     {|(* {{:https://ocaml.org} not a doc comment} *)
 let x = 1|};
-  [%expect {| null |}]
+  [%expect {| [] |}]
 ;;

@@ -182,6 +182,7 @@ The server supports the following LSP requests (inexhaustive list):
 - [x] `textDocument/codeLens`
 - [x] `textDocument/documentHighlight`
 - [x] `textDocument/documentSymbol`
+- [x] `textDocument/documentLink`
 - [x] `textDocument/references`
 - [ ] `textDocument/documentColor`
 - [ ] `textDocument/colorPresentation`
