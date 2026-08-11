@@ -295,6 +295,7 @@ let format_type_enclosing
       ~markdown
       ~typ
       ~doc
+      ~resolve
       ~(syntax_doc : Query_protocol.syntax_doc_result option)
   =
   (* TODO for vscode, we should just use the language id. But that will not work
@@ -315,7 +316,7 @@ let format_type_enclosing
          let type_info = Some (format_as_code_block ~highlighter:markdown_name [ typ ]) in
          let doc =
            Option.map doc ~f:(fun doc ->
-             match Doc_to_md.translate doc with
+             match Doc_to_md.translate ~resolve doc with
              | Raw d -> d
              | Markdown d -> d)
          in
@@ -400,12 +401,29 @@ let type_enclosing_hover
         in
         typ
     in
+    let markdown =
+      Capabilities.supports_markdown
+        (Capabilities.hover_content_format (State.client_capabilities state))
+    in
+    (* Resolving a cross-reference needs merlin, so settle every one the
+       documentation mentions while we hold a pipeline. *)
+    let* resolve =
+      match markdown, documentation with
+      | false, _ | _, None -> Fiber.return (fun _ -> None)
+      | true, Some documentation ->
+        let+ resolved =
+          Document.Merlin.with_pipeline_exn
+            ~name:"hover-doc-references"
+            merlin
+            (fun pipeline ->
+               Odoc_reference.resolve_all pipeline ~uri ~position documentation)
+        in
+        fun reference ->
+          List.Assoc.find resolved reference ~equal:String.equal
+          |> Option.map ~f:Uri.to_string
+    in
     let contents =
-      let markdown =
-        Capabilities.supports_markdown
-          (Capabilities.hover_content_format (State.client_capabilities state))
-      in
-      format_type_enclosing ~syntax ~markdown ~typ ~doc:documentation ~syntax_doc
+      format_type_enclosing ~syntax ~markdown ~typ ~doc:documentation ~resolve ~syntax_doc
     in
     let range = Range.of_loc loc in
     let hover = Hover.create ~contents ~range () in

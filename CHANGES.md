@@ -7,6 +7,8 @@
   tag is its url, and a `{!...}` cross-reference resolves, on
   `documentLink/resolve`, to the definition it names.
   (#2139, fixes #436, @N1ark)
+- Resolve odoc cross-references in hovered documentation tooltips.
+  (#2139, fixes #436, @N1ark)
 - Report Dune RPC, build progress, and Merlin configuration process activity
   through LSP trace notifications. (#1899, @rgrinberg)
 - Add a code action to open the closest Dune file for the current document.

@@ -38,6 +38,7 @@ let style_inline ~meta (style : Odoc_parser.Ast.style) inline =
 ;;
 
 let rec inline_element_to_inline
+          ~resolve
           (inline : Odoc_parser.Ast.inline_element Odoc_parser.Loc.with_location)
   : Inline.t
   =
@@ -60,26 +61,37 @@ let rec inline_element_to_inline
     let meta = loc_to_meta location in
     Inline.Text (text, meta)
   | { value = `Styled (`Superscript, inlines); location } ->
-    let text = inline_element_list_to_inlines inlines in
+    let text = inline_element_list_to_inlines ~resolve inlines in
     let meta = loc_to_meta location in
     Inline.Inlines ([ Inline.Text ("^{", meta); text; Inline.Text ("}", meta) ], meta)
   | { value = `Styled (`Subscript, inlines); location } ->
-    let text = inline_element_list_to_inlines inlines in
+    let text = inline_element_list_to_inlines ~resolve inlines in
     let meta = loc_to_meta location in
     Inline.Inlines ([ Inline.Text ("_{", meta); text; Inline.Text ("}", meta) ], meta)
   | { value = `Styled (style, inlines); location } ->
-    let text = inline_element_list_to_inlines inlines in
+    let text = inline_element_list_to_inlines ~resolve inlines in
     let meta = loc_to_meta location in
     style_inline ~meta style text
   | { value = `Reference (kind, ref, inlines); location } ->
-    (* TODO: add support for references *)
     let meta = loc_to_meta location in
-    (match kind with
-     | `Simple -> Inline.Code_span (Inline.Code_span.of_string ref.value, meta)
-     | `With_text -> inline_element_list_to_inlines inlines)
+    (* The kind qualifying a reference selects what it points at, it is not
+       part of what the reader should see. *)
+    let text =
+      match kind with
+      | `Simple ->
+        Inline.Code_span (Inline.Code_span.of_string (Odoc_reference.path ref.value), meta)
+      | `With_text -> inline_element_list_to_inlines ~resolve inlines
+    in
+    (match resolve ref.value with
+     | None -> text
+     | Some target ->
+       let definition =
+         `Inline (Link_definition.make ~dest:(target, Meta.none) (), Meta.none)
+       in
+       Inline.Link (Inline.Link.make text definition, meta))
   | { value = `Link (link, inlines); location } ->
     let link =
-      let text = inline_element_list_to_inlines inlines in
+      let text = inline_element_list_to_inlines ~resolve inlines in
       let ref = `Inline (Link_definition.make ~dest:(link, Meta.none) (), Meta.none) in
       Inline.Link.make text ref
     in
@@ -90,19 +102,20 @@ let rec inline_element_to_inline
     Inline.Ext_math_span
       (Inline.Math_span.make ~display:false (Block_line.tight_list_of_string text), meta)
 
-and inline_element_list_to_inlines inlines =
-  let inlines = List.map ~f:inline_element_to_inline inlines in
+and inline_element_list_to_inlines ~resolve inlines =
+  let inlines = List.map ~f:(inline_element_to_inline ~resolve) inlines in
   Inline.Inlines (inlines, Meta.none)
 ;;
 
 let rec nestable_block_element_to_block
+          ~resolve
           (nestable :
             Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location)
   =
   match nestable with
   | { value = `Paragraph text; location } ->
     let paragraph =
-      let inline = inline_element_list_to_inlines text in
+      let inline = inline_element_list_to_inlines ~resolve text in
       Block.Paragraph.make inline
     in
     let meta = loc_to_meta location in
@@ -123,7 +136,7 @@ let rec nestable_block_element_to_block
              [ (`Sep alignment, Meta.none), "" ]
          in
          let cell ((c, _) : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.cell) =
-           let c = nestable_block_element_list_to_inlines c in
+           let c = nestable_block_element_list_to_inlines ~resolve c in
            c, (" ", " ")
            (* Initial and trailing blanks *)
          in
@@ -144,7 +157,7 @@ let rec nestable_block_element_to_block
     let l =
       let list_items =
         List.map xs ~f:(fun n ->
-          let block = nestable_block_element_list_to_block n in
+          let block = nestable_block_element_list_to_block ~resolve n in
           Block.List_item.make ~after_marker:1 block, Meta.none)
       in
       let tight =
@@ -208,7 +221,7 @@ let rec nestable_block_element_to_block
     let output_block =
       match output with
       | None -> []
-      | Some output -> [ nestable_block_element_list_to_block output ]
+      | Some output -> [ nestable_block_element_list_to_block ~resolve output ]
     in
     Block.Blocks (main_block :: output_block, meta)
   | { value = `Verbatim code; location } ->
@@ -228,14 +241,16 @@ let rec nestable_block_element_to_block
     Block.Ext_math_block (code_block, meta)
 
 and nestable_block_element_to_inlines
+      ~resolve
       (nestable : Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location)
   =
   match nestable with
-  | { value = `Paragraph text; location = _ } -> inline_element_list_to_inlines text
+  | { value = `Paragraph text; location = _ } ->
+    inline_element_list_to_inlines ~resolve text
   | { value = `Table ((grid, _), _); location } ->
     let meta = loc_to_meta location in
     let cell ((c, _) : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.cell) =
-      nestable_block_element_list_to_inlines c
+      nestable_block_element_list_to_inlines ~resolve c
     in
     let row (row : Odoc_parser.Ast.nestable_block_element Odoc_parser.Ast.row) =
       let sep = Inline.Text (" | ", Meta.none) in
@@ -246,7 +261,7 @@ and nestable_block_element_to_inlines
   | { value = `List (_, _, xs); location } ->
     let meta = loc_to_meta location in
     let items =
-      let item i = nestable_block_element_list_to_inlines i in
+      let item i = nestable_block_element_list_to_inlines ~resolve i in
       let sep = Inline.Text (" - ", Meta.none) in
       List.concat_map ~f:(fun i -> [ sep; item i ]) xs
     in
@@ -279,12 +294,12 @@ and nestable_block_element_to_inlines
     let code_span = Inline.Math_span.make ~display:true [ "", (code, Meta.none) ] in
     Inline.Ext_math_span (code_span, meta)
 
-and nestable_block_element_list_to_inlines l =
-  let inlines = List.map ~f:nestable_block_element_to_inlines l in
+and nestable_block_element_list_to_inlines ~resolve l =
+  let inlines = List.map ~f:(nestable_block_element_to_inlines ~resolve) l in
   Inline.Inlines (inlines, Meta.none)
 
-and nestable_block_element_list_to_block nestables =
-  let blocks = List.map ~f:nestable_block_element_to_block nestables in
+and nestable_block_element_list_to_block ~resolve nestables =
+  let blocks = List.map ~f:(nestable_block_element_to_block ~resolve) nestables in
   Block.Blocks (blocks, Meta.none)
 ;;
 
@@ -307,7 +322,7 @@ let inline_link_of_string ~text uri =
   Inline.Link (Inline.Link.make (Inline.Text (text, Meta.none)) ref, Meta.none)
 ;;
 
-let tag_to_block ~meta (tag : Odoc_parser.Ast.tag) =
+let tag_to_block ~resolve ~meta (tag : Odoc_parser.Ast.tag) =
   let format_tag_empty tag =
     Block.Paragraph (Block.Paragraph.make (strong_and_emphasis tag), Meta.none)
   in
@@ -339,35 +354,35 @@ let tag_to_block ~meta (tag : Odoc_parser.Ast.tag) =
     let s = Inline.Text (s, Meta.none) in
     format_tag_string "@author" s
   | `Deprecated text ->
-    let block = nestable_block_element_list_to_block text in
+    let block = nestable_block_element_list_to_block ~resolve text in
     format_tag_block "@deprecated" block
   | `Param (id, []) ->
     let id = Inline.Text (id, Meta.none) in
     format_tag_string "@param" id
   | `Param (id, text) ->
-    let block = nestable_block_element_list_to_block text in
+    let block = nestable_block_element_list_to_block ~resolve text in
     let id = inline_code_span_of_string id in
     format_tag_string_with_block "@param" id block
   | `Raise (exc, text) ->
-    let block = nestable_block_element_list_to_block text in
+    let block = nestable_block_element_list_to_block ~resolve text in
     let exc = inline_code_span_of_string exc in
     format_tag_string_with_block "@raise" exc block
   | `Return text ->
-    let block = nestable_block_element_list_to_block text in
+    let block = nestable_block_element_list_to_block ~resolve text in
     format_tag_block "@return" block
   | `See (`Url, uri, text) ->
-    let block = nestable_block_element_list_to_block text in
+    let block = nestable_block_element_list_to_block ~resolve text in
     let uri = inline_link_of_string ~text:"link" uri in
     format_tag_string_with_block "@see" uri block
   | `See ((`File | `Document), uri, text) ->
-    let block = nestable_block_element_list_to_block text in
+    let block = nestable_block_element_list_to_block ~resolve text in
     let uri = inline_code_span_of_string uri in
     format_tag_string_with_block "@see" uri block
   | `Since version ->
     let version = inline_code_span_of_string version in
     format_tag_string "@since" version
   | `Before (version, text) ->
-    let block = nestable_block_element_list_to_block text in
+    let block = nestable_block_element_list_to_block ~resolve text in
     let version = inline_code_span_of_string version in
     format_tag_string_with_block "@before" version block
   | `Version version ->
@@ -383,19 +398,20 @@ let tag_to_block ~meta (tag : Odoc_parser.Ast.tag) =
 ;;
 
 let rec block_element_to_block
+          ~resolve
           (block_element : Odoc_parser.Ast.block_element Odoc_parser.Loc.with_location)
   =
   match block_element with
   | { value = `Heading (level, _, content); location } ->
     let heading =
-      let text = inline_element_list_to_inlines content in
+      let text = inline_element_list_to_inlines ~resolve content in
       Block.Heading.make ~level:(level + 1) text
     in
     let meta = loc_to_meta location in
     Block.Heading (heading, meta)
   | { value = `Tag t; location } ->
     let meta = loc_to_meta location in
-    tag_to_block ~meta t
+    tag_to_block ~resolve ~meta t
   | { value =
         ( `Paragraph _
         | `List _
@@ -405,25 +421,27 @@ let rec block_element_to_block
         | `Table _
         | `Math_block _ )
     ; location = _
-    } as nestable -> nestable_block_element_to_block nestable
+    } as nestable -> nestable_block_element_to_block ~resolve nestable
 
-and block_element_list_to_block l =
+and block_element_list_to_block ~resolve l =
   let rec aux acc rest =
     match rest with
     | [] -> List.rev acc
-    | el :: [] -> List.rev (block_element_to_block el :: acc)
+    | el :: [] -> List.rev (block_element_to_block ~resolve el :: acc)
     | el :: rest ->
-      aux (Block.Blank_line ("", Meta.none) :: block_element_to_block el :: acc) rest
+      aux
+        (Block.Blank_line ("", Meta.none) :: block_element_to_block ~resolve el :: acc)
+        rest
   in
   let blocks = aux [] l in
   Block.Blocks (blocks, Meta.none)
 ;;
 
-let translate doc : t =
+let translate ?(resolve = fun _ -> None) doc : t =
   Markdown
     (Odoc_parser.parse_comment ~location:Lexing.dummy_pos ~text:doc
      |> Odoc_parser.ast
-     |> block_element_list_to_block
+     |> block_element_list_to_block ~resolve
      |> Doc.make
      |> Cmarkit_commonmark.of_doc)
 ;;

@@ -16,3 +16,12 @@ val path : string -> string
     [position] is where the reference is written; [uri] is the document it is
     written in. [None] when merlin cannot place it. *)
 val resolve : Mpipeline.t -> uri:Uri.t -> position:Position.t -> string -> Uri.t option
+
+(** [resolve_all pipeline ~uri ~position text] resolves every cross-reference
+    the odoc markup [text] mentions, dropping those that cannot be placed. *)
+val resolve_all
+  :  Mpipeline.t
+  -> uri:Uri.t
+  -> position:Position.t
+  -> string
+  -> (string * Uri.t) list

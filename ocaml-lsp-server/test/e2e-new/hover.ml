@@ -465,7 +465,7 @@ let is_foo Foo = true
     {
       "contents": {
         "kind": "markdown",
-        "value": "```ocaml\nt -> bool\n```\n***\nKnows whether a `t` is `Foo`, unlike `val:missing`."
+        "value": "```ocaml\nt -> bool\n```\n***\nKnows whether a [`t`](file:///test.ml#L1,6) is [`Foo`](file:///test.ml#L1,10), unlike `missing`."
       },
       "range": {
         "end": { "character": 10, "line": 3 },

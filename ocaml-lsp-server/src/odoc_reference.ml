@@ -86,3 +86,66 @@ let resolve pipeline ~uri ~position reference =
   | `Not_found _
   | `Not_in_env _ -> None
 ;;
+
+(** Collect every reference a comment mentions, so that a caller holding a
+    pipeline can settle them all at once. *)
+let rec of_inline_elements
+          acc
+          (elements : Odoc_parser.Ast.inline_element Odoc_parser.Loc.with_location list)
+  =
+  List.fold elements ~init:acc ~f:(fun acc { Odoc_parser.Loc.value; location = _ } ->
+    match value with
+    | `Reference (_, reference, content) ->
+      of_inline_elements (reference.Odoc_parser.Loc.value :: acc) content
+    | `Styled (_, content) | `Link (_, content) -> of_inline_elements acc content
+    | `Space _ | `Word _ | `Code_span _ | `Raw_markup _ | `Math_span _ -> acc)
+;;
+
+let rec of_nestable_block_elements
+          acc
+          (elements :
+            Odoc_parser.Ast.nestable_block_element Odoc_parser.Loc.with_location list)
+  =
+  List.fold elements ~init:acc ~f:(fun acc { Odoc_parser.Loc.value; location = _ } ->
+    match value with
+    | `Paragraph inlines -> of_inline_elements acc inlines
+    | `List (_, _, items) -> List.fold items ~init:acc ~f:of_nestable_block_elements
+    | `Table ((grid, _), _) ->
+      List.fold grid ~init:acc ~f:(fun acc row ->
+        List.fold row ~init:acc ~f:(fun acc (cell, _) ->
+          of_nestable_block_elements acc cell))
+    | `Code_block { output = Some output; _ } -> of_nestable_block_elements acc output
+    | `Code_block _ | `Verbatim _ | `Modules _ | `Math_block _ -> acc)
+;;
+
+let of_tag acc (tag : Odoc_parser.Ast.tag) =
+  match tag with
+  | `Deprecated content
+  | `Return content
+  | `See (_, _, content)
+  | `Param (_, content)
+  | `Raise (_, content)
+  | `Before (_, content) -> of_nestable_block_elements acc content
+  | `Author _ | `Since _ | `Version _ | `Canonical _ | `Inline | `Open | `Closed | `Hidden
+    -> acc
+;;
+
+let of_comment text =
+  Odoc_parser.parse_comment ~location:Lexing.dummy_pos ~text
+  |> Odoc_parser.ast
+  |> List.fold ~init:[] ~f:(fun acc element ->
+    match element.Odoc_parser.Loc.value with
+    | `Heading (_, _, inlines) -> of_inline_elements acc inlines
+    | `Tag v -> of_tag acc v
+    | #Odoc_parser.Ast.nestable_block_element as value ->
+      of_nestable_block_elements acc [ { element with Odoc_parser.Loc.value } ])
+  |> List.dedup_and_sort ~compare:String.compare
+;;
+
+let resolve_all pipeline ~uri ~position text =
+  of_comment text
+  |> List.filter_map ~f:(fun reference ->
+    let open Option.O in
+    let+ target = resolve pipeline ~uri ~position reference in
+    reference, target)
+;;
