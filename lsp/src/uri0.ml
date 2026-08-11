@@ -58,22 +58,22 @@ let to_path { path; authority; scheme; _ } =
 
 let of_string = Uri_lexer.of_string
 
-let safe_chars =
+let char_set chars =
   let a = Array.make 256 false in
-  let always_safe =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-~"
-  in
-  for i = 0 to String.length always_safe - 1 do
-    let c = Char.code always_safe.[i] in
-    a.(c) <- true
-  done;
+  String.iter chars ~f:(fun c -> a.(Char.code c) <- true);
   a
 ;;
 
+(* RFC 3986 unreserved characters. *)
+let unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-~"
+let safe_chars = char_set unreserved
+
+(* A query or a fragment may hold extra sub-delimiters unencoded. *)
+let query_safe_chars = char_set (unreserved ^ "!$&'()*+,;=:@/?")
 let slash_code = 47
 
 (* https://github.com/mirage/ocaml-uri/blob/master/lib/uri.ml#L284 *)
-let encode ?(allow_slash = false) s =
+let encode ?(allow_slash = false) ?(safe_chars = safe_chars) s =
   let len = String.length s in
   let buf = Buffer.create len in
   let rec scan start cur =
@@ -132,12 +132,12 @@ let to_string { scheme; authority; path; query; fragment } =
    | None -> ()
    | Some q ->
      Buffer.add_char buff '?';
-     Buffer.add_string buff (encode q));
+     Buffer.add_string buff (encode ~safe_chars:query_safe_chars q));
   (match fragment with
    | None -> ()
    | Some f ->
      Buffer.add_char buff '#';
-     Buffer.add_string buff (encode f));
+     Buffer.add_string buff (encode ~safe_chars:query_safe_chars f));
   Buffer.contents buff
 ;;
 

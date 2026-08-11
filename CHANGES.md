@@ -10,6 +10,9 @@
 
 ## Fixes
 
+- Stop percent-encoding sub-delimiters such as `=`, `&` and `,` in the query
+  and the fragment of a URI. RFC 3986 permits them there, and encoding them
+  changed the value a client read back out. (#2139, @N1ark)
 - Return document symbol kinds the client supports, falling back to
   `Constructor` and `Class` when it does not advertise the newer kinds.
   (#2122, fixes #2121, @dayangac)

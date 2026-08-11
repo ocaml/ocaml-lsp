@@ -140,9 +140,9 @@ let%expect_test "sub-delimiters in a query and in a fragment" =
   test "https://ocaml.org/?q=%23tag";
   [%expect
     {|
-    https://ocaml.org/search?q=a+b&page=1 -> https://ocaml.org/search?q%3Da%2Bb%26page%3D1
-    file:///foo.ml#L3,4 -> file:///foo.ml#L3%2C4
-    https://ocaml.org/?q=%23tag -> https://ocaml.org/?q%3D%23tag
+    https://ocaml.org/search?q=a+b&page=1 -> https://ocaml.org/search?q=a+b&page=1
+    file:///foo.ml#L3,4 -> file:///foo.ml#L3,4
+    https://ocaml.org/?q=%23tag -> https://ocaml.org/?q=%23tag
     |}]
 ;;
 
@@ -155,7 +155,7 @@ let%expect_test "an unescaped Unicode URI query is preserved" =
   [%expect
     {|
     query: search=😀&limit=1
-    serialized: file:///foo.ml?search%3D%F0%9F%98%80%26limit%3D1
+    serialized: file:///foo.ml?search=%F0%9F%98%80&limit=1
     |}]
 ;;
 
