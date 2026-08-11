@@ -67,6 +67,8 @@
     doc_to_md
     document_flow
     document_highlight
+    document_link
+    document_link_workspace
     document_sync
     document_text_command
     exit_notification
