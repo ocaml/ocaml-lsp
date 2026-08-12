@@ -7,13 +7,13 @@ let range ~start_line ~start_character ~end_line ~end_character =
   Range.create ~start ~end_
 ;;
 
-let iter_code_actions ?prep ?path ?(diagnostics = []) ?only ~source range =
+let iter_code_actions ?prep ?path ?capabilities ?(diagnostics = []) ?only ~source range =
   let makeRequest textDocument =
     let context = CodeActionContext.create ~diagnostics ?only () in
     Lsp.Client_request.CodeAction
       (CodeActionParams.create ~textDocument ~range ~context ())
   in
-  iter_lsp_response ?prep ?path ~language_id:"ocaml" ~makeRequest ~source
+  iter_lsp_response ?prep ?path ?capabilities ~language_id:"ocaml" ~makeRequest ~source
 ;;
 
 let print_code_action_result ?(filter = fun _ -> true) = function
@@ -40,6 +40,7 @@ let print_code_actions
       ?(diagnostics = [])
       ?only
       ?filter
+      ?capabilities
       source
       range
   =
@@ -48,6 +49,7 @@ let print_code_actions
     ~path
     ~diagnostics
     ?only
+    ?capabilities
     ~source
     range
     (print_code_action_result ?filter)

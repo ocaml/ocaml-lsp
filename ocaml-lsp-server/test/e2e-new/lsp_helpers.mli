@@ -8,6 +8,7 @@ val change_config : client:'a Client.t -> DidChangeConfigurationParams.t -> unit
 val iter_lsp_response
   :  ?prep:(unit Client.t -> unit Fiber.t)
   -> ?path:string
+  -> ?capabilities:ClientCapabilities.t
   -> language_id:string
   -> makeRequest:(TextDocumentIdentifier.t -> 'a Client.out_request)
   -> source:string
