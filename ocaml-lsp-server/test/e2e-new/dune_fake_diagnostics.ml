@@ -203,3 +203,103 @@ let%expect_test "removes a Dune diagnostic published earlier" =
     { "diagnostics": [], "uri": "<root>/main.ml" }
     |}]
 ;;
+
+let%expect_test "Dune diagnostic without a location uses the workspace root" =
+  let fake =
+    Fake.start "no-loc" ~diagnostics:(fun _root ->
+      [ [ D.Event.Add
+            { (fake_diagnostic
+                 ~fname:"unused"
+                 ~diagnostic_id:1
+                 ~diagnostic_message:"build failed"
+                 ~line:1
+                 ~start_char:0
+                 ~end_char:1)
+              with
+              loc = None
+            }
+        ]
+      ])
+  in
+  Fun.protect
+    ~finally:(fun () -> Fake.stop fake)
+    (fun () ->
+       let events = Lifecycle_events.create () in
+       run_with_workspace
+         ~capabilities
+         ~root:(Fake.root fake)
+         ~runtime_dir:(Fake.runtime_dir fake)
+         events
+         ~f:(fun client _workspace ->
+           let uri = source_uri fake in
+           let* () = open_document client ~uri ~text:"let value = 1\n" in
+           let+ published =
+             Events.wait_for_diagnostics events.dune ~f:(fun params ->
+               for_uri (Uri.of_path (Fake.root fake)) params && has_dune_diagnostic params)
+           in
+           print_publication fake "root diagnostic:" published));
+  [%expect
+    {|
+    root diagnostic:
+    {
+      "diagnostics": [
+        {
+          "message": "build\nfailed",
+          "range": {
+            "end": { "character": 0, "line": 1 },
+            "start": { "character": 0, "line": 0 }
+          },
+          "severity": 1,
+          "source": "dune"
+        }
+      ],
+      "uri": "<root>"
+    }
+    |}]
+;;
+
+let%expect_test "removing an unknown promotion is a no-op" =
+  let fake =
+    Fake.start "unknown-promotion" ~diagnostics:(fun root ->
+      let source = Filename.concat root "main.ml" in
+      let promotion =
+        D.Promotion.
+          { in_build = Filename.concat root "_build/default/main.ml"; in_source = source }
+      in
+      [ [ D.Event.Remove
+            { (fake_diagnostic
+                 ~fname:source
+                 ~diagnostic_id:1
+                 ~diagnostic_message:""
+                 ~line:1
+                 ~start_char:0
+                 ~end_char:1)
+              with
+              promotion = [ promotion ]
+            }
+        ]
+      ])
+  in
+  Fun.protect
+    ~finally:(fun () -> Fake.stop fake)
+    (fun () ->
+       let events = Lifecycle_events.create () in
+       run_with_workspace
+         ~capabilities
+         ~root:(Fake.root fake)
+         ~runtime_dir:(Fake.runtime_dir fake)
+         events
+         ~f:(fun client _workspace ->
+           let uri = source_uri fake in
+           let* () = open_document client ~uri ~text:"let value = 1\n" in
+           let* () = Lev_fiber.Timer.sleepf 0.5 in
+           print_endline "no crash after unknown promotion removal";
+           let* echo = Client.request client (DebugEcho { message = "still alive" }) in
+           Printf.printf "echo: %s\n" echo.message;
+           Fiber.return ()));
+  [%expect
+    {|
+    no crash after unknown promotion removal
+    echo: still alive
+    |}]
+;;
