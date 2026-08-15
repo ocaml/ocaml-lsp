@@ -84,3 +84,34 @@ let () =
     ]
     |}]
 ;;
+
+let%expect_test "definition on a non-Merlin document returns null" =
+  (Test.run_initialized
+   @@ fun client ->
+   let uri = DocumentUri.of_path "test.t" in
+   let text =
+     TextDocumentItem.create
+       ~uri
+       ~languageId:(LanguageKind.Other "cram")
+       ~version:0
+       ~text:"  $ echo hello\n"
+   in
+   let* () =
+     Client.notification
+       client
+       (TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument:text))
+   in
+   let textDocument = TextDocumentIdentifier.create ~uri in
+   let* response =
+     Client.request
+       client
+       (TextDocumentDefinition
+          (DefinitionParams.create
+             ~textDocument
+             ~position:(Position.create ~line:0 ~character:8)
+             ()))
+   in
+   print_locations response;
+   Test.shutdown_client client);
+  [%expect {| [] |}]
+;;
