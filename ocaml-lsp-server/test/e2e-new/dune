@@ -17,6 +17,7 @@
    (package ocaml-lsp-server)))
  (libraries
   unix
+  csexp
   stdune
   dune-rpc
   fiber
@@ -87,6 +88,7 @@
     dune_diagnostic_aggregation
     dune_diagnostic_conversion
     dune_diagnostics
+    dune_fake_diagnostics
     dune_formatting
     dune_nested_root
     dune_progress
