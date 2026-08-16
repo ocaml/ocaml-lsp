@@ -129,10 +129,17 @@ let compute server (params : CodeActionParams.t) =
   match doc with
   | None -> Fiber.return (Reply.now (actions dune_actions), state)
   | Some doc ->
-    let capabilities = Capabilities.show_document (State.client_capabilities state) in
+    let client_capabilities = State.client_capabilities state in
+    let capabilities = Capabilities.show_document client_capabilities in
     let open_related =
       if kind_is_requested Action_open_related.kind
-      then Action_open_related.for_uri capabilities doc
+      then (
+        let can_create_file =
+          Capabilities.workspace_edit_resource_operation
+            client_capabilities
+            ~operation:ResourceOperationKind.Create
+        in
+        Action_open_related.for_uri ~can_create_file capabilities doc)
       else []
     in
     let open_dune =

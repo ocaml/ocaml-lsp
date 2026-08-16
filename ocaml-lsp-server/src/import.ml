@@ -247,6 +247,7 @@ include struct
   module PublishDiagnosticsParams = PublishDiagnosticsParams
   module PublishDiagnosticsClientCapabilities = PublishDiagnosticsClientCapabilities
   module ReferenceParams = ReferenceParams
+  module ResourceOperationKind = ResourceOperationKind
   module Registration = Registration
   module RegistrationParams = RegistrationParams
   module RenameOptions = RenameOptions

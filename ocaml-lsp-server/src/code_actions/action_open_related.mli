@@ -4,4 +4,9 @@ val command_name : string
 val kind : CodeActionKind.t
 val available : ShowDocumentClientCapabilities.t option -> bool
 val command_run : _ Server.t -> ExecuteCommandParams.t -> Json.t Fiber.t
-val for_uri : ShowDocumentClientCapabilities.t option -> Document.t -> CodeAction.t list
+
+val for_uri
+  :  can_create_file:bool
+  -> ShowDocumentClientCapabilities.t option
+  -> Document.t
+  -> CodeAction.t list

@@ -16,6 +16,9 @@
 - Offer the unused-code quick fixes again: they matched diagnostic messages the
   server does not emit, and marking an unused `open!` produced `open!!`.
   (#2117, fixes #2116, @dayangac)
+- Offer to create a missing implementation or interface counterpart only when
+  the client supports the create resource operation. (#2115, fixes #2114,
+  @dayangac)
 - Tag unused and deprecated values in diagnostics, so clients can grey them out
   or strike them through. (#2110, fixes #2109, @dayangac)
 - Honor client support for deprecation tags in workspace-symbol results.

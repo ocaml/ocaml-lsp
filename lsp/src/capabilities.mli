@@ -108,6 +108,10 @@ val workspace_symbol_tag_support : t -> SymbolTag.t list option
 (** Whether the client supports document changes in workspace edits. *)
 val workspace_edit_document_changes : t -> bool
 
+(** Whether the client supports [operation] in workspace edits. Resource
+    operations require document-changes support. *)
+val workspace_edit_resource_operation : t -> operation:ResourceOperationKind.t -> bool
+
 (* Window *)
 
 val show_document : t -> ShowDocumentClientCapabilities.t option
