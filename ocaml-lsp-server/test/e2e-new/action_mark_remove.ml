@@ -337,3 +337,56 @@ type t =
 
      | B |}]
 ;;
+
+let%expect_test "deprecated alert text is not an unused diagnostic" =
+  let source =
+    {ocaml|module M = struct let x = 1 end [@@deprecated "do not use: unused open"]
+open M
+let y = x
+|ocaml}
+  in
+  let published_diagnostics = Fiber.Ivar.create () in
+  let handler =
+    Client.Handler.make
+      ~on_notification:(fun _ -> function
+         | PublishDiagnostics diagnostics ->
+           let* filled = Fiber.Ivar.peek published_diagnostics in
+           (match filled with
+            | Some _ -> Fiber.return ()
+            | None -> Fiber.Ivar.fill published_diagnostics diagnostics)
+         | _ -> Fiber.return ())
+      ()
+  in
+  Test.run_initialized ~handler (fun client ->
+    let* () = Test.open_document ~client ~uri:Helpers.uri ~source () in
+    let* { PublishDiagnosticsParams.diagnostics; _ } =
+      Fiber.Ivar.read published_diagnostics
+    in
+    let diagnostic =
+      List.find_exn diagnostics ~f:(fun (diagnostic : Diagnostic.t) ->
+        let message =
+          match diagnostic.message with
+          | `String message -> message
+          | `MarkupContent { value; _ } -> value
+        in
+        String.is_prefix message ~prefix:"Alert deprecated")
+    in
+    let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
+    let context =
+      CodeActionContext.create
+        ~diagnostics:[ diagnostic ]
+        ~only:[ CodeActionKind.QuickFix ]
+        ()
+    in
+    let params =
+      CodeActionParams.create ~textDocument ~range:diagnostic.range ~context ()
+    in
+    let* response = Client.request client (CodeAction params) in
+    Code_actions.print_code_action_result
+      ~filter:(function
+        | `CodeAction { title; _ } -> String.equal title "Remove unused open"
+        | `Command _ -> false)
+      response;
+    Test.shutdown_client client);
+  [%expect {| No code actions |}]
+;;
