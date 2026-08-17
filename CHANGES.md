@@ -2,6 +2,13 @@
 
 ## Features
 
+- Link the odoc markup of documentation comments through
+  `textDocument/documentLink`: the target of a `{{:...}}` link and of a `@see`
+  tag is its url, and a `{!...}` cross-reference resolves, on
+  `documentLink/resolve`, to the definition it names.
+  (#2139, fixes #436, @N1ark)
+- Resolve odoc cross-references in hovered documentation tooltips.
+  (#2139, fixes #436, @N1ark)
 - Report Dune RPC, build progress, and Merlin configuration process activity
   through LSP trace notifications. (#1899, @rgrinberg)
 - Add a code action to open the closest Dune file for the current document.
@@ -10,6 +17,9 @@
 
 ## Fixes
 
+- Stop percent-encoding sub-delimiters such as `=`, `&` and `,` in the query
+  and the fragment of a URI. RFC 3986 permits them there, and encoding them
+  changed the value a client read back out. (#2139, @N1ark)
 - Return document symbol kinds the client supports, falling back to
   `Constructor` and `Class` when it does not advertise the newer kinds.
   (#2122, fixes #2121, @dayangac)

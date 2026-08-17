@@ -60,6 +60,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
          ())
   in
   let codeLensProvider = CodeLensOptions.create ~resolveProvider:false () in
+  let documentLinkProvider = DocumentLinkOptions.create ~resolveProvider:true () in
   let completionProvider =
     CompletionOptions.create ~triggerCharacters:[ "."; "#" ] ~resolveProvider:true ()
   in
@@ -171,6 +172,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ~documentRangeFormattingProvider:(`Bool true)
       ~selectionRangeProvider:(`Bool true)
       ~documentSymbolProvider:(`Bool true)
+      ~documentLinkProvider
       ~workspaceSymbolProvider:(`Bool true)
       ~foldingRangeProvider:(`Bool true)
       ?semanticTokensProvider
@@ -718,8 +720,10 @@ let on_request
   | TextDocumentRename req -> later Rename.rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
   | SignatureHelp req -> later Signature_help.run req
-  | TextDocumentLinkResolve l -> now l
-  | TextDocumentLink _ -> now None
+  | TextDocumentLinkResolve link ->
+    later (fun state () -> Document_link.resolve state link) ()
+  | TextDocumentLink { textDocument = { uri }; _ } ->
+    later (fun state () -> Document_link.run state uri) ()
   | WillSaveWaitUntilTextDocument _ -> now None
   | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
     later

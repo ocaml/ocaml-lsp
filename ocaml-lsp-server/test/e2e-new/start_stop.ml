@@ -168,6 +168,7 @@ let%expect_test "start/stop" =
         "definitionProvider": true,
         "documentFormattingProvider": true,
         "documentHighlightProvider": true,
+        "documentLinkProvider": { "resolveProvider": true },
         "documentRangeFormattingProvider": true,
         "documentSymbolProvider": true,
         "executeCommandProvider": {

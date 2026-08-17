@@ -130,6 +130,22 @@ let%expect_test "JSON URI serialization normalizes wire spelling" =
     |}]
 ;;
 
+let%expect_test "sub-delimiters in a query and in a fragment" =
+  let test source =
+    Printf.printf "%s -> %s\n" source (Uri.of_string source |> Uri.to_string)
+  in
+  test "https://ocaml.org/search?q=a+b&page=1";
+  test "file:///foo.ml#L3,4";
+  (* [#] would be read back as the start of the fragment. *)
+  test "https://ocaml.org/?q=%23tag";
+  [%expect
+    {|
+    https://ocaml.org/search?q=a+b&page=1 -> https://ocaml.org/search?q=a+b&page=1
+    file:///foo.ml#L3,4 -> file:///foo.ml#L3,4
+    https://ocaml.org/?q=%23tag -> https://ocaml.org/?q=%23tag
+    |}]
+;;
+
 let%expect_test "an unescaped Unicode URI query is preserved" =
   let uri = Uri.of_string "file:///foo.ml?search=😀&limit=1" in
   Printf.printf
@@ -139,7 +155,7 @@ let%expect_test "an unescaped Unicode URI query is preserved" =
   [%expect
     {|
     query: search=😀&limit=1
-    serialized: file:///foo.ml?search%3D%F0%9F%98%80%26limit%3D1
+    serialized: file:///foo.ml?search=%F0%9F%98%80&limit=1
     |}]
 ;;
 

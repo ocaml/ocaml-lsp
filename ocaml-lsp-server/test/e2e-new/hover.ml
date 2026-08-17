@@ -445,3 +445,32 @@ let f ({ px; py } as p : point) = px + py
     }
     |}]
 ;;
+
+(* A cross-reference resolves to the definition it names, so the popup can link
+   it. The kind qualifying one is not part of what the reader should see. *)
+let%expect_test "links cross-references in hover documentation" =
+  let source =
+    {ocaml|type t = Foo
+
+(** Knows whether a {!t} is {!Foo}, unlike {!val:missing}. *)
+let is_foo Foo = true
+|ocaml}
+  in
+  Hover_helpers.test_hover
+    ~capabilities:Hover_helpers.markdown_capabilities
+    source
+    [ Position.create ~line:3 ~character:4 ];
+  [%expect
+    {|
+    {
+      "contents": {
+        "kind": "markdown",
+        "value": "```ocaml\nt -> bool\n```\n***\nKnows whether a [`t`](file:///test.ml#L1,6) is [`Foo`](file:///test.ml#L1,10), unlike `missing`."
+      },
+      "range": {
+        "end": { "character": 10, "line": 3 },
+        "start": { "character": 4, "line": 3 }
+      }
+    }
+    |}]
+;;
