@@ -170,6 +170,14 @@ let%expect_test "code lens result is nullable" =
   [%expect {| code lens null: rejected |}]
 ;;
 
+let%expect_test "workspace folders result is nullable" =
+  check_decode
+    "workspace folders null"
+    (Server_request.response_of_json Server_request.WorkspaceFolders)
+    `Null;
+  [%expect {| workspace folders null: rejected |}]
+;;
+
 let%expect_test "workspace symbol decoding inspects every result" =
   let workspace_symbols =
     `List
