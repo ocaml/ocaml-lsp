@@ -3,7 +3,7 @@ open Types
 
 type _ t =
   | WorkspaceApplyEdit : ApplyWorkspaceEditParams.t -> ApplyWorkspaceEditResult.t t
-  | WorkspaceFolders : WorkspaceFolder.t list t
+  | WorkspaceFolders : WorkspaceFolder.t list option t
   | WorkspaceConfiguration : ConfigurationParams.t -> Json.t list t
   | ClientRegisterCapability : RegistrationParams.t -> unit t
   | ClientUnregisterCapability : UnregistrationParams.t -> unit t

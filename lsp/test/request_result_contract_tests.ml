@@ -175,7 +175,7 @@ let%expect_test "workspace folders result is nullable" =
     "workspace folders null"
     (Server_request.response_of_json Server_request.WorkspaceFolders)
     `Null;
-  [%expect {| workspace folders null: rejected |}]
+  [%expect {| workspace folders null: accepted |}]
 ;;
 
 let%expect_test "workspace symbol decoding inspects every result" =
