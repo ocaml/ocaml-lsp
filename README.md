@@ -106,10 +106,13 @@ $ make install
 ### Additional package installations
 
 - Install [ocamlformat](https://github.com/ocaml-ppx/ocamlformat#installation)
-  package if you want source file formatting support.
-
-  Note: To have source file formatting support in your project, there needs to
-  be an `.ocamlformat` file present in your project's root directory.
+  or [ocp-indent](https://github.com/OCamlPro/ocp-indent) if you want source file
+  formatting support. Configuration discovery walks from the document's
+  directory up to its containing workspace root, and the closest formatter
+  configuration wins. If a directory contains both `.ocamlformat` and
+  `.ocp-indent`, OCaml-LSP selects `ocamlformat`. With neither configuration, it
+  prefers `ocamlformat` when available and otherwise falls back to `ocp-indent`.
+  Unlike `ocamlformat`, `ocp-indent` only adjusts indentation.
 
 - OCaml-LSP also uses a program called `ocamlformat-rpc` to format code that is
   either generated or displayed by OCaml-LSP, e.g., when you hover over a module

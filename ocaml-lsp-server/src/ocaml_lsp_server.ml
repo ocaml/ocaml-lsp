@@ -381,20 +381,29 @@ module Formatter = struct
       Some (Diff.edit ~from:(Document.Dune.text doc) ~to_)
   ;;
 
+  let workspace_root rpc doc =
+    let state : State.t = Server.state rpc in
+    Workspaces.find_workspace_folder (State.workspaces state) (Document.uri doc)
+    |> Option.map ~f:(fun (folder : WorkspaceFolder.t) -> folder.uri)
+  ;;
+
   let run rpc doc =
     match Document.kind doc with
-    | `Merlin merlin -> run_ocamlformat rpc (Ocamlformat.run merlin)
+    | `Merlin merlin ->
+      let workspace_root = workspace_root rpc doc in
+      run_ocamlformat rpc (Ocamlformat.run ~workspace_root merlin)
     | `Other ->
       (match Document.dune doc with
-       | Some dune -> run_dune rpc dune
-       | None -> Fiber.return None)
+       | None -> Fiber.return None
+       | Some dune -> run_dune rpc dune)
   ;;
 
   let run_on_range rpc doc range =
     match Document.syntax doc with
     | Dune | Cram -> Fiber.return None
     | Ocaml | Reason | Mlx | Ocamllex | Menhir ->
-      run_ocamlformat rpc (Ocamlformat.run_on_range doc range)
+      let workspace_root = workspace_root rpc doc in
+      Ocamlformat.run_on_range ~workspace_root doc range |> run_ocamlformat rpc
   ;;
 end
 

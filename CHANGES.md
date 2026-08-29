@@ -2,6 +2,8 @@
 
 ## Features
 
+- Support `ocp-indent` as an alternative for document and range formatting.
+  (#2148, @rgrinberg)
 - Support `textDocument/onTypeFormatting` through the optional, persistent
   `ocp-indent-rpc` helper. (#1986, @rgrinberg)
 - Report Dune RPC, build progress, and Merlin configuration process activity

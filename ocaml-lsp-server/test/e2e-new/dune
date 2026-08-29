@@ -12,6 +12,7 @@
   (deps
    %{bin:ocaml-index}
    %{bin:ocamlformat-rpc}
+   %{bin:ocp-indent}
    %{bin:ocp-indent-rpc}
    for_ppx.ml
    for_pp.ml
