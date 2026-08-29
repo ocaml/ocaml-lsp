@@ -167,7 +167,7 @@ let%expect_test "code lens result is nullable" =
        (Client_request.TextDocumentCodeLens
           (CodeLensParams.create ~textDocument:protocol_document ())))
     `Null;
-  [%expect {| code lens null: rejected |}]
+  [%expect {| code lens null: accepted |}]
 ;;
 
 let%expect_test "workspace folders result is nullable" =

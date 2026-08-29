@@ -1,10 +1,13 @@
 open Test.Import
 
 let codelens client textDocument =
-  Client.request
-    client
-    (TextDocumentCodeLens
-       { textDocument; workDoneToken = None; partialResultToken = None })
+  let+ result =
+    Client.request
+      client
+      (TextDocumentCodeLens
+         { textDocument; workDoneToken = None; partialResultToken = None })
+  in
+  Option.value_exn result
 ;;
 
 let%expect_test "can add the first workspace folder after initialization" =

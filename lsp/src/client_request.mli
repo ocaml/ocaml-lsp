@@ -13,7 +13,7 @@ type _ t =
   | TextDocumentCompletion :
       CompletionParams.t
       -> [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ] option t
-  | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
+  | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list option t
   | InlayHint : InlayHintParams.t -> InlayHint.t list option t
   | InlayHintResolve : InlayHint.t -> InlayHint.t t
   | TextDocumentDiagnostic : DocumentDiagnosticParams.t -> DocumentDiagnosticReport.t t

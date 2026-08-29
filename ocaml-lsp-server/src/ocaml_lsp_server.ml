@@ -709,8 +709,12 @@ let on_request
   | TextDocumentCodeLens req ->
     (match state.configuration.data.codelens with
      | Some { enable = true; for_nested_bindings } ->
-       later (text_document_lens ~for_nested_bindings) req
-     | _ -> now [])
+       later
+         (fun state req ->
+            let+ result = text_document_lens ~for_nested_bindings state req in
+            Some result)
+         req
+     | _ -> now (Some []))
   | TextDocumentHighlight req -> later highlight req
   | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
   | TextDocumentDeclaration { textDocument = { uri }; position; _ } ->
