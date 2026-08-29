@@ -116,6 +116,10 @@ $ make install
   identifier, you can see its typed nicely formatted. This program comes with
   `ocamlformat` (version > 0.21.0). Previously, it was a standalone package.
 
+- Install the `ocp-indent-rpc` package to enable indentation as you type. The
+  server starts this helper lazily and keeps it running, so `ocp-indent` is not
+  executed separately for every keystroke.
+
 ## Usage
 
 Usually, your code editor, or some extension/plugin that you install on it, is
@@ -187,7 +191,7 @@ The server supports the following LSP requests (inexhaustive list):
 - [ ] `textDocument/colorPresentation`
 - [x] `textDocument/formatting`
 - [x] `textDocument/rangeFormatting`
-- [ ] `textDocument/onTypeFormatting`
+- [x] `textDocument/onTypeFormatting` (requires `ocp-indent-rpc`)
 - [x] `textDocument/prepareRename`
 - [x] `textDocument/foldingRange`
 - [x] `textDocument/selectionRange`

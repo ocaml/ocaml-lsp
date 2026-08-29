@@ -169,6 +169,8 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
       ~documentHighlightProvider:(`Bool true)
       ~documentFormattingProvider:(`Bool true)
       ~documentRangeFormattingProvider:(`Bool true)
+      ~documentOnTypeFormattingProvider:
+        (DocumentOnTypeFormattingOptions.create ~firstTriggerCharacter:"\n" ())
       ~selectionRangeProvider:(`Bool true)
       ~documentSymbolProvider:(`Bool true)
       ~workspaceSymbolProvider:(`Bool true)
@@ -733,7 +735,15 @@ let on_request
          let doc = Document_store.get store uri in
          Formatter.run_on_range rpc doc range)
       ()
-  | TextDocumentOnTypeFormatting _ -> now None
+  | TextDocumentOnTypeFormatting { textDocument = { uri }; position; ch; _ } ->
+    (match ch with
+     | "\n" ->
+       later
+         (fun state () ->
+            let doc = Document_store.get store uri in
+            Ocp_indent.format_on_type state.ocp_indent doc position)
+         ()
+     | _ -> now (Some []))
   | SelectionRange req -> later selection_range req
   | TextDocumentImplementation _ -> Server.not_supported ()
   | SemanticTokensFull p -> later Semantic_highlighting.on_request_full p
@@ -877,6 +887,7 @@ let start stream =
     Server.Handler.make ~on_request ~on_notification ()
   in
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
+  let ocp_indent = Ocp_indent.create () in
   let* configuration = Configuration.default () in
   let wheel = Configuration.wheel configuration in
   let* merlin = Lev_fiber.Thread.create () in
@@ -891,6 +902,7 @@ let start stream =
             ~store
             ~merlin
             ~ocamlformat_rpc
+            ~ocp_indent
             ~configuration
             ~detached
             ~symbols_thread
@@ -940,6 +952,7 @@ let start stream =
         [ Document_store.close_all store
         ; Fiber.Pool.stop detached
         ; Ocamlformat_rpc.stop ocamlformat_rpc
+        ; Ocp_indent.stop ocp_indent
         ; Lev_fiber.Timer.Wheel.stop wheel
         ; Merlin_config.DB.stop state.merlin_config
         ; Fiber.of_thunk (fun () ->

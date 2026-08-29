@@ -1,0 +1,12 @@
+(library
+ (name ocp_indent_rpc_tests)
+ (inline_tests
+  (deps %{bin:ocp-indent-rpc}))
+ (libraries
+  csexp
+  unix
+  ppx_expect.config
+  ppx_expect.config_types
+  ppx_inline_test.config)
+ (preprocess
+  (pps ppx_expect)))
