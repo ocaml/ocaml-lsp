@@ -160,6 +160,16 @@ let%expect_test "workspace symbol and nullable results" =
     |}]
 ;;
 
+let%expect_test "code lens result is nullable" =
+  check_response
+    "code lens null"
+    (Client_request.E
+       (Client_request.TextDocumentCodeLens
+          (CodeLensParams.create ~textDocument:protocol_document ())))
+    `Null;
+  [%expect {| code lens null: rejected |}]
+;;
+
 let%expect_test "workspace symbol decoding inspects every result" =
   let workspace_symbols =
     `List
