@@ -732,7 +732,12 @@ let on_request
       req
   | TextDocumentRename req -> later Rename.rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
-  | SignatureHelp req -> later Signature_help.run req
+  | SignatureHelp req ->
+    later
+      (fun state req ->
+         let+ result = Signature_help.run state req in
+         Some result)
+      req
   | TextDocumentLinkResolve l -> now l
   | TextDocumentLink _ -> now None
   | WillSaveWaitUntilTextDocument _ -> now None

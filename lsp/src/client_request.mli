@@ -59,7 +59,7 @@ type _ t =
   | TextDocumentReferences : ReferenceParams.t -> Location.t list option t
   | TextDocumentHighlight : DocumentHighlightParams.t -> DocumentHighlight.t list option t
   | TextDocumentFoldingRange : FoldingRangeParams.t -> FoldingRange.t list option t
-  | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t t
+  | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t option t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
   | CodeActionResolve : CodeAction.t -> CodeAction.t t
   | CompletionItemResolve : CompletionItem.t -> CompletionItem.t t

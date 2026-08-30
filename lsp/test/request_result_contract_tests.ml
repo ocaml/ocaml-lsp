@@ -154,7 +154,7 @@ let%expect_test "workspace symbol and nullable results" =
   [%expect
     {|
     workspace symbol: rejected
-    signature help null: rejected
+    signature help null: accepted
     selection range null: rejected
     rename null: rejected
     |}]

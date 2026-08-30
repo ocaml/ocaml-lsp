@@ -59,7 +59,7 @@ type _ t =
   | TextDocumentReferences : ReferenceParams.t -> Location.t list option t
   | TextDocumentHighlight : DocumentHighlightParams.t -> DocumentHighlight.t list option t
   | TextDocumentFoldingRange : FoldingRangeParams.t -> FoldingRange.t list option t
-  | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t t
+  | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t option t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
   | CodeActionResolve : CodeAction.t -> CodeAction.t t
   | CompletionItemResolve : CompletionItem.t -> CompletionItem.t t
@@ -182,7 +182,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Json.Option.yojson_of_t (Json.To.list FoldingRange.yojson_of_t) result
   | TextDocumentMoniker _, result ->
     Json.Option.yojson_of_t (Json.To.list Moniker.yojson_of_t) result
-  | SignatureHelp _, result -> SignatureHelp.yojson_of_t result
+  | SignatureHelp _, result -> Json.Option.yojson_of_t SignatureHelp.yojson_of_t result
   | CodeAction _, result -> CodeActionResult.yojson_of_t result
   | CodeActionResolve _, result -> CodeAction.yojson_of_t result
   | CompletionItemResolve _, result -> CompletionItem.yojson_of_t result
@@ -601,7 +601,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
     option_of_yojson (list_of_yojson DocumentHighlight.t_of_yojson) json
   | TextDocumentFoldingRange _ ->
     option_of_yojson (list_of_yojson FoldingRange.t_of_yojson) json
-  | SignatureHelp _ -> SignatureHelp.t_of_yojson json
+  | SignatureHelp _ -> option_of_yojson SignatureHelp.t_of_yojson json
   | CodeAction _ -> CodeActionResult.t_of_yojson json
   | CodeActionResolve _ -> CodeAction.t_of_yojson json
   | CompletionItemResolve _ -> CompletionItem.t_of_yojson json
