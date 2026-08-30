@@ -39,7 +39,7 @@ type _ t =
   | TextDocumentRangesFormatting :
       DocumentRangesFormattingParams.t
       -> TextEdit.t list option t
-  | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
+  | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t option t
   | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | TextDocumentMoniker : MonikerParams.t -> Moniker.t list option t
@@ -170,7 +170,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result
   | TextDocumentRangesFormatting _, result ->
     Json.Option.yojson_of_t (Json.To.list TextEdit.yojson_of_t) result
-  | TextDocumentRename _, result -> WorkspaceEdit.yojson_of_t result
+  | TextDocumentRename _, result ->
+    Json.Option.yojson_of_t WorkspaceEdit.yojson_of_t result
   | DocumentSymbol _, result -> yojson_of_DocumentSymbol result
   | DebugEcho _, result -> DebugEcho.Result.yojson_of_t result
   | DebugTextDocumentGet _, result -> DebugTextDocumentGet.Result.yojson_of_t result
@@ -579,7 +580,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
     option_of_yojson (list_of_yojson TextEdit.t_of_yojson) json
   | TextDocumentRangesFormatting _ ->
     option_of_yojson (list_of_yojson TextEdit.t_of_yojson) json
-  | TextDocumentRename _ -> WorkspaceEdit.t_of_yojson json
+  | TextDocumentRename _ -> option_of_yojson WorkspaceEdit.t_of_yojson json
   | TextDocumentLink _ -> option_of_yojson (list_of_yojson DocumentLink.t_of_yojson) json
   | TextDocumentLinkResolve _ -> DocumentLink.t_of_yojson json
   | TextDocumentMoniker _ -> option_of_yojson (list_of_yojson Moniker.t_of_yojson) json

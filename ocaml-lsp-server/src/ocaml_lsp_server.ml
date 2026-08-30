@@ -730,7 +730,12 @@ let on_request
          let+ result = Rename.prepare state req in
          Option.map result ~f:(fun range -> `Range range))
       req
-  | TextDocumentRename req -> later Rename.rename req
+  | TextDocumentRename req ->
+    later
+      (fun state req ->
+         let+ result = Rename.rename state req in
+         Some result)
+      req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
   | SignatureHelp req ->
     later
