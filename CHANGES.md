@@ -14,6 +14,8 @@
 
 ## Fixes
 
+- Return only inlay hints within the range requested by the client. (#2155,
+  @rgrinberg)
 - Return document symbol kinds the client supports, falling back to
   `Constructor` and `Class` when it does not advertise the newer kinds.
   (#2122, fixes #2121, @dayangac)
