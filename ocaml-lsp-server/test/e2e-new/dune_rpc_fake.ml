@@ -158,6 +158,7 @@ let start ?(diagnostics = fun _root -> []) ?(progress = []) name =
   let pid =
     match Unix.fork () with
     | 0 ->
+      Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
       let connection, _ = Unix.accept listener in
       Unix.close listener;
       (match serve connection ~diagnostics ~progress with
