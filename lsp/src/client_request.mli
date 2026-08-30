@@ -74,7 +74,7 @@ type _ t =
       ColorPresentationParams.t
       -> ColorPresentation.t list t
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
-  | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
+  | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list option t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
   | SemanticTokensFull : SemanticTokensParams.t -> SemanticTokens.t option t
   | SemanticTokensDelta :

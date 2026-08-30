@@ -74,7 +74,7 @@ type _ t =
       ColorPresentationParams.t
       -> ColorPresentation.t list t
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
-  | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
+  | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list option t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
   | SemanticTokensFull : SemanticTokensParams.t -> SemanticTokens.t option t
   | SemanticTokensDelta :
@@ -200,7 +200,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentColorPresentation _, result ->
     Json.To.list ColorPresentation.yojson_of_t result
   | TextDocumentColor _, result -> Json.To.list ColorInformation.yojson_of_t result
-  | SelectionRange _, result -> Json.yojson_of_list SelectionRange.yojson_of_t result
+  | SelectionRange _, result ->
+    Json.Option.yojson_of_t (Json.To.list SelectionRange.yojson_of_t) result
   | SemanticTokensFull _, result ->
     Json.Option.yojson_of_t SemanticTokens.yojson_of_t result
   | SemanticTokensDelta _, result -> yojson_of_SemanticTokensDelta result
@@ -613,7 +614,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
     option_of_yojson (list_of_yojson TextEdit.t_of_yojson) json
   | TextDocumentColorPresentation _ -> list_of_yojson ColorPresentation.t_of_yojson json
   | TextDocumentColor _ -> list_of_yojson ColorInformation.t_of_yojson json
-  | SelectionRange _ -> list_of_yojson SelectionRange.t_of_yojson json
+  | SelectionRange _ -> option_of_yojson (list_of_yojson SelectionRange.t_of_yojson) json
   | ExecuteCommand _ -> json
   | SemanticTokensFull _ -> option_of_yojson SemanticTokens.t_of_yojson json
   | SemanticTokensDelta _ ->

@@ -155,7 +155,7 @@ let%expect_test "workspace symbol and nullable results" =
     {|
     workspace symbol: rejected
     signature help null: accepted
-    selection range null: rejected
+    selection range null: accepted
     rename null: rejected
     |}]
 ;;

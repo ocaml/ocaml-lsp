@@ -2,9 +2,12 @@ open Test.Import
 
 let selection_range client positions =
   let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
-  Client.request
-    client
-    (SelectionRange (SelectionRangeParams.create ~textDocument ~positions ()))
+  let+ result =
+    Client.request
+      client
+      (SelectionRange (SelectionRangeParams.create ~textDocument ~positions ()))
+  in
+  Option.value_exn result
 ;;
 
 let print_selection_ranges ranges =

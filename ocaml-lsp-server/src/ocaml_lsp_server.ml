@@ -762,7 +762,12 @@ let on_request
             Ocp_indent.format_on_type state.ocp_indent doc position)
          ()
      | _ -> now (Some []))
-  | SelectionRange req -> later selection_range req
+  | SelectionRange req ->
+    later
+      (fun state req ->
+         let+ result = selection_range state req in
+         Some result)
+      req
   | TextDocumentImplementation _ -> Server.not_supported ()
   | SemanticTokensFull p -> later Semantic_highlighting.on_request_full p
   | SemanticTokensDelta p -> later Semantic_highlighting.on_request_full_delta p
