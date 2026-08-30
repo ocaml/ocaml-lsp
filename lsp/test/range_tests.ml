@@ -13,17 +13,17 @@ let print_resize newText =
   Printf.printf "%S -> %s\n" newText (Range.to_string (resize newText))
 ;;
 
-let%expect_test "resize_for_edit drops trailing newlines" =
+let%expect_test "resize_for_edit preserves trailing newlines" =
   List.iter print_resize [ "x\n"; ""; "x"; "ab\ncd"; "a\nb\n"; "ab\n\n"; "\n" ];
   [%expect
     {|
-    "x\n" -> ((2, 5), (2, 6))
+    "x\n" -> ((2, 5), (3, 0))
     "" -> ((2, 5), (2, 5))
     "x" -> ((2, 5), (2, 6))
     "ab\ncd" -> ((2, 5), (3, 2))
-    "a\nb\n" -> ((2, 5), (3, 1))
-    "ab\n\n" -> ((2, 5), (3, 0))
-    "\n" -> ((2, 5), (2, 5))
+    "a\nb\n" -> ((2, 5), (4, 0))
+    "ab\n\n" -> ((2, 5), (4, 0))
+    "\n" -> ((2, 5), (3, 0))
     |}]
 ;;
 

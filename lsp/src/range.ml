@@ -47,27 +47,18 @@ let first_line =
   { start; end_ }
 ;;
 
-let split_lines t =
-  let lines = String.split_on_char ~sep:'\n' t in
-  match List.last lines with
-  | Some "" -> List.rev lines |> List.tl |> List.rev
-  | _ -> lines
-;;
-
 let resize_for_edit { Types.TextEdit.range; newText } =
-  match split_lines newText with
-  | [] -> { range with end_ = range.start }
-  | several_lines ->
-    let end_ =
-      let start = range.start in
-      let line = start.line + List.length several_lines - 1 in
-      let character =
-        let last_line_len = List.last_exn several_lines |> String.length in
-        if line = start.line then start.character + last_line_len else last_line_len
-      in
-      { Position.line; character }
+  let end_ =
+    let lines = String.split_on_char ~sep:'\n' newText in
+    let start = range.start in
+    let line = start.line + List.length lines - 1 in
+    let character =
+      let last_line_len = List.last_exn lines |> String.length in
+      if line = start.line then start.character + last_line_len else last_line_len
     in
-    { range with end_ }
+    { Position.line; character }
+  in
+  { range with end_ }
 ;;
 
 let to_string t =
