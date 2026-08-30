@@ -3,7 +3,7 @@ open Types
 
 type _ t =
   | WorkspaceApplyEdit : ApplyWorkspaceEditParams.t -> ApplyWorkspaceEditResult.t t
-  | WorkspaceFolders : WorkspaceFolder.t list t
+  | WorkspaceFolders : WorkspaceFolder.t list option t
   | WorkspaceConfiguration : ConfigurationParams.t -> Json.t list t
   | ClientRegisterCapability : RegistrationParams.t -> unit t
   | ClientUnregisterCapability : UnregistrationParams.t -> unit t
@@ -112,7 +112,8 @@ let of_jsonrpc (r : Jsonrpc.Request.t) : (packed, string) Result.t =
 let yojson_of_result (type a) (t : a t) (r : a) : Json.t =
   match t, r with
   | WorkspaceApplyEdit _, r -> ApplyWorkspaceEditResult.yojson_of_t r
-  | WorkspaceFolders, r -> Json.Conv.yojson_of_list WorkspaceFolder.yojson_of_t r
+  | WorkspaceFolders, r ->
+    Json.Option.yojson_of_t (Json.To.list WorkspaceFolder.yojson_of_t) r
   | WorkspaceConfiguration _, r -> Json.Conv.yojson_of_list (fun x -> x) r
   | ClientRegisterCapability _, () -> `Null
   | ClientUnregisterCapability _, () -> `Null
@@ -133,7 +134,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
   let open Json.Conv in
   match t with
   | WorkspaceApplyEdit _ -> ApplyWorkspaceEditResult.t_of_yojson json
-  | WorkspaceFolders -> list_of_yojson WorkspaceFolder.t_of_yojson json
+  | WorkspaceFolders -> option_of_yojson (list_of_yojson WorkspaceFolder.t_of_yojson) json
   | WorkspaceConfiguration _ -> list_of_yojson (fun x -> x) json
   | ClientRegisterCapability _ -> unit_of_yojson json
   | ClientUnregisterCapability _ -> unit_of_yojson json
