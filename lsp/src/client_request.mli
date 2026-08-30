@@ -2,6 +2,11 @@ open! Import
 open Types
 open Extension
 
+type workspace_symbol_result =
+  [ `SymbolInformation of SymbolInformation.t list
+  | `WorkspaceSymbol of WorkspaceSymbol.t list
+  ]
+
 type _ t =
   | Shutdown : unit t
   | Initialize : InitializeParams.t -> InitializeResult.t t
@@ -50,7 +55,7 @@ type _ t =
          ]
            option
            t
-  | WorkspaceSymbol : WorkspaceSymbolParams.t -> SymbolInformation.t list option t
+  | WorkspaceSymbol : WorkspaceSymbolParams.t -> workspace_symbol_result option t
   | WorkspaceSymbolResolve : WorkspaceSymbol.t -> WorkspaceSymbol.t t
   | DebugEcho : DebugEcho.Params.t -> DebugEcho.Result.t t
   | DebugTextDocumentGet :

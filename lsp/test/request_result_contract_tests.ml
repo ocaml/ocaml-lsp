@@ -145,7 +145,7 @@ let%expect_test "workspace symbol and nullable results" =
     `Null;
   [%expect
     {|
-    workspace symbol: rejected
+    workspace symbol: accepted
     signature help null: accepted
     selection range null: accepted
     rename null: accepted
@@ -170,6 +170,36 @@ let%expect_test "workspace folders result is nullable" =
   [%expect {| workspace folders null: accepted |}]
 ;;
 
+let%expect_test "workspace symbol result preserves resolvable fields" =
+  let workspace_symbol =
+    `List
+      [ `Assoc
+          [ "data", `String "symbol-id"
+          ; "kind", `Int 12
+          ; "location", `Assoc [ "uri", DocumentUri.yojson_of_t protocol_uri ]
+          ; "name", `String "value"
+          ]
+      ]
+  in
+  round_trip_response
+    "workspace symbol"
+    (Client_request.E
+       (Client_request.WorkspaceSymbol (WorkspaceSymbolParams.create ~query:"value" ())))
+    workspace_symbol;
+  [%expect
+    {|
+    workspace symbol:
+    [
+      {
+        "data": "symbol-id",
+        "kind": 12,
+        "location": { "uri": "file:///workspace/test.ml" },
+        "name": "value"
+      }
+    ]
+    |}]
+;;
+
 let%expect_test "workspace symbol decoding inspects every result" =
   let workspace_symbols =
     `List
@@ -191,5 +221,5 @@ let%expect_test "workspace symbol decoding inspects every result" =
     (Client_request.E
        (Client_request.WorkspaceSymbol (WorkspaceSymbolParams.create ~query:"value" ())))
     workspace_symbols;
-  [%expect {| workspace symbols: rejected |}]
+  [%expect {| workspace symbols: accepted |}]
 ;;
