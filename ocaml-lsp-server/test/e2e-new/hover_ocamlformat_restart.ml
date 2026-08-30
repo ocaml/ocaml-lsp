@@ -137,3 +137,51 @@ let%expect_test "restart ocamlformat-rpc after process exit" =
     }
     |}]
 ;;
+
+let%expect_test "reports a failed ocamlformat-rpc version negotiation" =
+  let temp = Test.temp_dir "ocamllsp-ocamlformat-negotiation-" in
+  let bin_dir = Filename.concat temp "bin" in
+  Unix.mkdir bin_dir 0o700;
+  let fake = Filename.concat bin_dir "ocamlformat-rpc" in
+  Test.write_file fake "#!/bin/sh\necho not-a-csexp-response\n";
+  Unix.chmod fake 0o700;
+  Fun.protect
+    ~finally:(fun () -> ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int))
+    (fun () ->
+       let errors = Mailbox.create () in
+       let on_notification _ = function
+         | Lsp.Server_notification.LogMessage { message; type_ = Error; _ } ->
+           Mailbox.push errors message
+         | _ -> Fiber.return ()
+       in
+       let handler = Client.Handler.make ~on_notification () in
+       Test.run_initialized
+         ~extra_env:
+           (let path = bin_dir ^ ":" ^ Option.value (Sys.getenv_opt "PATH") ~default:"" in
+            [ "PATH=" ^ path ])
+         ~handler
+       @@ fun client ->
+       let uri = Uri.of_path (Filename.concat temp "negotiation.ml") in
+       let* () =
+         let text = "let map = List.map\n" in
+         Dune_rpc_test.open_document client ~uri ~text
+       in
+       let* (_ : Hover.t option) =
+         let position = Position.create ~line:0 ~character:15 in
+         Hover_helpers.hover ~uri client position
+       in
+       print_endline "hover completed";
+       let* message = Mailbox.wait errors in
+       let prefix =
+         "An error happened when negotiating with the OCamlformat-RPC server: "
+       in
+       if String.is_prefix message ~prefix
+       then print_endline "negotiation failure reported"
+       else Printf.printf "unexpected message: %s\n" message;
+       Test.exit_client client);
+  [%expect
+    {|
+    hover completed
+    negotiation failure reported
+    |}]
+;;
