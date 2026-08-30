@@ -6279,6 +6279,7 @@ module Locations : sig
   type t =
     [ `Location of Location.t list
     | `LocationLink of LocationLink.t list
+    | `SingleLocation of Location.t
     ]
 
   include Json.Jsonable.S with type t := t

@@ -65,45 +65,37 @@ let%expect_test "definition-like result wire shapes" =
   [%expect
     {|
     definition:
-    [
-      {
-        "range": {
-          "end": { "character": 4, "line": 2 },
-          "start": { "character": 4, "line": 2 }
-        },
-        "uri": "file:///workspace/test.ml"
-      }
-    ]
+    {
+      "range": {
+        "end": { "character": 4, "line": 2 },
+        "start": { "character": 4, "line": 2 }
+      },
+      "uri": "file:///workspace/test.ml"
+    }
     declaration:
-    [
-      {
-        "range": {
-          "end": { "character": 4, "line": 2 },
-          "start": { "character": 4, "line": 2 }
-        },
-        "uri": "file:///workspace/test.ml"
-      }
-    ]
+    {
+      "range": {
+        "end": { "character": 4, "line": 2 },
+        "start": { "character": 4, "line": 2 }
+      },
+      "uri": "file:///workspace/test.ml"
+    }
     type definition:
-    [
-      {
-        "range": {
-          "end": { "character": 4, "line": 2 },
-          "start": { "character": 4, "line": 2 }
-        },
-        "uri": "file:///workspace/test.ml"
-      }
-    ]
+    {
+      "range": {
+        "end": { "character": 4, "line": 2 },
+        "start": { "character": 4, "line": 2 }
+      },
+      "uri": "file:///workspace/test.ml"
+    }
     implementation:
-    [
-      {
-        "range": {
-          "end": { "character": 4, "line": 2 },
-          "start": { "character": 4, "line": 2 }
-        },
-        "uri": "file:///workspace/test.ml"
-      }
-    ]
+    {
+      "range": {
+        "end": { "character": 4, "line": 2 },
+        "start": { "character": 4, "line": 2 }
+      },
+      "uri": "file:///workspace/test.ml"
+    }
     |}]
 ;;
 
