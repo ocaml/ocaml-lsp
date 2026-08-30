@@ -159,3 +159,27 @@ let%expect_test "workspace symbol and nullable results" =
     rename null: rejected
     |}]
 ;;
+
+let%expect_test "workspace symbol decoding inspects every result" =
+  let workspace_symbols =
+    `List
+      [ `Assoc
+          [ "kind", `Int 12
+          ; "location", Location.yojson_of_t protocol_location
+          ; "name", `String "resolved"
+          ]
+      ; `Assoc
+          [ "data", `String "symbol-id"
+          ; "kind", `Int 12
+          ; "location", `Assoc [ "uri", DocumentUri.yojson_of_t protocol_uri ]
+          ; "name", `String "unresolved"
+          ]
+      ]
+  in
+  check_response
+    "workspace symbols"
+    (Client_request.E
+       (Client_request.WorkspaceSymbol (WorkspaceSymbolParams.create ~query:"value" ())))
+    workspace_symbols;
+  [%expect {| workspace symbols: rejected |}]
+;;
