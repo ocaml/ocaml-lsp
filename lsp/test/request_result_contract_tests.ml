@@ -167,7 +167,7 @@ let%expect_test "code lens result is nullable" =
        (Client_request.TextDocumentCodeLens
           (CodeLensParams.create ~textDocument:protocol_document ())))
     `Null;
-  [%expect {| code lens null: rejected |}]
+  [%expect {| code lens null: accepted |}]
 ;;
 
 let%expect_test "workspace folders result is nullable" =
@@ -175,7 +175,7 @@ let%expect_test "workspace folders result is nullable" =
     "workspace folders null"
     (Server_request.response_of_json Server_request.WorkspaceFolders)
     `Null;
-  [%expect {| workspace folders null: rejected |}]
+  [%expect {| workspace folders null: accepted |}]
 ;;
 
 let%expect_test "workspace symbol decoding inspects every result" =

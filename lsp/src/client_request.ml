@@ -13,7 +13,7 @@ type _ t =
   | TextDocumentCompletion :
       CompletionParams.t
       -> [ `CompletionList of CompletionList.t | `List of CompletionItem.t list ] option t
-  | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list t
+  | TextDocumentCodeLens : CodeLensParams.t -> CodeLens.t list option t
   | InlayHint : InlayHintParams.t -> InlayHint.t list option t
   | InlayHintResolve : InlayHint.t -> InlayHint.t t
   | TextDocumentDiagnostic : DocumentDiagnosticParams.t -> DocumentDiagnosticReport.t t
@@ -157,7 +157,8 @@ let yojson_of_result (type a) (req : a t) (result : a) =
   | TextDocumentImplementation _, result ->
     Json.Option.yojson_of_t Locations.yojson_of_t result
   | TextDocumentCompletion _, result -> yojson_of_Completion result
-  | TextDocumentCodeLens _, result -> Json.To.list CodeLens.yojson_of_t result
+  | TextDocumentCodeLens _, result ->
+    Json.Option.yojson_of_t (Json.To.list CodeLens.yojson_of_t) result
   | TextDocumentCodeLensResolve _, result -> CodeLens.yojson_of_t result
   | TextDocumentPrepareCallHierarchy _, result ->
     Json.Option.yojson_of_t (Json.To.list CallHierarchyItem.yojson_of_t) result
@@ -568,7 +569,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
          ; (fun json -> `List (list_of_yojson CompletionItem.t_of_yojson json))
          ])
       json
-  | TextDocumentCodeLens _ -> list_of_yojson CodeLens.t_of_yojson json
+  | TextDocumentCodeLens _ -> option_of_yojson (list_of_yojson CodeLens.t_of_yojson) json
   | TextDocumentCodeLensResolve _ -> CodeLens.t_of_yojson json
   | TextDocumentPrepareCallHierarchy _ ->
     option_of_yojson (list_of_yojson CallHierarchyItem.t_of_yojson) json
