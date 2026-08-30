@@ -14,6 +14,8 @@
 
 ## Fixes
 
+- Preserve trailing newlines when computing post-edit ranges. (#2159,
+  @rgrinberg)
 - Return only inlay hints within the range requested by the client. (#2155,
   @rgrinberg)
 - Return document symbol kinds the client supports, falling back to
