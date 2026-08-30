@@ -9,23 +9,21 @@ let resize newText =
   Range.resize_for_edit edit
 ;;
 
-let%expect_test "resize_for_edit preserves trailing newlines" =
-  print_endline (Range.to_string (resize "x\n"));
-  print_endline (Range.to_string (resize ""));
-  print_endline (Range.to_string (resize "x"));
-  print_endline (Range.to_string (resize "ab\ncd"));
-  print_endline (Range.to_string (resize "a\nb\n"));
-  print_endline (Range.to_string (resize "ab\n\n"));
-  print_endline (Range.to_string (resize "\n"));
+let print_resize newText =
+  Printf.printf "%S -> %s\n" newText (Range.to_string (resize newText))
+;;
+
+let%expect_test "resize_for_edit drops trailing newlines" =
+  List.iter print_resize [ "x\n"; ""; "x"; "ab\ncd"; "a\nb\n"; "ab\n\n"; "\n" ];
   [%expect
     {|
-    ((2, 5), (2, 6))
-    ((2, 5), (2, 5))
-    ((2, 5), (2, 6))
-    ((2, 5), (3, 2))
-    ((2, 5), (3, 1))
-    ((2, 5), (3, 0))
-    ((2, 5), (2, 5))
+    "x\n" -> ((2, 5), (2, 6))
+    "" -> ((2, 5), (2, 5))
+    "x" -> ((2, 5), (2, 6))
+    "ab\ncd" -> ((2, 5), (3, 2))
+    "a\nb\n" -> ((2, 5), (3, 1))
+    "ab\n\n" -> ((2, 5), (3, 0))
+    "\n" -> ((2, 5), (2, 5))
     |}]
 ;;
 
