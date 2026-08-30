@@ -2,6 +2,11 @@ open! Import
 open Types
 open Extension
 
+type workspace_symbol_result =
+  [ `SymbolInformation of SymbolInformation.t list
+  | `WorkspaceSymbol of WorkspaceSymbol.t list
+  ]
+
 type _ t =
   | Shutdown : unit t
   | Initialize : InitializeParams.t -> InitializeResult.t t
@@ -50,7 +55,7 @@ type _ t =
          ]
            option
            t
-  | WorkspaceSymbol : WorkspaceSymbolParams.t -> SymbolInformation.t list option t
+  | WorkspaceSymbol : WorkspaceSymbolParams.t -> workspace_symbol_result option t
   | WorkspaceSymbolResolve : WorkspaceSymbol.t -> WorkspaceSymbol.t t
   | DebugEcho : DebugEcho.Params.t -> DebugEcho.Result.t t
   | DebugTextDocumentGet :
@@ -110,6 +115,28 @@ type _ t =
       ; params : Jsonrpc.Structured.t option
       }
       -> Json.t t
+
+let yojson_of_workspace_symbol_result (result : workspace_symbol_result) : Json.t =
+  match result with
+  | `SymbolInformation symbols -> Json.To.list SymbolInformation.yojson_of_t symbols
+  | `WorkspaceSymbol symbols -> Json.To.list WorkspaceSymbol.yojson_of_t symbols
+;;
+
+let workspace_symbol_result_of_yojson json : workspace_symbol_result =
+  let is_workspace_symbol = function
+    | `Assoc fields ->
+      Option.is_some (List.assoc_opt "data" fields)
+      ||
+        (match List.assoc_opt "location" fields with
+        | Some (`Assoc location) -> Option.is_none (List.assoc_opt "range" location)
+        | _ -> false)
+    | _ -> false
+  in
+  match json with
+  | `List symbols when List.exists symbols ~f:is_workspace_symbol ->
+    `WorkspaceSymbol (Json.Of.list WorkspaceSymbol.t_of_yojson json)
+  | _ -> `SymbolInformation (Json.Of.list SymbolInformation.t_of_yojson json)
+;;
 
 let yojson_of_DocumentSymbol ds : Json.t =
   Json.Option.yojson_of_t
@@ -197,7 +224,7 @@ let yojson_of_result (type a) (req : a t) (result : a) =
     Json.Option.yojson_of_t (Json.To.list DocumentLink.yojson_of_t) result
   | TextDocumentLinkResolve _, result -> DocumentLink.yojson_of_t result
   | WorkspaceSymbol _, result ->
-    Json.Option.yojson_of_t (Json.To.list SymbolInformation.yojson_of_t) result
+    Json.Option.yojson_of_t yojson_of_workspace_symbol_result result
   | TextDocumentColorPresentation _, result ->
     Json.To.list ColorPresentation.yojson_of_t result
   | TextDocumentColor _, result -> Json.To.list ColorInformation.yojson_of_t result
@@ -593,8 +620,7 @@ let response_of_json (type a) (t : a t) (json : Json.t) : a =
              `SymbolInformation (list_of_yojson SymbolInformation.t_of_yojson json))
          ])
       json
-  | WorkspaceSymbol _ ->
-    option_of_yojson (list_of_yojson SymbolInformation.t_of_yojson) json
+  | WorkspaceSymbol _ -> option_of_yojson workspace_symbol_result_of_yojson json
   | DebugEcho _ -> DebugEcho.Result.t_of_yojson json
   | DebugTextDocumentGet _ -> DebugTextDocumentGet.Result.t_of_yojson json
   | TextDocumentReferences _ ->
