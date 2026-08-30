@@ -15,9 +15,12 @@ let prepare_rename client position =
 
 let rename ?(newName = "new_num") client position =
   let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
-  Client.request
-    client
-    (TextDocumentRename (RenameParams.create ~textDocument ~position ~newName ()))
+  let+ result =
+    Client.request
+      client
+      (TextDocumentRename (RenameParams.create ~textDocument ~position ~newName ()))
+  in
+  Option.value_exn result
 ;;
 
 let print_prepare_rename = function
@@ -432,7 +435,7 @@ let%expect_test "rename a symbol across open and closed files" =
              ~newName:"renamed"
              ()))
    in
-   print_document_changes response;
+   print_document_changes (Option.value_exn response);
    let* () = Client.request client Shutdown in
    Client.stop client);
   Unix.close stderr;

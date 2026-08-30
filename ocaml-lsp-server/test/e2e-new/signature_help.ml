@@ -33,9 +33,12 @@ let capabilities = make_capabilities ~labelOffsetSupport:true ()
 
 let signature_help ?context client position =
   let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
-  Client.request
-    client
-    (SignatureHelp (SignatureHelpParams.create ?context ~textDocument ~position ()))
+  let+ result =
+    Client.request
+      client
+      (SignatureHelp (SignatureHelpParams.create ?context ~textDocument ~position ()))
+  in
+  Option.value_exn result
 ;;
 
 let print_signature_help signature_help =

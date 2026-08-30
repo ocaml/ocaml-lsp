@@ -39,7 +39,7 @@ type _ t =
   | TextDocumentRangesFormatting :
       DocumentRangesFormattingParams.t
       -> TextEdit.t list option t
-  | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t t
+  | TextDocumentRename : RenameParams.t -> WorkspaceEdit.t option t
   | TextDocumentLink : DocumentLinkParams.t -> DocumentLink.t list option t
   | TextDocumentLinkResolve : DocumentLink.t -> DocumentLink.t t
   | TextDocumentMoniker : MonikerParams.t -> Moniker.t list option t
@@ -59,7 +59,7 @@ type _ t =
   | TextDocumentReferences : ReferenceParams.t -> Location.t list option t
   | TextDocumentHighlight : DocumentHighlightParams.t -> DocumentHighlight.t list option t
   | TextDocumentFoldingRange : FoldingRangeParams.t -> FoldingRange.t list option t
-  | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t t
+  | SignatureHelp : SignatureHelpParams.t -> SignatureHelp.t option t
   | CodeAction : CodeActionParams.t -> CodeActionResult.t t
   | CodeActionResolve : CodeAction.t -> CodeAction.t t
   | CompletionItemResolve : CompletionItem.t -> CompletionItem.t t
@@ -74,7 +74,7 @@ type _ t =
       ColorPresentationParams.t
       -> ColorPresentation.t list t
   | TextDocumentColor : DocumentColorParams.t -> ColorInformation.t list t
-  | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list t
+  | SelectionRange : SelectionRangeParams.t -> SelectionRange.t list option t
   | ExecuteCommand : ExecuteCommandParams.t -> Json.t t
   | SemanticTokensFull : SemanticTokensParams.t -> SemanticTokens.t option t
   | SemanticTokensDelta :

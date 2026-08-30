@@ -730,9 +730,19 @@ let on_request
          let+ result = Rename.prepare state req in
          Option.map result ~f:(fun range -> `Range range))
       req
-  | TextDocumentRename req -> later Rename.rename req
+  | TextDocumentRename req ->
+    later
+      (fun state req ->
+         let+ result = Rename.rename state req in
+         Some result)
+      req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
-  | SignatureHelp req -> later Signature_help.run req
+  | SignatureHelp req ->
+    later
+      (fun state req ->
+         let+ result = Signature_help.run state req in
+         Some result)
+      req
   | TextDocumentLinkResolve l -> now l
   | TextDocumentLink _ -> now None
   | WillSaveWaitUntilTextDocument _ -> now None
@@ -757,7 +767,12 @@ let on_request
             Ocp_indent.format_on_type state.ocp_indent doc position)
          ()
      | _ -> now (Some []))
-  | SelectionRange req -> later selection_range req
+  | SelectionRange req ->
+    later
+      (fun state req ->
+         let+ result = selection_range state req in
+         Some result)
+      req
   | TextDocumentImplementation _ -> Server.not_supported ()
   | SemanticTokensFull p -> later Semantic_highlighting.on_request_full p
   | SemanticTokensDelta p -> later Semantic_highlighting.on_request_full_delta p
