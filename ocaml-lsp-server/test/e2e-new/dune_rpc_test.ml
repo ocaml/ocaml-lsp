@@ -388,6 +388,16 @@ let stop_dune project =
   stop_process pid
 ;;
 
+let restart_dune project =
+  assert (Option.is_none project.dune_pid);
+  let dune_pid = start_dune project.root project.runtime_dir in
+  match wait_for_rpc_registration project.runtime_dir dune_pid with
+  | () -> project.dune_pid <- Some dune_pid
+  | exception exn ->
+    stop_process dune_pid;
+    raise exn
+;;
+
 let destroy_project project =
   Option.iter project.dune_pid ~f:stop_process;
   ignore (Sys.command ("rm -rf -- " ^ Filename.quote project.temp) : int)
