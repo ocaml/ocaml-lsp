@@ -27,6 +27,74 @@ module For_diff = struct
   let diagnostic_data t = fst view_promotion_capability, yojson_of_t t
 end
 
+module Promotion_tracker = struct
+  module Diagnostic_id = struct
+    module T = struct
+      include Drpc.Diagnostic.Id
+
+      let compare_ordering = compare
+      let compare left right = Ordering.to_int (compare_ordering left right)
+      let sexp_of_t = Sexplib0.Sexp_conv.sexp_of_opaque
+    end
+
+    include T
+    include Comparator.Make (T)
+  end
+
+  type t = { by_diagnostic : Drpc.Diagnostic.Promotion.t list Map.M(Diagnostic_id).t }
+
+  type event =
+    | Add of Drpc.Diagnostic.Promotion.t list
+    | Remove
+
+  let empty = { by_diagnostic = Map.empty (module Diagnostic_id) }
+
+  let active t =
+    (* Dune's promote RPC identifies a promotion only by [in_source] and chooses
+       between candidates itself. Until it can select a specific [in_build],
+       keep one representative per source for the single code action. Once the
+       API can distinguish candidates, expose each one as a separate action. *)
+    Map.fold
+      t.by_diagnostic
+      ~init:(Map.empty (module String))
+      ~f:(fun ~key:_ ~data:promotions active ->
+        List.fold_left promotions ~init:active ~f:(fun active promotion ->
+          Map.set
+            active
+            ~key:(Drpc.Diagnostic.Promotion.in_source promotion)
+            ~data:promotion))
+  ;;
+
+  let update t ~id event =
+    let by_diagnostic =
+      match event with
+      | Add promotions -> Map.set t.by_diagnostic ~key:id ~data:promotions
+      | Remove -> Map.remove t.by_diagnostic id
+    in
+    { by_diagnostic }
+  ;;
+
+  let diff previous current =
+    let previous = active previous in
+    let current = active current in
+    let add, remove =
+      Map.fold_symmetric_diff
+        previous
+        current
+        (* A different representative for an existing source does not change its
+           dynamic registration. *)
+        ~data_equal:(fun _ _ -> true)
+        ~init:([], [])
+        ~f:(fun (add, remove) (_, change) ->
+          match change with
+          | `Left promotion -> add, promotion :: remove
+          | `Right promotion -> promotion :: add, remove
+          | `Unequal _ -> assert false)
+    in
+    List.rev add, List.rev remove
+  ;;
+end
+
 module Chan : sig
   type t
 
@@ -151,14 +219,14 @@ end = struct
     ; diagnostics_id : Diagnostics.Dune.t
     ; id : Id.t
     ; mutable client : Client.t option
-    ; mutable promotions : Drpc.Diagnostic.Promotion.t Map.M(String).t
+    ; mutable promotions : Promotion_tracker.t
     }
 
   type state =
     | Idle
     | Connected of Lev_fiber_csexp.Session.t * Drpc.Where.t
     | Running of running
-    | Finished of Drpc.Diagnostic.Promotion.t Map.M(String).t
+    | Finished of Promotion_tracker.t
 
   type t =
     { config : config
@@ -175,8 +243,8 @@ end = struct
   let promotions t =
     match t.state with
     | Connected _ | Idle -> Map.empty (module String)
-    | Finished promotions -> promotions
-    | Running r -> r.promotions
+    | Finished promotions -> Promotion_tracker.active promotions
+    | Running r -> Promotion_tracker.active r.promotions
   ;;
 
   let source t = t.source
@@ -339,60 +407,40 @@ end = struct
   let diagnostic_loop t client config (running : running) diagnostics =
     let* res = Client.poll client Drpc.Sub.diagnostic in
     let send_diagnostics evs =
-      let promotions, add, remove =
+      let previous = running.promotions in
+      let promotions =
         List.fold_left
           evs
-          ~init:(running.promotions, [], [])
-          ~f:(fun (promotions, add, remove) (ev : Drpc.Diagnostic.Event.t) ->
-            let diagnostic =
-              match ev with
-              | Add x -> x
-              | Remove x -> x
+          ~init:previous
+          ~f:(fun promotions (ev : Drpc.Diagnostic.Event.t) ->
+            let id =
+              let diagnostic =
+                match ev with
+                | Add diagnostic | Remove diagnostic -> diagnostic
+              in
+              Drpc.Diagnostic.id diagnostic
             in
-            let id = Drpc.Diagnostic.id diagnostic in
-            let promotion = Drpc.Diagnostic.promotion diagnostic in
-            match ev with
-            | Remove _ ->
-              let promotions, requests =
-                List.fold_left
-                  promotion
-                  ~init:(promotions, [])
-                  ~f:(fun (ps, acc) promotion ->
-                    let source = Drpc.Diagnostic.Promotion.in_source promotion in
-                    match Map.find ps source with
-                    | Some _ -> Map.remove ps source, promotion :: acc
-                    | None ->
-                      Log.log ~section:"warning" (fun () ->
-                        Log.msg
-                          "removing non existant promotion"
-                          [ ( "promotion"
-                            , `String (Drpc.Diagnostic.Promotion.in_source promotion) )
-                          ]);
-                      ps, acc)
-              in
-              Diagnostics.remove diagnostics (`Dune (running.diagnostics_id, id));
-              promotions, add, requests :: remove
-            | Add d ->
-              let promotions, requests =
-                List.fold_left
-                  promotion
-                  ~init:(promotions, [])
-                  ~f:(fun (ps, acc) promotion ->
-                    let source = Drpc.Diagnostic.Promotion.in_source promotion in
-                    match Map.find ps source with
-                    | Some _ ->
-                      (* TODO it should not be possible to offer more than one
-                         promotion for a file in dune *)
-                      assert false
-                    | None -> Map.add_exn ps ~key:source ~data:promotion, promotion :: acc)
-              in
-              let uri, diagnostic = lsp_of_dune t d in
-              Diagnostics.set
-                diagnostics
-                (`Dune (running.diagnostics_id, id, uri, diagnostic));
-              promotions, requests :: add, remove)
+            let promotions =
+              Promotion_tracker.update
+                promotions
+                ~id
+                (match ev with
+                 | Add diagnostic ->
+                   Promotion_tracker.Add (Drpc.Diagnostic.promotion diagnostic)
+                 | Remove _ -> Remove)
+            in
+            (match ev with
+             | Remove _ ->
+               Diagnostics.remove diagnostics (`Dune (running.diagnostics_id, id))
+             | Add diagnostic ->
+               let uri, diagnostic = lsp_of_dune t diagnostic in
+               Diagnostics.set
+                 diagnostics
+                 (`Dune (running.diagnostics_id, id, uri, diagnostic)));
+            promotions)
       in
-      promotions, List.concat add, List.concat remove
+      let add, remove = Promotion_tracker.diff previous promotions in
+      promotions, add, remove
     in
     match res with
     | Error v -> raise (Drpc.Version_error.E v)
@@ -474,7 +522,7 @@ end = struct
           in
           t.config.log ~type_:Error ~message
       in
-      t.state <- Finished (Map.empty (module String));
+      t.state <- Finished Promotion_tracker.empty;
       Error ()
     | Ok session ->
       let message =
@@ -507,7 +555,7 @@ end = struct
     let running =
       { chan
       ; finish
-      ; promotions = Map.empty (module String)
+      ; promotions = Promotion_tracker.empty
       ; client = None
       ; diagnostics_id = Diagnostics.Dune.gen (Pid.of_int (Registry.Dune.pid source))
       ; id = Id.gen ()
