@@ -14,6 +14,8 @@
 
 ## Fixes
 
+- Convert related locations parsed from Merlin diagnostic messages to zero-based
+  LSP line numbers. (#2163, fixes #2145, @rgrinberg)
 - Preserve trailing newlines when computing post-edit ranges. (#2159,
   @rgrinberg)
 - Return only inlay hints within the range requested by the client. (#2155,
