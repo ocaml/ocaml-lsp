@@ -14,6 +14,8 @@
 
 ## Fixes
 
+- Exclude symbol declarations from reference results when requested by the
+  client. (#2164, @rgrinberg)
 - Convert related locations parsed from Merlin diagnostic messages to zero-based
   LSP line numbers. (#2163, fixes #2145, @rgrinberg)
 - Preserve trailing newlines when computing post-edit ranges. (#2159,

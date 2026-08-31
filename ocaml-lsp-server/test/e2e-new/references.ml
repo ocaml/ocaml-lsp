@@ -28,7 +28,7 @@ let check_include_declaration client ~uri position ~print =
   >>| print "without declaration:"
 ;;
 
-let%expect_test "includeDeclaration is ignored" =
+let%expect_test "includeDeclaration filters the declaration" =
   let source =
     {ocaml|let num = 42
 let sum = num + 13
@@ -73,13 +73,6 @@ let sum2 = sum + num
     [
       {
         "range": {
-          "end": { "character": 7, "line": 0 },
-          "start": { "character": 4, "line": 0 }
-        },
-        "uri": "file:///test.ml"
-      },
-      {
-        "range": {
           "end": { "character": 13, "line": 1 },
           "start": { "character": 10, "line": 1 }
         },
@@ -120,7 +113,7 @@ let print_project_references label locations =
     |> List.iter ~f:(fun (path, range) -> Printf.printf "%s: %s\n" path range)
 ;;
 
-let%expect_test "cross-file includeDeclaration is ignored" =
+let%expect_test "cross-file includeDeclaration filters the declaration" =
   let dir = setup_cross_file_workspace () in
   let main_path = Filename.concat dir "main.ml" in
   let main_uri = DocumentUri.of_path main_path in
@@ -160,7 +153,6 @@ let%expect_test "cross-file includeDeclaration is ignored" =
     main.ml: ((0, 17), (0, 22))
     other.ml: ((0, 16), (0, 21))
     without declaration:
-    lib.ml: ((0, 4), (0, 9))
     main.ml: ((0, 17), (0, 22))
     other.ml: ((0, 16), (0, 21))
     |}]
