@@ -476,8 +476,8 @@ end
             {
               "location": {
                 "range": {
-                  "end": { "character": 14, "line": 2 },
-                  "start": { "character": 2, "line": 2 }
+                  "end": { "character": 14, "line": 1 },
+                  "start": { "character": 2, "line": 1 }
                 },
                 "uri": "file:///test.ml"
               },
@@ -486,8 +486,8 @@ end
             {
               "location": {
                 "range": {
-                  "end": { "character": 7, "line": 4 },
-                  "start": { "character": 6, "line": 4 }
+                  "end": { "character": 7, "line": 3 },
+                  "start": { "character": 6, "line": 3 }
                 },
                 "uri": "file:///test.ml"
               },
