@@ -1,42 +1,6 @@
 open! Import
 open Json.Conv
 
-module NotebookDocumentSyncOptions = struct
-  type t = unit [@@deriving_inline yojson]
-
-  let _ = fun (_ : t) -> ()
-  let t_of_yojson = (unit_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-  let _ = t_of_yojson
-  let yojson_of_t = (yojson_of_unit : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-  let _ = yojson_of_t
-
-  [@@@end]
-end
-
-module NotebookDocumentSyncRegistrationOptions = struct
-  type t = unit [@@deriving_inline yojson]
-
-  let _ = fun (_ : t) -> ()
-  let t_of_yojson = (unit_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-  let _ = t_of_yojson
-  let yojson_of_t = (yojson_of_unit : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-  let _ = yojson_of_t
-
-  [@@@end]
-end
-
-module NotebookDocumentFilter = struct
-  type t = unit [@@deriving_inline yojson]
-
-  let _ = fun (_ : t) -> ()
-  let t_of_yojson = (unit_of_yojson : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
-  let _ = t_of_yojson
-  let yojson_of_t = (yojson_of_unit : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
-  let _ = yojson_of_t
-
-  [@@@end]
-end
-
 module MarkedString = struct
   type t =
     { value : string
@@ -6024,6 +5988,36 @@ module NotebookDocumentFilterNotebookType = struct
     : t
     =
     { notebookType; pattern; scheme }
+  ;;
+end
+
+module NotebookDocumentFilter = struct
+  type t =
+    [ `NotebookDocumentFilterNotebookType of NotebookDocumentFilterNotebookType.t
+    | `NotebookDocumentFilterScheme of NotebookDocumentFilterScheme.t
+    | `NotebookDocumentFilterPattern of NotebookDocumentFilterPattern.t
+    ]
+
+  let t_of_yojson (json : Json.t) : t =
+    Json.Of.untagged_union
+      "t"
+      [ (fun json ->
+          `NotebookDocumentFilterNotebookType
+            (NotebookDocumentFilterNotebookType.t_of_yojson json))
+      ; (fun json ->
+          `NotebookDocumentFilterScheme (NotebookDocumentFilterScheme.t_of_yojson json))
+      ; (fun json ->
+          `NotebookDocumentFilterPattern (NotebookDocumentFilterPattern.t_of_yojson json))
+      ]
+      json
+  ;;
+
+  let yojson_of_t (t : t) : Json.t =
+    match t with
+    | `NotebookDocumentFilterNotebookType s ->
+      NotebookDocumentFilterNotebookType.yojson_of_t s
+    | `NotebookDocumentFilterScheme s -> NotebookDocumentFilterScheme.yojson_of_t s
+    | `NotebookDocumentFilterPattern s -> NotebookDocumentFilterPattern.yojson_of_t s
   ;;
 end
 
@@ -41613,6 +41607,323 @@ module NotebookDocumentFilterWithNotebook = struct
     : t
     =
     { cells; notebook }
+  ;;
+end
+
+module NotebookDocumentSyncRegistrationOptions = struct
+  type notebookSelector_pvar =
+    [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+    | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+    ]
+
+  let notebookSelector_pvar_of_yojson (json : Json.t) : notebookSelector_pvar =
+    Json.Of.untagged_union
+      "notebookSelector_pvar"
+      [ (fun json ->
+          `NotebookDocumentFilterWithNotebook
+            (NotebookDocumentFilterWithNotebook.t_of_yojson json))
+      ; (fun json ->
+          `NotebookDocumentFilterWithCells
+            (NotebookDocumentFilterWithCells.t_of_yojson json))
+      ]
+      json
+  ;;
+
+  let yojson_of_notebookSelector_pvar (notebookSelector_pvar : notebookSelector_pvar)
+    : Json.t
+    =
+    match notebookSelector_pvar with
+    | `NotebookDocumentFilterWithNotebook s ->
+      NotebookDocumentFilterWithNotebook.yojson_of_t s
+    | `NotebookDocumentFilterWithCells s -> NotebookDocumentFilterWithCells.yojson_of_t s
+  ;;
+
+  type t =
+    { id : string Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
+    ; notebookSelector : notebookSelector_pvar list
+    ; save : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    (let _tp_loc = "lsp/src/types.ml.NotebookDocumentSyncRegistrationOptions.t" in
+     function
+     | `Assoc field_yojsons as yojson ->
+       let id_field = ref Ppx_yojson_conv_lib.Option.None
+       and notebookSelector_field = ref Ppx_yojson_conv_lib.Option.None
+       and save_field = ref Ppx_yojson_conv_lib.Option.None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+            | "id" ->
+              (match Ppx_yojson_conv_lib.( ! ) id_field with
+               | Ppx_yojson_conv_lib.Option.None ->
+                 let fvalue =
+                   Json.Nullable_option.t_of_yojson string_of_yojson _field_yojson
+                 in
+                 id_field := Ppx_yojson_conv_lib.Option.Some fvalue
+               | Ppx_yojson_conv_lib.Option.Some _ ->
+                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+            | "notebookSelector" ->
+              (match Ppx_yojson_conv_lib.( ! ) notebookSelector_field with
+               | Ppx_yojson_conv_lib.Option.None ->
+                 let fvalue =
+                   list_of_yojson notebookSelector_pvar_of_yojson _field_yojson
+                 in
+                 notebookSelector_field := Ppx_yojson_conv_lib.Option.Some fvalue
+               | Ppx_yojson_conv_lib.Option.Some _ ->
+                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+            | "save" ->
+              (match Ppx_yojson_conv_lib.( ! ) save_field with
+               | Ppx_yojson_conv_lib.Option.None ->
+                 let fvalue =
+                   Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
+                 in
+                 save_field := Ppx_yojson_conv_lib.Option.Some fvalue
+               | Ppx_yojson_conv_lib.Option.Some _ ->
+                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+            | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       (match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+            _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] ->
+          (match Ppx_yojson_conv_lib.( ! ) extra with
+           | _ :: _ ->
+             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
+               _tp_loc
+               (Ppx_yojson_conv_lib.( ! ) extra)
+               yojson
+           | [] ->
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) id_field
+                , Ppx_yojson_conv_lib.( ! ) notebookSelector_field
+                , Ppx_yojson_conv_lib.( ! ) save_field )
+              with
+              | ( id_value
+                , Ppx_yojson_conv_lib.Option.Some notebookSelector_value
+                , save_value ) ->
+                { id =
+                    (match id_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                ; notebookSelector = notebookSelector_value
+                ; save =
+                    (match save_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) notebookSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "notebookSelector" )
+                  ])))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
+     : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+  ;;
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    (function
+     | { id = v_id; notebookSelector = v_notebookSelector; save = v_save } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         if None = v_save
+         then bnds
+         else (
+           let arg = (Json.Nullable_option.yojson_of_t yojson_of_bool) v_save in
+           let bnd = "save", arg in
+           bnd :: bnds)
+       in
+       let bnds =
+         let arg = yojson_of_list yojson_of_notebookSelector_pvar v_notebookSelector in
+         ("notebookSelector", arg) :: bnds
+       in
+       let bnds =
+         if None = v_id
+         then bnds
+         else (
+           let arg = (Json.Nullable_option.yojson_of_t yojson_of_string) v_id in
+           let bnd = "id", arg in
+           bnd :: bnds)
+       in
+       `Assoc bnds
+     : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+  ;;
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let create
+        ?(id : string option)
+        ~(notebookSelector : notebookSelector_pvar list)
+        ?(save : bool option)
+        (() : unit)
+    : t
+    =
+    { id; notebookSelector; save }
+  ;;
+end
+
+module NotebookDocumentSyncOptions = struct
+  type notebookSelector_pvar =
+    [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+    | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+    ]
+
+  let notebookSelector_pvar_of_yojson (json : Json.t) : notebookSelector_pvar =
+    Json.Of.untagged_union
+      "notebookSelector_pvar"
+      [ (fun json ->
+          `NotebookDocumentFilterWithNotebook
+            (NotebookDocumentFilterWithNotebook.t_of_yojson json))
+      ; (fun json ->
+          `NotebookDocumentFilterWithCells
+            (NotebookDocumentFilterWithCells.t_of_yojson json))
+      ]
+      json
+  ;;
+
+  let yojson_of_notebookSelector_pvar (notebookSelector_pvar : notebookSelector_pvar)
+    : Json.t
+    =
+    match notebookSelector_pvar with
+    | `NotebookDocumentFilterWithNotebook s ->
+      NotebookDocumentFilterWithNotebook.yojson_of_t s
+    | `NotebookDocumentFilterWithCells s -> NotebookDocumentFilterWithCells.yojson_of_t s
+  ;;
+
+  type t =
+    { notebookSelector : notebookSelector_pvar list
+    ; save : bool Json.Nullable_option.t [@default None] [@yojson_drop_default ( = )]
+    }
+  [@@deriving_inline yojson] [@@yojson.allow_extra_fields]
+
+  let _ = fun (_ : t) -> ()
+
+  let t_of_yojson =
+    (let _tp_loc = "lsp/src/types.ml.NotebookDocumentSyncOptions.t" in
+     function
+     | `Assoc field_yojsons as yojson ->
+       let notebookSelector_field = ref Ppx_yojson_conv_lib.Option.None
+       and save_field = ref Ppx_yojson_conv_lib.Option.None
+       and duplicates = ref []
+       and extra = ref [] in
+       let rec iter = function
+         | (field_name, _field_yojson) :: tail ->
+           (match field_name with
+            | "notebookSelector" ->
+              (match Ppx_yojson_conv_lib.( ! ) notebookSelector_field with
+               | Ppx_yojson_conv_lib.Option.None ->
+                 let fvalue =
+                   list_of_yojson notebookSelector_pvar_of_yojson _field_yojson
+                 in
+                 notebookSelector_field := Ppx_yojson_conv_lib.Option.Some fvalue
+               | Ppx_yojson_conv_lib.Option.Some _ ->
+                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+            | "save" ->
+              (match Ppx_yojson_conv_lib.( ! ) save_field with
+               | Ppx_yojson_conv_lib.Option.None ->
+                 let fvalue =
+                   Json.Nullable_option.t_of_yojson bool_of_yojson _field_yojson
+                 in
+                 save_field := Ppx_yojson_conv_lib.Option.Some fvalue
+               | Ppx_yojson_conv_lib.Option.Some _ ->
+                 duplicates := field_name :: Ppx_yojson_conv_lib.( ! ) duplicates)
+            | _ -> ());
+           iter tail
+         | [] -> ()
+       in
+       iter field_yojsons;
+       (match Ppx_yojson_conv_lib.( ! ) duplicates with
+        | _ :: _ ->
+          Ppx_yojson_conv_lib.Yojson_conv_error.record_duplicate_fields
+            _tp_loc
+            (Ppx_yojson_conv_lib.( ! ) duplicates)
+            yojson
+        | [] ->
+          (match Ppx_yojson_conv_lib.( ! ) extra with
+           | _ :: _ ->
+             Ppx_yojson_conv_lib.Yojson_conv_error.record_extra_fields
+               _tp_loc
+               (Ppx_yojson_conv_lib.( ! ) extra)
+               yojson
+           | [] ->
+             (match
+                ( Ppx_yojson_conv_lib.( ! ) notebookSelector_field
+                , Ppx_yojson_conv_lib.( ! ) save_field )
+              with
+              | Ppx_yojson_conv_lib.Option.Some notebookSelector_value, save_value ->
+                { notebookSelector = notebookSelector_value
+                ; save =
+                    (match save_value with
+                     | Ppx_yojson_conv_lib.Option.None -> None
+                     | Ppx_yojson_conv_lib.Option.Some v -> v)
+                }
+              | _ ->
+                Ppx_yojson_conv_lib.Yojson_conv_error.record_undefined_elements
+                  _tp_loc
+                  yojson
+                  [ ( Ppx_yojson_conv_lib.poly_equal
+                        (Ppx_yojson_conv_lib.( ! ) notebookSelector_field)
+                        Ppx_yojson_conv_lib.Option.None
+                    , "notebookSelector" )
+                  ])))
+     | _ as yojson ->
+       Ppx_yojson_conv_lib.Yojson_conv_error.record_list_instead_atom _tp_loc yojson
+     : Ppx_yojson_conv_lib.Yojson.Safe.t -> t)
+  ;;
+
+  let _ = t_of_yojson
+
+  let yojson_of_t =
+    (function
+     | { notebookSelector = v_notebookSelector; save = v_save } ->
+       let bnds : (string * Ppx_yojson_conv_lib.Yojson.Safe.t) list = [] in
+       let bnds =
+         if None = v_save
+         then bnds
+         else (
+           let arg = (Json.Nullable_option.yojson_of_t yojson_of_bool) v_save in
+           let bnd = "save", arg in
+           bnd :: bnds)
+       in
+       let bnds =
+         let arg = yojson_of_list yojson_of_notebookSelector_pvar v_notebookSelector in
+         ("notebookSelector", arg) :: bnds
+       in
+       `Assoc bnds
+     : t -> Ppx_yojson_conv_lib.Yojson.Safe.t)
+  ;;
+
+  let _ = yojson_of_t
+
+  [@@@end]
+
+  let create
+        ~(notebookSelector : notebookSelector_pvar list)
+        ?(save : bool option)
+        (() : unit)
+    : t
+    =
+    { notebookSelector; save }
   ;;
 end
 
