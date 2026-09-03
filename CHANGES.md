@@ -14,6 +14,8 @@
 
 ## Fixes
 
+- Ensure recovered selection ranges contain the requested position. (#2170,
+  @rgrinberg)
 - Suppress function extraction when a constructor would move out of scope or
   resolve to a shadowing declaration. (#2169, @rgrinberg)
 - Clamp recovered selection ranges to the document bounds. (#2061, @rgrinberg)
