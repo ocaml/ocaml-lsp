@@ -21,9 +21,6 @@ let skipped_ts_decls =
   ; "LSPObject"
   ; "LSPArray"
   ; "LSPErrorCodes"
-  ; "NotebookDocumentSyncOptions"
-  ; "NotebookDocumentFilter"
-  ; "NotebookDocumentSyncRegistrationOptions"
   ; "URI"
   ]
 ;;

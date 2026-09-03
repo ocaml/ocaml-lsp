@@ -31,24 +31,6 @@ module ProgressParams : sig
   include Json.Jsonable.S1 with type 'a t := 'a t
 end
 
-module NotebookDocumentSyncOptions : sig
-  type t = unit
-
-  include Json.Jsonable.S with type t := t
-end
-
-module NotebookDocumentSyncRegistrationOptions : sig
-  type t = unit
-
-  include Json.Jsonable.S with type t := t
-end
-
-module NotebookDocumentFilter : sig
-  type t = unit
-
-  include Json.Jsonable.S with type t := t
-end
-
 (*$ Lsp_gen.print_mli () *)
 module ApplyKind : sig
   type t =
@@ -1029,6 +1011,16 @@ module NotebookDocumentFilterNotebookType : sig
     -> ?scheme:string
     -> unit
     -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module NotebookDocumentFilter : sig
+  type t =
+    [ `NotebookDocumentFilterNotebookType of NotebookDocumentFilterNotebookType.t
+    | `NotebookDocumentFilterScheme of NotebookDocumentFilterScheme.t
+    | `NotebookDocumentFilterPattern of NotebookDocumentFilterPattern.t
+    ]
 
   include Json.Jsonable.S with type t := t
 end
@@ -4594,6 +4586,54 @@ module NotebookDocumentFilterWithNotebook : sig
     :  ?cells:NotebookCellLanguage.t list
     -> notebook:
          [ `String of string | `NotebookDocumentFilter of NotebookDocumentFilter.t ]
+    -> unit
+    -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module NotebookDocumentSyncRegistrationOptions : sig
+  type t =
+    { id : string option
+    ; notebookSelector :
+        [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+        | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+        ]
+          list
+    ; save : bool option
+    }
+
+  val create
+    :  ?id:string
+    -> notebookSelector:
+         [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+         | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+         ]
+           list
+    -> ?save:bool
+    -> unit
+    -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module NotebookDocumentSyncOptions : sig
+  type t =
+    { notebookSelector :
+        [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+        | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+        ]
+          list
+    ; save : bool option
+    }
+
+  val create
+    :  notebookSelector:
+         [ `NotebookDocumentFilterWithNotebook of NotebookDocumentFilterWithNotebook.t
+         | `NotebookDocumentFilterWithCells of NotebookDocumentFilterWithCells.t
+         ]
+           list
+    -> ?save:bool
     -> unit
     -> t
 
