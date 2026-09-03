@@ -94,9 +94,7 @@ let%expect_test "connected Dune cleans up after workspace removal" =
           "method": "textDocument/codeAction",
           "registerOptions": {
             "codeActionKinds": [ "quickfix" ],
-            "documentSelector": [
-              { "language": null, "scheme": null, "pattern": "<document-path>" }
-            ]
+            "documentSelector": [ { "pattern": "<document-path>" } ]
           }
         }
       ]
@@ -151,9 +149,7 @@ let%expect_test "connected Dune cleans up after workspace removal" =
           "method": "textDocument/codeAction",
           "registerOptions": {
             "codeActionKinds": [ "quickfix" ],
-            "documentSelector": [
-              { "language": null, "scheme": null, "pattern": "<document-path>" }
-            ]
+            "documentSelector": [ { "pattern": "<document-path>" } ]
           }
         }
       ]

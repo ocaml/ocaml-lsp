@@ -58,10 +58,10 @@ let%expect_test "dynamic registration waits for initialized" =
           "method": "textDocument/didOpen",
           "registerOptions": {
             "documentSelector": [
-              { "language": "cram", "scheme": null, "pattern": null },
-              { "language": "dune", "scheme": null, "pattern": null },
-              { "language": "dune-project", "scheme": null, "pattern": null },
-              { "language": "dune-workspace", "scheme": null, "pattern": null }
+              { "language": "cram" },
+              { "language": "dune" },
+              { "language": "dune-project" },
+              { "language": "dune-workspace" }
             ]
           }
         },
@@ -70,10 +70,10 @@ let%expect_test "dynamic registration waits for initialized" =
           "method": "textDocument/didClose",
           "registerOptions": {
             "documentSelector": [
-              { "language": "cram", "scheme": null, "pattern": null },
-              { "language": "dune", "scheme": null, "pattern": null },
-              { "language": "dune-project", "scheme": null, "pattern": null },
-              { "language": "dune-workspace", "scheme": null, "pattern": null }
+              { "language": "cram" },
+              { "language": "dune" },
+              { "language": "dune-project" },
+              { "language": "dune-workspace" }
             ]
           }
         }

@@ -17,7 +17,6 @@ let skipped_ts_decls =
   ; "MarkedString"
   ; "ProgressToken"
   ; "ProgressParams"
-  ; "TextDocumentFilter"
   ; "LSPAny"
   ; "LSPObject"
   ; "LSPArray"
@@ -419,6 +418,7 @@ end = struct
                | Ident Number -> "Int", [ type_ t ]
                | Ident Object -> "Assoc", [ type_ t ]
                | Ident Bool -> "Bool", [ type_ t ]
+               | Ident Uri -> "DocumentUri", [ type_ t ]
                | List _ | Ident List -> "List", [ type_ t ]
                | Ident (Resolved r) -> (Entities.find db r).name, [ type_ t ]
                | Tuple [ Ident Uinteger; Ident Uinteger ] -> "Offset", [ type_ t ]

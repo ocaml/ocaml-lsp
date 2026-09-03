@@ -49,16 +49,6 @@ module NotebookDocumentFilter : sig
   include Json.Jsonable.S with type t := t
 end
 
-module TextDocumentFilter : sig
-  type t =
-    { language : string option
-    ; scheme : string option
-    ; pattern : string option
-    }
-
-  val create : ?language:string -> ?scheme:string -> ?pattern:string -> unit -> t
-end
-
 (*$ Lsp_gen.print_mli () *)
 module ApplyKind : sig
   type t =
@@ -971,11 +961,14 @@ end
 
 module RelativePattern : sig
   type t =
-    { baseUri : unit
+    { baseUri : [ `WorkspaceFolder of WorkspaceFolder.t | `DocumentUri of DocumentUri.t ]
     ; pattern : Pattern.t
     }
 
-  val create : baseUri:unit -> pattern:Pattern.t -> t
+  val create
+    :  baseUri:[ `WorkspaceFolder of WorkspaceFolder.t | `DocumentUri of DocumentUri.t ]
+    -> pattern:Pattern.t
+    -> t
 
   include Json.Jsonable.S with type t := t
 end
@@ -1089,6 +1082,16 @@ module TextDocumentFilterLanguage : sig
     }
 
   val create : language:string -> ?pattern:GlobPattern.t -> ?scheme:string -> unit -> t
+
+  include Json.Jsonable.S with type t := t
+end
+
+module TextDocumentFilter : sig
+  type t =
+    [ `TextDocumentFilterLanguage of TextDocumentFilterLanguage.t
+    | `TextDocumentFilterScheme of TextDocumentFilterScheme.t
+    | `TextDocumentFilterPattern of TextDocumentFilterPattern.t
+    ]
 
   include Json.Jsonable.S with type t := t
 end

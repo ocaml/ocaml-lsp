@@ -165,13 +165,7 @@ let%expect_test "duplicate shared-source promotions do not hang the server" =
             "method": "textDocument/codeAction",
             "registerOptions": {
               "codeActionKinds": [ "quickfix" ],
-              "documentSelector": [
-                {
-                  "language": null,
-                  "scheme": null,
-                  "pattern": "<document-path>"
-                }
-              ]
+              "documentSelector": [ { "pattern": "<document-path>" } ]
             }
           }
         ]
