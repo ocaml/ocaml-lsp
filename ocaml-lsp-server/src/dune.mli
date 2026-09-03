@@ -27,3 +27,11 @@ val commands : string list
 val on_command : t -> ExecuteCommandParams.t -> Json.t Fiber.t
 val code_actions : t -> Uri.t -> CodeAction.t list
 val for_doc : t -> Document.Dune.t -> Instance.t list
+
+module For_tests : sig
+  val run_with_cleanup
+    :  run:(unit -> unit Fiber.t)
+    -> cleanup:(unit -> unit Fiber.t)
+    -> on_error:(Exn_with_backtrace.t -> unit Fiber.t)
+    -> unit Fiber.t
+end
