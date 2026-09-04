@@ -451,8 +451,11 @@ let selection_range
     let selection_range_of_enclosings (enclosings : Warnings.loc list)
       : SelectionRange.t option
       =
+      (* TODO: Convert selection-range inputs and outputs using the negotiated
+         position encoding instead of Merlin's UTF-8 byte columns. *)
+      let source = Document.Merlin.source merlin in
       let ranges_of_enclosing parent (enclosing : Warnings.loc) =
-        let range = Range.of_loc enclosing in
+        let range = Range.clamp_to_source (Range.of_loc enclosing) source in
         { SelectionRange.range; parent }
       in
       List.fold_left

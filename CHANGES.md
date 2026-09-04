@@ -16,6 +16,7 @@
 
 - Suppress function extraction when a constructor would move out of scope or
   resolve to a shadowing declaration. (#2169, @rgrinberg)
+- Clamp recovered selection ranges to the document bounds. (#2061, @rgrinberg)
 - Exclude symbol declarations from reference results when requested by the
   client. (#2164, @rgrinberg)
 - Convert related locations parsed from Merlin diagnostic messages to zero-based
