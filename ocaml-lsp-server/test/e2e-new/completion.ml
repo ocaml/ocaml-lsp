@@ -63,6 +63,14 @@ let print_completions
     (print_completion_response ?limit ?pre_print)
 ;;
 
+let cursor source_with_cursor =
+  let source, { Range.start = position; end_ } =
+    Test.parse_selection source_with_cursor
+  in
+  assert (Position.compare position end_ = 0);
+  source, position
+;;
+
 let request_completions client position =
   Client.request
     client
@@ -71,6 +79,29 @@ let request_completions client position =
           ~textDocument:(TextDocumentIdentifier.create ~uri:Helpers.uri)
           ~position
           ()))
+;;
+
+let apply_completion ~label source_with_cursor =
+  let source, position = cursor source_with_cursor in
+  Helpers.test source (fun client ->
+    let+ response = request_completions client position in
+    let items =
+      match Option.value_exn response with
+      | `CompletionList completion_list -> completion_list.items
+      | `List items -> items
+    in
+    let item =
+      List.find_exn items ~f:(fun (item : CompletionItem.t) ->
+        String.equal item.label label)
+    in
+    let edit =
+      match item.textEdit with
+      | Some (`TextEdit edit) -> edit
+      | Some (`InsertReplaceEdit _) -> failwith "unexpected insert/replace edit"
+      | None -> failwith "completion has no text edit"
+    in
+    let edits = edit :: Option.value item.additionalTextEdits ~default:[] in
+    Test.apply_edits source edits |> String.rstrip |> print_endline)
 ;;
 
 let%expect_test "triggered completion inside a comment after Unicode" =
@@ -138,8 +169,8 @@ let%expect_test "completion replaces a Unicode prefix using UTF-16 positions" =
 ;;
 
 let%expect_test "can start completion at arbitrary position (before the dot)" =
-  let source = {ocaml|Strin.func|ocaml} in
-  let position = Position.create ~line:0 ~character:5 in
+  let source = {ocaml|Strin$.func|ocaml} in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -173,8 +204,8 @@ let%expect_test "can start completion at arbitrary position (before the dot)" =
 ;;
 
 let%expect_test "can start completion at arbitrary position" =
-  let source = {ocaml|StringLabels|ocaml} in
-  let position = Position.create ~line:0 ~character:6 in
+  let source = {ocaml|String$Labels|ocaml} in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -208,8 +239,8 @@ let%expect_test "can start completion at arbitrary position" =
 ;;
 
 let%expect_test "can start completion at arbitrary position 2" =
-  let source = {ocaml|StringLabels|ocaml} in
-  let position = Position.create ~line:0 ~character:7 in
+  let source = {ocaml|StringL$abels|ocaml} in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -230,37 +261,20 @@ let%expect_test "can start completion at arbitrary position 2" =
 ;;
 
 let%expect_test "completion with an incorrect identifier suffix" =
-  let source =
+  apply_completion
+    ~label:"is_prefix"
     {ocaml|module String = struct let is_prefix = () end
-let _ = String.is_prword|ocaml}
-  in
-  let position = Position.create ~line:1 ~character:20 in
-  let only_is_prefix =
-    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "is_prefix")
-  in
-  print_completions ~pre_print:only_is_prefix source position;
+let _ = String.is_pr$word|ocaml};
   [%expect
     {|
-    Completions:
-    {
-      "detail": "unit",
-      "kind": 12,
-      "label": "is_prefix",
-      "sortText": "0000",
-      "textEdit": {
-        "newText": "is_prefix",
-        "range": {
-          "end": { "character": 24, "line": 1 },
-          "start": { "character": 15, "line": 1 }
-        }
-      }
-    }
+    module String = struct let is_prefix = () end
+    let _ = String.is_prefix
     |}]
 ;;
 
 let%expect_test "can start completion after operator without space" =
-  let source = {ocaml|[1;2]|>List.ma|ocaml} in
-  let position = Position.create ~line:0 ~character:14 in
+  let source = {ocaml|[1;2]|>List.ma$|ocaml} in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -307,8 +321,8 @@ let%expect_test "can start completion after operator without space" =
 ;;
 
 let%expect_test "can start completion after operator with space" =
-  let source = {ocaml|[1;2] |> List.ma|ocaml} in
-  let position = Position.create ~line:0 ~character:16 in
+  let source = {ocaml|[1;2] |> List.ma$|ocaml} in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -356,8 +370,8 @@ let%expect_test "can start completion after operator with space" =
 ;;
 
 let%expect_test "can start completion in dot chain with tab" =
-  let source = {ocaml|[1;2] |> List.	ma|ocaml} in
-  let position = Position.create ~line:0 ~character:17 in
+  let source = {ocaml|[1;2] |> List.	ma$|ocaml} in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -407,9 +421,9 @@ let%expect_test "can start completion in dot chain with tab" =
 let%expect_test "can start completion in dot chain with newline" =
   let source =
     {ocaml|[1;2] |> List.
-ma|ocaml}
+ma$|ocaml}
   in
-  let position = Position.create ~line:1 ~character:2 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -457,8 +471,8 @@ ma|ocaml}
 ;;
 
 let%expect_test "can start completion in dot chain with space" =
-  let source = {ocaml|[1;2] |> List. ma|ocaml} in
-  let position = Position.create ~line:0 ~character:17 in
+  let source = {ocaml|[1;2] |> List. ma$|ocaml} in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -508,9 +522,9 @@ let%expect_test "can start completion in dot chain with space" =
 let%expect_test "can start completion after dereference" =
   let source =
     {ocaml|let apple=ref 10 in
-!ap|ocaml}
+!ap$|ocaml}
   in
-  let position = Position.create ~line:1 ~character:3 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -534,9 +548,9 @@ let%expect_test "can start completion after dereference" =
 let%expect_test "can complete symbol passed as a named argument" =
   let source =
     {ocaml|let g ~f = f 0 in
-g ~f:ig|ocaml}
+g ~f:ig$|ocaml}
   in
-  let position = Position.create ~line:1 ~character:7 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -561,9 +575,9 @@ let%expect_test "can complete symbol passed as a named argument - 2" =
   let source =
     {ocaml|module M = struct let igfoo _x = () end
 let g ~f = f 0 in
-g ~f:M.ig|ocaml}
+g ~f:M.ig$|ocaml}
   in
-  let position = Position.create ~line:2 ~character:9 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -588,10 +602,10 @@ let%expect_test "can complete symbol passed as an optional argument" =
   let source =
     {ocaml|
 let g ?f = f in
-g ?f:ig
+g ?f:ig$
     |ocaml}
   in
-  let position = Position.create ~line:2 ~character:7 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -616,9 +630,9 @@ let%expect_test "can complete symbol passed as an optional argument - 2" =
   let source =
     {ocaml|module M = struct let igfoo _x = () end
 let g ?f = f in
-g ?f:M.ig|ocaml}
+g ?f:M.ig$|ocaml}
   in
-  let position = Position.create ~line:2 ~character:9 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -647,10 +661,10 @@ module Test = struct
   let somestring = "hello"
 end
 
-let x = Test.
+let x = Test.$
     |ocaml}
   in
-  let position = Position.create ~line:6 ~character:13 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -688,10 +702,10 @@ let%expect_test "completes infix operators" =
   let source =
     {ocaml|
 let (>>|) = (+)
-let y = 1 >
+let y = 1 >$
 |ocaml}
   in
-  let position = Position.create ~line:2 ~character:11 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -783,8 +797,8 @@ let plus_42 (x:int) (y:int) =
 ;;
 
 let%expect_test "completes labels" =
-  let source = {ocaml|let f = ListLabels.map ~|ocaml} in
-  let position = Position.create ~line:0 ~character:24 in
+  let source = {ocaml|let f = ListLabels.map ~$|ocaml} in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -862,10 +876,10 @@ let%expect_test "works for polymorphic variants - function application context -
     {ocaml|
 let f (_a: [`String | `Int of int]) = ()
 
-let u = f `Str
+let u = f `Str$
   |ocaml}
   in
-  let position = Position.create ~line:3 ~character:14 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -891,10 +905,10 @@ let%expect_test "works for polymorphic variants - function application context -
     {ocaml|
 let f (_a: [`String | `Int of int]) = ()
 
-let u = f `In
+let u = f `In$
   |ocaml}
   in
-  let position = Position.create ~line:3 ~character:13 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -989,71 +1003,28 @@ let%expect_test "polymorphic variant completion replaces a backtick-only prefix"
   let source =
     {ocaml|type t = [ `T1 | `T2 ]
 
-let x : t = `|ocaml}
+let x : t = `$|ocaml}
   in
-  let position = Position.create ~line:2 ~character:13 in
-  let only_variants =
-    List.filter ~f:(fun (item : CompletionItem.t) ->
-      String.equal item.label "`T1" || String.equal item.label "`T2")
-  in
-  print_completions ~pre_print:only_variants source position;
+  print_endline "`T1:";
+  apply_completion ~label:"`T1" source;
+  print_endline "`T2:";
+  apply_completion ~label:"`T2" source;
   [%expect
     {|
-    Completions:
-    {
-      "detail": "`T1",
-      "kind": 4,
-      "label": "`T1",
-      "sortText": "0000",
-      "textEdit": {
-        "newText": "`T1",
-        "range": {
-          "end": { "character": 13, "line": 2 },
-          "start": { "character": 12, "line": 2 }
-        }
-      }
-    }
-    {
-      "detail": "`T2",
-      "kind": 4,
-      "label": "`T2",
-      "sortText": "0001",
-      "textEdit": {
-        "newText": "`T2",
-        "range": {
-          "end": { "character": 13, "line": 2 },
-          "start": { "character": 12, "line": 2 }
-        }
-      }
-    }
+    `T1:
+    type t = [ `T1 | `T2 ]
+
+    let x : t = `T1
+    `T2:
+    type t = [ `T1 | `T2 ]
+
+    let x : t = `T2
     |}]
 ;;
 
 let%expect_test "completion for holes" =
-  let source = {ocaml|let u : int = _|ocaml} in
-  let position = Position.create ~line:0 ~character:15 in
-  let filter =
-    List.filter ~f:(fun (item : CompletionItem.t) ->
-      not (String.is_prefix item.label ~prefix:"__"))
-  in
-  print_completions ~pre_print:filter source position;
-  [%expect
-    {|
-  Completions:
-  {
-    "filterText": "_0",
-    "kind": 1,
-    "label": "0",
-    "sortText": "0000",
-    "textEdit": {
-      "newText": "0",
-      "range": {
-        "end": { "character": 15, "line": 0 },
-        "start": { "character": 14, "line": 0 }
-      }
-    }
-  }
-  |}]
+  apply_completion ~label:"0" {ocaml|let u : int = _$|ocaml};
+  [%expect {| let u : int = 0 |}]
 ;;
 
 let%expect_test "construct completion converts Merlin ranges to UTF-16" =
@@ -1073,10 +1044,10 @@ let somenum = 42
 let somestring = "hello"
 
 let () =
-  some
+  some$
 |ocaml}
   in
-  let position = Position.create ~line:5 ~character:6 in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -1111,8 +1082,8 @@ let () =
 ;;
 
 let%expect_test "completes from a module" =
-  let source = {ocaml|let f = List.m|ocaml} in
-  let position = Position.create ~line:0 ~character:14 in
+  let source = {ocaml|let f = List.m$|ocaml} in
+  let source, position = cursor source in
   print_completions source position;
   [%expect
     {|
@@ -1224,8 +1195,8 @@ let%expect_test "completes from a module" =
 ;;
 
 let%expect_test "completes a module name" =
-  let source = {ocaml|let f = L|ocaml} in
-  let position = Position.create ~line:0 ~character:9 in
+  let source = {ocaml|let f = L$|ocaml} in
+  let source, position = cursor source in
   print_completions ~pre_print:(fun items -> List.take items 5) source position;
   [%expect
     {|
@@ -1489,9 +1460,9 @@ let%expect_test "completion for `in` keyword - no prefix" =
   let source =
     {ocaml|
 let foo param1 =
-  let bar = param1 |ocaml}
+  let bar = param1 $|ocaml}
   in
-  let position = Position.create ~line:2 ~character:19 in
+  let source, position = cursor source in
   print_completions ~limit:3 source position;
   [%expect
     {|
@@ -1542,10 +1513,10 @@ let%expect_test "completion for `in` keyword - prefix i" =
   let source =
     {ocaml|
 let foo param1 =
-  let bar = param1 i
+  let bar = param1 i$
 |ocaml}
   in
-  let position = Position.create ~line:2 ~character:20 in
+  let source, position = cursor source in
   print_completions ~limit:3 source position;
   [%expect
     {|
@@ -1596,10 +1567,10 @@ let%expect_test "completion for `in` keyword - prefix in" =
   let source =
     {ocaml|
 let foo param1 =
-  let bar = param1 in
+  let bar = param1 in$
 |ocaml}
   in
-  let position = Position.create ~line:2 ~character:21 in
+  let source, position = cursor source in
   print_completions ~limit:3 source position;
   [%expect
     {|
@@ -1648,8 +1619,8 @@ let foo param1 =
 
 (* Test case was taken from issue #1358 *)
 let%expect_test "completion for object methods" =
-  let source = {ocaml|let f (x : < a_method : 'a >) = x#|ocaml} in
-  let position = Position.create ~line:0 ~character:34 in
+  let source = {ocaml|let f (x : < a_method : 'a >) = x#$|ocaml} in
+  let source, position = cursor source in
   print_completions ~limit:3 source position;
   [%expect
     {|
@@ -1705,57 +1676,20 @@ let%expect_test "completion for object methods" =
 ;;
 
 let%expect_test "construct completion edit stays on the request line" =
-  let source = "-(\n _" in
-  let position = Position.create ~line:1 ~character:2 in
-  let only_zero =
-    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "0")
-  in
-  print_completions ~limit:1 ~pre_print:only_zero source position;
+  apply_completion
+    ~label:"0"
+    {ocaml|-(
+ _$|ocaml};
   [%expect
     {|
-    Completions:
-    {
-      "filterText": "_0",
-      "kind": 1,
-      "label": "0",
-      "sortText": "0000",
-      "textEdit": {
-        "newText": "0",
-        "range": {
-          "end": { "character": 2, "line": 1 },
-          "start": { "character": 1, "line": 1 }
-        }
-      }
-    }
+    -(
+     0
     |}]
 ;;
 
 let%expect_test "completes the in keyword after a partial prefix" =
-  let source = "let x = 1 i" in
-  let only_in =
-    List.filter ~f:(fun (item : CompletionItem.t) -> String.equal item.label "in")
-  in
-  print_completions
-    ~limit:1
-    ~pre_print:only_in
-    source
-    (Position.create ~line:0 ~character:11);
-  [%expect
-    {|
-    Completions:
-    {
-      "kind": 14,
-      "label": "in",
-      "sortText": "0000",
-      "textEdit": {
-        "newText": "in",
-        "range": {
-          "end": { "character": 11, "line": 0 },
-          "start": { "character": 10, "line": 0 }
-        }
-      }
-    }
-    |}]
+  apply_completion ~label:"in" {ocaml|let x = 1 i$|ocaml};
+  [%expect {| let x = 1 in |}]
 ;;
 
 let%expect_test "construct completion includes the next-hole command" =
