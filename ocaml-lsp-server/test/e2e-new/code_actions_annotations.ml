@@ -2,6 +2,9 @@ open Test.Import
 open Lsp_helpers
 open Code_actions
 
+let annotate = code_action_test ~title:"Type-annotate"
+let remove_annotation = code_action_test ~title:"Remove type annotation"
+
 let%expect_test "no code actions for dune documents" =
   let source = "(library (name foo))\n" in
   let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
@@ -91,72 +94,26 @@ let%expect_test "code action only includes nested kinds" =
 ;;
 
 let%expect_test "can type-annotate a function argument" =
-  let source =
+  annotate
     {ocaml|
 type t = Foo of int | Bar of bool
-let f x = Foo x
-|ocaml}
-  in
-  let range = range ~start_line:2 ~start_character:6 ~end_line:2 ~end_character:7 in
-  print_code_actions source range ~filter:find_annotate_action;
+let f $x$ = Foo x
+|ocaml};
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "(x : int)",
-                "range": {
-                  "end": { "character": 7, "line": 2 },
-                  "start": { "character": 6, "line": 2 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "type-annotate",
-      "title": "Type-annotate"
-    } |}]
+    type t = Foo of int | Bar of bool
+    let f (x : int) = Foo x
+    |}]
 ;;
 
 let%expect_test "can type-annotate a toplevel value" =
-  let source =
+  annotate
     {ocaml|
-let iiii = 3 + 4
-|ocaml}
-  in
-  let range = range ~start_line:1 ~start_character:4 ~end_line:1 ~end_character:5 in
-  print_code_actions source range;
+let $i$iii = 3 + 4
+|ocaml};
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "(iiii : int)",
-                "range": {
-                  "end": { "character": 8, "line": 1 },
-                  "start": { "character": 4, "line": 1 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "type-annotate",
-      "title": "Type-annotate"
-    }
+    let (iiii : int) = 3 + 4
     |}]
 ;;
 
@@ -172,76 +129,35 @@ let my_fun x y = 1
 ;;
 
 let%expect_test "can type-annotate an argument in a function call" =
-  let source =
+  annotate
     {ocaml|
-let f x = x + 1
+let f x$ = x + 1
 let () =
   let i = 8 in
   print_int (f i)
-|ocaml}
-  in
-  let range = range ~start_line:1 ~start_character:7 ~end_line:1 ~end_character:8 in
-  print_code_actions source range ~filter:find_annotate_action;
+|ocaml};
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "(x : int)",
-                "range": {
-                  "end": { "character": 7, "line": 1 },
-                  "start": { "character": 6, "line": 1 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "type-annotate",
-      "title": "Type-annotate"
-    } |}]
+    let f (x : int) = x + 1
+    let () =
+      let i = 8 in
+      print_int (f i)
+    |}]
 ;;
 
 let%expect_test "can type-annotate a variant with its name only" =
-  let source =
+  annotate
     {ocaml|
 type t = Foo of int | Bar of bool
 
-let f (x : t) = x
-|ocaml}
-  in
-  let range = range ~start_line:3 ~start_character:16 ~end_line:3 ~end_character:17 in
-  print_code_actions source range ~filter:find_annotate_action;
+let f (x : t) = $x$
+|ocaml};
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "(x : t)",
-                "range": {
-                  "end": { "character": 17, "line": 3 },
-                  "start": { "character": 16, "line": 3 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "type-annotate",
-      "title": "Type-annotate"
-    } |}]
+    type t = Foo of int | Bar of bool
+
+    let f (x : t) = (x : t)
+    |}]
 ;;
 
 let%expect_test "does not type-annotate in a non expression context" =
@@ -291,143 +207,52 @@ let f x = (1 : int :> int)
 ;;
 
 let%expect_test "can remove type annotation from a function argument" =
-  let source =
+  remove_annotation
     {ocaml|
 type t = Foo of int | Bar of bool
-let f (x : t) = Foo x
-|ocaml}
-  in
-  let range = range ~start_line:2 ~start_character:7 ~end_line:2 ~end_character:8 in
-  print_code_actions source range ~filter:find_remove_annotation_action;
+let f ($x$ : t) = Foo x
+|ocaml};
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "x",
-                "range": {
-                  "end": { "character": 13, "line": 2 },
-                  "start": { "character": 6, "line": 2 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "remove type annotation",
-      "title": "Remove type annotation"
-    } |}]
+    type t = Foo of int | Bar of bool
+    let f x = Foo x
+    |}]
 ;;
 
 let%expect_test "can remove type annotation from a toplevel value" =
-  let source =
+  remove_annotation
     {ocaml|
-let (iiii : int) = 3 + 4
-|ocaml}
-  in
-  let range = range ~start_line:1 ~start_character:5 ~end_line:1 ~end_character:6 in
-  print_code_actions source range ~filter:find_remove_annotation_action;
+let ($i$iii : int) = 3 + 4
+|ocaml};
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "iiii",
-                "range": {
-                  "end": { "character": 16, "line": 1 },
-                  "start": { "character": 4, "line": 1 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "remove type annotation",
-      "title": "Remove type annotation"
-    } |}]
+    let iiii = 3 + 4
+    |}]
 ;;
 
 let%expect_test "can remove type annotation from an argument in a function call" =
-  let source =
+  remove_annotation
     {ocaml|
-let f (x : int) = x + 1
+let f ($x$ : int) = x + 1
  let () =
    let i = 8 in
    print_int (f i)
-|ocaml}
-  in
-  let range = range ~start_line:1 ~start_character:7 ~end_line:1 ~end_character:8 in
-  print_code_actions source range ~filter:find_remove_annotation_action;
+|ocaml};
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "x",
-                "range": {
-                  "end": { "character": 15, "line": 1 },
-                  "start": { "character": 6, "line": 1 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "remove type annotation",
-      "title": "Remove type annotation"
-    } |}]
+    let f x = x + 1
+     let () =
+       let i = 8 in
+       print_int (f i)
+    |}]
 ;;
 
 let%expect_test "can remove type annotation from a coerced expression" =
-  let source =
+  remove_annotation
     {ocaml|
-let x = (7 : int :> int)
-|ocaml}
-  in
-  let range = range ~start_line:1 ~start_character:9 ~end_line:1 ~end_character:10 in
-  print_code_actions source range ~filter:find_remove_annotation_action;
-  [%expect
-    {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "7",
-                "range": {
-                  "end": { "character": 16, "line": 1 },
-                  "start": { "character": 9, "line": 1 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "remove type annotation",
-      "title": "Remove type annotation"
-    } |}]
+let x = ($7$ : int :> int)
+|ocaml};
+  [%expect {| let x = (7 :> int) |}]
 ;;
 
 let%expect_test "does not remove type annotation from function" =
