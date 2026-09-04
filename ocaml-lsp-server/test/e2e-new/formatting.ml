@@ -68,18 +68,25 @@ let iter_formatting ?language_id source path =
     ~source
 ;;
 
-let print_formatting_textedits = function
+let print_formatting_textedits ?source = function
   | None -> print_endline "No formatting result"
   | Some [] -> print_endline "No formatting needed"
   | Some edits ->
-    edits
-    |> Ppx_yojson_conv_lib.Yojson_conv.yojson_of_list TextEdit.yojson_of_t
-    |> Yojson.Safe.pretty_to_string ~std:false
-    |> print_endline
+    (match source with
+     | Some source ->
+       List.iter edits ~f:(fun (edit : TextEdit.t) ->
+         Printf.printf "edit: %s\n" (Range.to_string edit.range));
+       print_endline "result:";
+       Test.apply_edits source edits |> print_string
+     | None ->
+       edits
+       |> Ppx_yojson_conv_lib.Yojson_conv.yojson_of_list TextEdit.yojson_of_t
+       |> Yojson.Safe.pretty_to_string ~std:false
+       |> print_endline)
 ;;
 
 let print_formatting ?language_id source path =
-  iter_formatting ?language_id source path print_formatting_textedits
+  iter_formatting ?language_id source path (print_formatting_textedits ~source)
 ;;
 
 let print_formatting_error ?language_id source path =
@@ -179,27 +186,19 @@ let%expect_test "falls back to ocp-indent when ocamlformat is unavailable" =
          let path = Filename.concat dir "test.ml" in
          DocumentUri.of_path path
        in
-       let* () =
-         let source = "let selected = \"source\"\n" in
-         Test.open_document ~client ~uri ~source ()
-       in
+       let source = "let selected = \"source\"\n" in
+       let* () = Test.open_document ~client ~uri ~source () in
        let* response =
          let textDocument = TextDocumentIdentifier.create ~uri in
          Client.request client (make_request textDocument)
        in
-       print_formatting_textedits response;
+       print_formatting_textedits ~source response;
        Test.exit_client client);
   [%expect
     {|
-    [
-      {
-        "newText": "let selected = \"ocp-indent\"\n",
-        "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 0 }
-        }
-      }
-    ]
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "ocp-indent"
     |}]
 ;;
 
@@ -245,7 +244,7 @@ let%expect_test "selects a formatter from workspace configuration" =
          let* () = Test.open_document ~client ~uri ~source () in
          let textDocument = TextDocumentIdentifier.create ~uri in
          let+ response = Client.request client (make_request textDocument) in
-         print_formatting_textedits response
+         print_formatting_textedits ~source response
        in
        let* () = format "configuration outside workspace:" unconfigured in
        let* () = format "only .ocp-indent:" ocp_indent in
@@ -254,62 +253,32 @@ let%expect_test "selects a formatter from workspace configuration" =
        let uri = DocumentUri.of_path ocp_indent in
        let textDocument = TextDocumentIdentifier.create ~uri in
        let* response = Client.request client (make_range_request textDocument) in
-       print_formatting_textedits response;
+       print_formatting_textedits ~source response;
        let* () = format "both configurations:" both in
        let* () = Client.request client Shutdown in
        Client.notification client Exit);
   [%expect
     {|
     configuration outside workspace:
-    [
-      {
-        "newText": "let selected = \"ocamlformat\"\n",
-        "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 0 }
-        }
-      }
-    ]
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "ocamlformat"
     only .ocp-indent:
-    [
-      {
-        "newText": "let selected = \"ocp-indent\"\n",
-        "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 0 }
-        }
-      }
-    ]
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "ocp-indent"
     closer .ocp-indent than .ocamlformat:
-    [
-      {
-        "newText": "let selected = \"ocp-indent\"\n",
-        "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 0 }
-        }
-      }
-    ]
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "ocp-indent"
     range with only .ocp-indent:
-    [
-      {
-        "newText": "let selected = \"ocp-indent\"\n",
-        "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 0 }
-        }
-      }
-    ]
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "ocp-indent"
     both configurations:
-    [
-      {
-        "newText": "let selected = \"ocamlformat\"\n",
-        "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 0 }
-        }
-      }
-    ]
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "ocamlformat"
     |}]
 ;;
 
@@ -325,16 +294,14 @@ let%expect_test "ocp-indent formats documents and ranges" =
          let path = Filename.concat dir "test.ml" in
          DocumentUri.of_path path
        in
-       let* () =
-         let source =
-           "let f () =\nprint_endline \"f\"\nlet g () =\nprint_endline \"g\"\n"
-         in
-         Test.open_document ~client ~uri ~source ()
+       let source =
+         "let f () =\nprint_endline \"f\"\nlet g () =\nprint_endline \"g\"\n"
        in
+       let* () = Test.open_document ~client ~uri ~source () in
        let textDocument = TextDocumentIdentifier.create ~uri in
        let* response = Client.request client (make_request textDocument) in
        print_endline "document:";
-       print_formatting_textedits response;
+       print_formatting_textedits ~source response;
        let* response =
          let request =
            let range =
@@ -349,37 +316,25 @@ let%expect_test "ocp-indent formats documents and ranges" =
          Client.request client request
        in
        print_endline "range:";
-       print_formatting_textedits response;
+       print_formatting_textedits ~source response;
        Test.exit_client client);
   [%expect
     {|
     document:
-    [
-      {
-        "newText": "    print_endline \"f\"\n",
-        "range": {
-          "end": { "character": 0, "line": 2 },
-          "start": { "character": 0, "line": 1 }
-        }
-      },
-      {
-        "newText": "    print_endline \"g\"\n",
-        "range": {
-          "end": { "character": 0, "line": 4 },
-          "start": { "character": 0, "line": 3 }
-        }
-      }
-    ]
+    edit: ((1, 0), (2, 0))
+    edit: ((3, 0), (4, 0))
+    result:
+    let f () =
+        print_endline "f"
+    let g () =
+        print_endline "g"
     range:
-    [
-      {
-        "newText": "    print_endline \"f\"\n",
-        "range": {
-          "end": { "character": 0, "line": 2 },
-          "start": { "character": 0, "line": 1 }
-        }
-      }
-    ]
+    edit: ((1, 0), (2, 0))
+    result:
+    let f () =
+        print_endline "f"
+    let g () =
+    print_endline "g"
     |}]
 ;;
 
@@ -397,15 +352,14 @@ let%expect_test "can format an ocaml impl file" =
   print_formatting source path;
   [%expect
     {|
-    [
-      {
-        "newText": "  | 0, n\n",
-        "range": {
-          "end": { "character": 0, "line": 3 },
-          "start": { "character": 0, "line": 2 }
-        }
-      }
-    ]
+    edit: ((2, 0), (3, 0))
+    result:
+    let rec gcd a b =
+      match (a, b) with
+      | 0, n
+      | n, 0 ->
+        n
+      | _, _ -> gcd a (b mod a)
     |}]
 ;;
 
@@ -438,15 +392,14 @@ end
   print_formatting source path;
   [%expect
     {|
-    [
-      {
-        "newText": "module Test : sig\n",
-        "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 0 }
-        }
-      }
-    ]
+    edit: ((0, 0), (1, 0))
+    result:
+    module Test : sig
+      type t =
+        | Foo
+        | Bar
+        | Baz
+    end
     |}]
 ;;
 
