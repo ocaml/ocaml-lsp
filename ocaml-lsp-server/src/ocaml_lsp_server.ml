@@ -448,32 +448,30 @@ let selection_range
   match Document.kind doc with
   | `Other -> Fiber.return []
   | `Merlin merlin ->
-    let selection_range_of_enclosings (enclosings : Warnings.loc list)
-      : SelectionRange.t option
+    let selection_range_of_enclosings position (enclosings : Warnings.loc list)
+      : SelectionRange.t
       =
       (* TODO: Convert selection-range inputs and outputs using the negotiated
          position encoding instead of Merlin's UTF-8 byte columns. *)
       let source = Document.Merlin.source merlin in
-      let ranges_of_enclosing parent (enclosing : Warnings.loc) =
+      List.filter_map enclosings ~f:(fun enclosing ->
         let range = Range.clamp_to_source (Range.of_loc enclosing) source in
-        { SelectionRange.range; parent }
-      in
-      List.fold_left
-        ~f:(fun parent enclosing -> Some (ranges_of_enclosing parent enclosing))
-        ~init:None
-      @@ List.rev enclosings
+        Option.some_if (Range.contains_position range position ~inclusive_end:true) range)
+      |> List.rev
+      |> List.fold_left ~init:None ~f:(fun parent range ->
+        Some { SelectionRange.range; parent })
+      |> Option.value
+           ~default:
+             { SelectionRange.range = { start = position; end_ = position }
+             ; parent = None
+             }
     in
-    let+ ranges =
-      Fiber.sequential_map positions ~f:(fun x ->
-        let+ enclosings =
-          Document.Merlin.dispatch_exn
-            ~name:"shape"
-            merlin
-            (Enclosing (Position.logical x, None))
-        in
-        selection_range_of_enclosings enclosings)
-    in
-    List.filter_opt ranges
+    Fiber.sequential_map positions ~f:(fun pos ->
+      Document.Merlin.dispatch_exn
+        ~name:"shape"
+        merlin
+        (Enclosing (Position.logical pos, None))
+      >>| selection_range_of_enclosings pos)
 ;;
 
 let references
@@ -536,10 +534,10 @@ let references
              Option.value_map declaration ~default:false ~f:(function
                | `At_origin (declaration_uri, position) ->
                  Uri.equal occurrence_uri declaration_uri
-                 && Lsp.Range.contains_position range position ~inclusive_end:true
+                 && Range.contains_position range position ~inclusive_end:true
                | `Found (declaration_uri, position) ->
                  Uri.equal occurrence_uri declaration_uri
-                 && Lsp.Position.compare range.start position = 0)
+                 && Position.compare range.start position = 0)
            in
            if is_declaration
            then None
