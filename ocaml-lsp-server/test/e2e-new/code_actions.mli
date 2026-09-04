@@ -48,7 +48,9 @@ val find_remove_annotation_action
 val parse_selection : string -> string * Range.t
 
 val apply_code_action
-  :  ?diagnostics:Diagnostic.t list
+  :  ?prep:(unit Test.Import.Client.t -> unit Fiber.t)
+  -> ?path:string
+  -> ?diagnostics:Diagnostic.t list
   -> string
   -> string
   -> Range.t
@@ -57,4 +59,11 @@ val apply_code_action
 (** [code_action_test title source] runs the code action with title [title] and
     prints the resulting source. When [print_none] is set, it explicitly prints
     when the action is unavailable. *)
-val code_action_test : ?print_none:bool -> title:string -> string -> unit
+val code_action_test
+  :  ?prep:(unit Test.Import.Client.t -> unit Fiber.t)
+  -> ?path:string
+  -> ?diagnostics:Diagnostic.t list
+  -> ?print_none:bool
+  -> title:string
+  -> string
+  -> unit
