@@ -71,21 +71,14 @@ let f x =
   [%expect {||}]
 ;;
 
-(* TODO: This extraction shouldn't be allowed. *)
-let%expect_test "extract function with local exception" =
+let%expect_test "does not extract a function that uses a local exception" =
   extract_function_test
     {|
 let f x =
   let exception Local in
   $raise Local$
 |};
-  [%expect
-    {|
-    let fun_name () = raise Local
-
-    let f x =
-      let exception Local in
-      fun_name () |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "extract function with local exception in a pattern" =
@@ -95,14 +88,7 @@ let f x =
   let exception Local in
   $match x with Local -> true | _ -> false$
 |};
-  [%expect
-    {|
-    let fun_name x = match x with Local -> true | _ -> false
-
-    let f x =
-      let exception Local in
-      fun_name x
-    |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "extract function with a self-contained local exception" =
@@ -128,15 +114,7 @@ let f () =
   let exception Local in
   $raise Local$
 |};
-  [%expect
-    {|
-    exception Local
-    let fun_name () = raise Local
-
-    let f () =
-      let exception Local in
-      fun_name ()
-    |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "extract function with shadowed parameter" =
