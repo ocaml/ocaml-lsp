@@ -45,6 +45,20 @@ let run ?(documentChanges = false) source f =
   Helpers.test ~capabilities:(capabilities ~documentChanges) source f
 ;;
 
+let test_rename ~newName source_with_cursor =
+  let source, { Range.start = position; end_ } =
+    Code_actions.parse_selection source_with_cursor
+  in
+  assert (Position.compare position end_ = 0);
+  run source (fun client ->
+    let+ response = rename ~newName client position in
+    (match response.changes with
+     | Some [ (_, edits) ] -> edits
+     | None | Some _ -> failwith "expected edits for one document")
+    |> Test.apply_edits source
+    |> print_string)
+;;
+
 let rename_source =
   {ocaml|let num = 42
 let num = num + 13
@@ -87,25 +101,8 @@ let%expect_test "prepare rename leaks a lexer error on an astral character" =
 ;;
 
 let%expect_test "rename deduplicates edits for an incomplete binding" =
-  run "let rec ma" (fun client ->
-    rename ~newName:"fuzz_renamed" client (Position.create ~line:0 ~character:10)
-    >>| print_workspace_edit);
-  [%expect
-    {|
-    {
-      "changes": {
-        "file:///test.ml": [
-          {
-            "newText": "fuzz_renamed",
-            "range": {
-              "end": { "character": 10, "line": 0 },
-              "start": { "character": 8, "line": 0 }
-            }
-          }
-        ]
-      }
-    }
-    |}]
+  test_rename ~newName:"fuzz_renamed" "let rec ma$";
+  [%expect {| let rec fuzz_renamed |}]
 ;;
 
 let%expect_test "allows valid rename request" =
@@ -173,51 +170,16 @@ let b = (^*$) 1
 ;;
 
 let%expect_test "rename record-punned variable also renames the field" =
-  let source =
+  test_rename
+    ~newName:"y"
     {ocaml|type t = { x : int }
-let f x = { x }
-|ocaml}
-  in
-  run source (fun client ->
-    rename ~newName:"y" client (Position.create ~line:1 ~character:6)
-    >>| print_workspace_edit);
+let f $x = { x }
+|ocaml};
   [%expect
     {|
-    {
-      "changes": {
-        "file:///test.ml": [
-          {
-            "newText": "y",
-            "range": {
-              "end": { "character": 13, "line": 1 },
-              "start": { "character": 12, "line": 1 }
-            }
-          },
-          {
-            "newText": "y",
-            "range": {
-              "end": { "character": 7, "line": 1 },
-              "start": { "character": 6, "line": 1 }
-            }
-          }
-        ]
-      }
-    }
+    type t = { x : int }
+    let f y = { y }
     |}]
-;;
-
-let test_rename ~newName source_with_cursor =
-  let source, { Range.start = position; end_ } =
-    Code_actions.parse_selection source_with_cursor
-  in
-  assert (Position.compare position end_ = 0);
-  run source (fun client ->
-    let+ response = rename ~newName client position in
-    (match response.changes with
-     | Some [ (_, edits) ] -> edits
-     | None | Some _ -> failwith "expected edits for one document")
-    |> Test.apply_edits source
-    |> print_string)
 ;;
 
 let%expect_test "rename record-punned pattern variable also renames the field" =
@@ -305,99 +267,43 @@ let%expect_test "rename value in a file with documentChanges capability" =
     |}]
 ;;
 
-let%expect_test "rename a record-punned variable" =
-  let source =
-    {ocaml|type t = { x : int }
-let f x = { x }
-|ocaml}
-  in
-  run source (fun client ->
-    let+ response = rename ~newName:"y" client (Position.create ~line:1 ~character:6) in
-    (match response.changes with
-     | Some [ (_, edits) ] -> edits
-     | None | Some _ -> failwith "expected edits for one document")
-    |> Test.apply_edits source
-    |> print_string);
-  [%expect
-    {|
-    type t = { x : int }
-    let f y = { y }
-    |}]
-;;
-
 let%expect_test "rename a var used as a labelled argument" =
-  let source =
-    {ocaml|let foo x = x
+  test_rename
+    ~newName:"ident"
+    {ocaml|let $foo x = x
 
 let bar ~foo = foo ()
 
 let () = bar ~foo
-|ocaml}
-  in
-  run source (fun client ->
-    Position.create ~line:0 ~character:4
-    |> rename ~newName:"ident" client
-    >>| print_workspace_edit);
+|ocaml};
   [%expect
     {|
-    {
-      "changes": {
-        "file:///test.ml": [
-          {
-            "newText": ":ident",
-            "range": {
-              "end": { "character": 17, "line": 4 },
-              "start": { "character": 17, "line": 4 }
-            }
-          },
-          {
-            "newText": "ident",
-            "range": {
-              "end": { "character": 7, "line": 0 },
-              "start": { "character": 4, "line": 0 }
-            }
-          }
-        ]
-      }
-    }
+    let ident x = x
+
+    let bar ~foo = foo ()
+
+    let () = bar ~foo:ident
     |}]
 ;;
 
 let%expect_test "rename a var used as an optional argument" =
-  let source =
-    {ocaml|let foo = Some ()
+  test_rename
+    ~newName:"sunit"
+    {ocaml|let $foo = Some ()
 
 let bar ?foo () = foo
 
 ;;
 ignore (bar ?foo ())
-|ocaml}
-  in
-  run source (fun client ->
-    rename ~newName:"sunit" client (Position.create ~line:0 ~character:4)
-    >>| print_workspace_edit);
+|ocaml};
   [%expect
     {|
-    {
-      "changes": {
-        "file:///test.ml": [
-          {
-            "newText": ":sunit",
-            "range": {
-              "end": { "character": 16, "line": 5 },
-              "start": { "character": 16, "line": 5 }
-            }
-          },
-          {
-            "newText": "sunit",
-            "range": {
-              "end": { "character": 7, "line": 0 },
-              "start": { "character": 4, "line": 0 }
-            }
-          }
-        ]
-      }
-    }
+    let sunit = Some ()
+
+    let bar ?foo () = foo
+
+    ;;
+    ignore (bar ?foo:sunit ())
     |}]
 ;;
 
