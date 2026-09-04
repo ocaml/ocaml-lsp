@@ -88,6 +88,57 @@ let f x =
       fun_name () |}]
 ;;
 
+let%expect_test "extract function with local exception in a pattern" =
+  extract_function_test
+    {|
+let f x =
+  let exception Local in
+  $match x with Local -> true | _ -> false$
+|};
+  [%expect
+    {|
+    let fun_name x = match x with Local -> true | _ -> false
+
+    let f x =
+      let exception Local in
+      fun_name x
+    |}]
+;;
+
+let%expect_test "extract function with a self-contained local exception" =
+  extract_function_test
+    {|
+let f () =
+  $(let exception Local in raise Local)$
+|};
+  [%expect
+    {|
+    let fun_name () = (let exception Local in raise Local)
+
+    let f () =
+      fun_name ()
+    |}]
+;;
+
+let%expect_test "extract function with a shadowed exception" =
+  extract_function_test
+    {|
+exception Local
+let f () =
+  let exception Local in
+  $raise Local$
+|};
+  [%expect
+    {|
+    exception Local
+    let fun_name () = raise Local
+
+    let f () =
+      let exception Local in
+      fun_name ()
+    |}]
+;;
+
 let%expect_test "extract function with shadowed parameter" =
   extract_function_test
     {|
