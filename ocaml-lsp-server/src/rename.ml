@@ -21,8 +21,7 @@ let is_parenthesized source ~start_offset ~end_offset =
 (* Merlin includes the syntactically required parentheses in symbolic operator
    locations. Rename only the operator so that clients do not use the
    parentheses as part of its name. *)
-let identifier_range source loc =
-  let range = Range.of_loc loc in
+let identifier_range source (range : Range.t) =
   let (`Offset start_offset) = Msource.get_offset source (Position.logical range.start) in
   let (`Offset end_offset) = Msource.get_offset source (Position.logical range.end_) in
   let source_text = Msource.text source in
@@ -73,10 +72,75 @@ let prepare
       if occurrence.is_stale
       then None
       else (
-        let range = identifier_range source occurrence.loc in
+        let range = Range.of_loc occurrence.loc |> identifier_range source in
         if Range.contains_position range position ~inclusive_end:true
         then Some range
         else None))
+;;
+
+let workspace_edit_of_locations
+      ~document_changes
+      ~source_for_uri
+      ~version_for_uri
+      ~new_name
+      locations
+  =
+  let locations =
+    List.fold_left
+      locations
+      ~init:(Map.empty (module Uri))
+      ~f:(fun acc (uri, range) -> Map.add_multi acc ~key:uri ~data:range)
+  in
+  let edits =
+    Map.mapi locations ~f:(fun ~key:doc_uri ~data:ranges ->
+      let source =
+        match source_for_uri doc_uri with
+        | Some source -> source
+        | None ->
+          let source_path = Uri.to_path doc_uri in
+          In_channel.with_open_text source_path In_channel.input_all |> Msource.make
+      in
+      List.map ranges ~f:(fun range ->
+        let range = identifier_range source range in
+        let edit = TextEdit.create ~range ~newText:new_name in
+        let start_position = edit.range.start in
+        match start_position with
+        | { character = 0; _ } -> edit
+        | pos ->
+          let mpos = Position.logical pos in
+          let (`Offset index) = Msource.get_offset source mpos in
+          assert (index > 0)
+          (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
+               when [character = 0] in a separate matching branch *);
+          let source_txt = Msource.text source in
+          (* TODO: handle record field puning *)
+          (match source_txt.[index - 1] with
+           | '~' (* the occurrence is a named argument *)
+           | '?' (* is an optional argument *) ->
+             let empty_range_at_occur_end =
+               let occur_end_pos = edit.range.end_ in
+               { edit.range with start = occur_end_pos }
+             in
+             TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ new_name)
+           | _ -> edit))
+      |> List.stable_dedup ~compare:compare_text_edit)
+  in
+  if document_changes
+  then (
+    let documentChanges =
+      Map.to_alist edits
+      |> List.map ~f:(fun (uri, edits) ->
+        let version = version_for_uri uri in
+        let textDocument =
+          OptionalVersionedTextDocumentIdentifier.create ~uri ?version ()
+        in
+        let edits = List.map edits ~f:(fun e -> `TextEdit e) in
+        `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits))
+    in
+    WorkspaceEdit.create ~documentChanges ())
+  else (
+    let changes = Map.to_alist edits in
+    WorkspaceEdit.create ~changes ())
 ;;
 
 let rename (state : State.t) { RenameParams.textDocument = { uri }; position; newName; _ }
@@ -91,81 +155,35 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     let+ occurrences, _desync =
       Document.Merlin.dispatch_exn ~name:"rename" merlin command
     in
-    let locs =
+    let locations =
       List.filter_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
         match occurrence.is_stale with
         | true -> None
-        | false -> Some occurrence.loc)
-    in
-    let locs =
-      List.fold_left
-        locs
-        ~init:(Map.empty (module Uri))
-        ~f:(fun acc (loc : Warnings.loc) ->
+        | false ->
+          let loc = occurrence.loc in
           let uri =
             match loc.loc_start.pos_fname with
             | "" -> uri
             | path -> Uri.of_path path
           in
-          Map.add_multi acc ~key:uri ~data:loc)
+          Some (uri, Range.of_loc loc))
     in
-    let edits =
-      Map.mapi locs ~f:(fun ~key:doc_uri ~data:locs ->
-        let source =
-          match Document_store.get_opt state.store doc_uri with
-          | Some doc when DocumentUri.equal doc_uri (Document.uri doc) ->
-            Document.source doc
-          | Some _ | None ->
-            let source_path = Uri.to_path doc_uri in
-            In_channel.with_open_text source_path In_channel.input_all |> Msource.make
-        in
-        List.map locs ~f:(fun loc ->
-          let range = identifier_range source loc in
-          let edit = TextEdit.create ~range ~newText:newName in
-          let start_position = edit.range.start in
-          match start_position with
-          | { character = 0; _ } -> edit
-          | pos ->
-            let mpos = Position.logical pos in
-            let (`Offset index) = Msource.get_offset source mpos in
-            assert (index > 0)
-            (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
-                 when [character = 0] in a separate matching branch *);
-            let source_txt = Msource.text source in
-            (* TODO: handle record field puning *)
-            (match source_txt.[index - 1] with
-             | '~' (* the occurrence is a named argument *)
-             | '?' (* is an optional argument *) ->
-               let empty_range_at_occur_end =
-                 let occur_end_pos = edit.range.end_ in
-                 { edit.range with start = occur_end_pos }
-               in
-               TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
-             | _ -> edit))
-        |> List.stable_dedup ~compare:compare_text_edit)
+    let source_for_uri doc_uri =
+      match Document_store.get_opt state.store doc_uri with
+      | Some doc when DocumentUri.equal doc_uri (Document.uri doc) ->
+        Some (Document.source doc)
+      | Some _ | None -> None
     in
-    let workspace_edits =
-      let documentChanges =
-        Capabilities.workspace_edit_document_changes (State.client_capabilities state)
-      in
-      if documentChanges
-      then (
-        let documentChanges =
-          Map.to_alist edits
-          |> List.map ~f:(fun (uri, edits) ->
-            let version =
-              Document_store.get_opt state.store uri |> Option.map ~f:Document.version
-            in
-            let textDocument =
-              OptionalVersionedTextDocumentIdentifier.create ~uri ?version ()
-            in
-            let edits = List.map edits ~f:(fun e -> `TextEdit e) in
-            `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits))
-        in
-        WorkspaceEdit.create ~documentChanges ())
-      else (
-        let changes = Map.to_alist edits in
-        WorkspaceEdit.create ~changes ())
+    let version_for_uri uri =
+      Document_store.get_opt state.store uri |> Option.map ~f:Document.version
     in
-    workspace_edits
+    let document_changes =
+      Capabilities.workspace_edit_document_changes (State.client_capabilities state)
+    in
+    workspace_edit_of_locations
+      ~document_changes
+      ~source_for_uri
+      ~version_for_uri
+      ~new_name:newName
+      locations
 ;;
