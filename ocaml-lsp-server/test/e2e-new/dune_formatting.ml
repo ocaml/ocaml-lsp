@@ -20,9 +20,9 @@ let change_document client ~uri ~version ~text =
        (DidChangeTextDocumentParams.create ~textDocument ~contentChanges))
 ;;
 
-let print_edits = function
+let print_edits source = function
   | None -> print_endline "no edits"
-  | Some edits -> `List (List.map edits ~f:TextEdit.yojson_of_t) |> Test.print_result
+  | Some edits -> Test.apply_edits source edits |> print_string
 ;;
 
 let%expect_test "format a Dune file and report malformed input" =
@@ -40,8 +40,9 @@ let%expect_test "format a Dune file and report malformed input" =
            Client.request client (TextDocumentFormatting (formatting_params uri))
          in
          print_endline "valid formatting:";
-         print_edits edits;
-         let* () = change_document client ~uri ~version:1 ~text:"(rule" in
+         print_edits source edits;
+         let malformed_source = "(rule" in
+         let* () = change_document client ~uri ~version:1 ~text:malformed_source in
          let* result =
            Fiber.collect_errors (fun () ->
              Client.request client (TextDocumentFormatting (formatting_params uri)))
@@ -55,20 +56,15 @@ let%expect_test "format a Dune file and report malformed input" =
          | Error errors -> Fiber.reraise_all errors
          | Ok edits ->
            print_endline "malformed formatting unexpectedly succeeded:";
-           print_edits edits;
+           print_edits malformed_source edits;
            Fiber.return ()));
   [%expect
     {|
     valid formatting:
-    [
-      {
-        "newText": "(rule\n (alias formatted)\n (action\n  (echo hello)))\n",
-        "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 0 }
-        }
-      }
-    ]
+    (rule
+     (alias formatted)
+     (action
+      (echo hello)))
     malformed formatting: dune failed to format
     |}]
 ;;
