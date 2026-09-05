@@ -63,14 +63,6 @@ let print_completions
     (print_completion_response ?limit ?pre_print)
 ;;
 
-let cursor source_with_cursor =
-  let source, { Range.start = position; end_ } =
-    Test.parse_selection source_with_cursor
-  in
-  assert (Position.compare position end_ = 0);
-  source, position
-;;
-
 let request_completions client position =
   Client.request
     client
@@ -82,7 +74,7 @@ let request_completions client position =
 ;;
 
 let apply_completion ~label source_with_cursor =
-  let source, position = cursor source_with_cursor in
+  let source, position = Test.parse_cursor source_with_cursor in
   Helpers.test source (fun client ->
     let+ response = request_completions client position in
     let items =
@@ -170,7 +162,7 @@ let%expect_test "completion replaces a Unicode prefix using UTF-16 positions" =
 
 let%expect_test "can start completion at arbitrary position (before the dot)" =
   let source = {ocaml|Strin$.func|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -205,7 +197,7 @@ let%expect_test "can start completion at arbitrary position (before the dot)" =
 
 let%expect_test "can start completion at arbitrary position" =
   let source = {ocaml|String$Labels|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -240,7 +232,7 @@ let%expect_test "can start completion at arbitrary position" =
 
 let%expect_test "can start completion at arbitrary position 2" =
   let source = {ocaml|StringL$abels|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -274,7 +266,7 @@ let _ = String.is_pr$word|ocaml};
 
 let%expect_test "can start completion after operator without space" =
   let source = {ocaml|[1;2]|>List.ma$|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -322,7 +314,7 @@ let%expect_test "can start completion after operator without space" =
 
 let%expect_test "can start completion after operator with space" =
   let source = {ocaml|[1;2] |> List.ma$|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -371,7 +363,7 @@ let%expect_test "can start completion after operator with space" =
 
 let%expect_test "can start completion in dot chain with tab" =
   let source = {ocaml|[1;2] |> List.	ma$|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -423,7 +415,7 @@ let%expect_test "can start completion in dot chain with newline" =
     {ocaml|[1;2] |> List.
 ma$|ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -472,7 +464,7 @@ ma$|ocaml}
 
 let%expect_test "can start completion in dot chain with space" =
   let source = {ocaml|[1;2] |> List. ma$|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -524,7 +516,7 @@ let%expect_test "can start completion after dereference" =
     {ocaml|let apple=ref 10 in
 !ap$|ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -550,7 +542,7 @@ let%expect_test "can complete symbol passed as a named argument" =
     {ocaml|let g ~f = f 0 in
 g ~f:ig$|ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -577,7 +569,7 @@ let%expect_test "can complete symbol passed as a named argument - 2" =
 let g ~f = f 0 in
 g ~f:M.ig$|ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -605,7 +597,7 @@ let g ?f = f in
 g ?f:ig$
     |ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -632,7 +624,7 @@ let%expect_test "can complete symbol passed as an optional argument - 2" =
 let g ?f = f in
 g ?f:M.ig$|ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -664,7 +656,7 @@ end
 let x = Test.$
     |ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -705,7 +697,7 @@ let (>>|) = (+)
 let y = 1 >$
 |ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -798,7 +790,7 @@ let plus_42 (x:int) (y:int) =
 
 let%expect_test "completes labels" =
   let source = {ocaml|let f = ListLabels.map ~$|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -879,7 +871,7 @@ let f (_a: [`String | `Int of int]) = ()
 let u = f `Str$
   |ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -908,7 +900,7 @@ let f (_a: [`String | `Int of int]) = ()
 let u = f `In$
   |ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -1047,7 +1039,7 @@ let () =
   some$
 |ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -1083,7 +1075,7 @@ let () =
 
 let%expect_test "completes from a module" =
   let source = {ocaml|let f = List.m$|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions source position;
   [%expect
     {|
@@ -1196,7 +1188,7 @@ let%expect_test "completes from a module" =
 
 let%expect_test "completes a module name" =
   let source = {ocaml|let f = L$|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions ~pre_print:(fun items -> List.take items 5) source position;
   [%expect
     {|
@@ -1462,7 +1454,7 @@ let%expect_test "completion for `in` keyword - no prefix" =
 let foo param1 =
   let bar = param1 $|ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions ~limit:3 source position;
   [%expect
     {|
@@ -1516,7 +1508,7 @@ let foo param1 =
   let bar = param1 i$
 |ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions ~limit:3 source position;
   [%expect
     {|
@@ -1570,7 +1562,7 @@ let foo param1 =
   let bar = param1 in$
 |ocaml}
   in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions ~limit:3 source position;
   [%expect
     {|
@@ -1620,7 +1612,7 @@ let foo param1 =
 (* Test case was taken from issue #1358 *)
 let%expect_test "completion for object methods" =
   let source = {ocaml|let f (x : < a_method : 'a >) = x#$|ocaml} in
-  let source, position = cursor source in
+  let source, position = Test.parse_cursor source in
   print_completions ~limit:3 source position;
   [%expect
     {|

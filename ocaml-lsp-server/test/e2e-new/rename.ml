@@ -46,10 +46,7 @@ let run ?(documentChanges = false) source f =
 ;;
 
 let test_rename ~newName source_with_cursor =
-  let source, { Range.start = position; end_ } =
-    Code_actions.parse_selection source_with_cursor
-  in
-  assert (Position.compare position end_ = 0);
+  let source, position = Test.parse_cursor source_with_cursor in
   run source (fun client ->
     let+ response = rename ~newName client position in
     (match response.changes with
