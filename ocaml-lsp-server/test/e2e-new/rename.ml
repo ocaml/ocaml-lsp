@@ -97,6 +97,29 @@ let%expect_test "prepare rename leaks a lexer error on an astral character" =
     |}]
 ;;
 
+let%expect_test "prepare rename leaks Not_found on an incomplete local module" =
+  run "let module X" (fun client ->
+    Fiber.collect_errors (fun () ->
+      prepare_rename client (Position.create ~line:0 ~character:12))
+    >>= function
+    | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; backtrace = _ } ]
+      ->
+      Jsonrpc.Response.Error.yojson_of_t error |> censor_backtraces |> Test.print_result;
+      Fiber.return ()
+    | Error errors -> Fiber.reraise_all errors
+    | Ok response ->
+      print_prepare_rename response;
+      Fiber.return ());
+  [%expect
+    {|
+    {
+      "data": { "exn": "Not_found", "backtrace": "<censored>" },
+      "code": -32603,
+      "message": "uncaught exception"
+    }
+    |}]
+;;
+
 let%expect_test "rename deduplicates edits for an incomplete binding" =
   test_rename ~newName:"fuzz_renamed" "let rec ma$";
   [%expect {| let rec fuzz_renamed |}]
