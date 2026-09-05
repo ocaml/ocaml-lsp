@@ -21,7 +21,7 @@ let%expect_test "generic progress notifications" =
   print_result "server to client" (Server_notification.of_jsonrpc notification);
   [%expect
     {|
-    client to server: rejected
-    server to client: rejected
+    client to server: accepted
+    server to client: accepted
     |}]
 ;;
