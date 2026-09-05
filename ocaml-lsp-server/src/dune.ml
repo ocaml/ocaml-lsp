@@ -696,38 +696,45 @@ let uri_dune_overlap =
     || List.is_prefix dune_root ~prefix:path ~equal:equal_path_component
 ;;
 
-let make_finalizer active (instance : Instance.t) =
-  Lazy_fiber.create (fun () ->
-    active.instances
-    <- Map.remove active.instances (Registry.Dune.root (Instance.source instance));
-    let to_unregister =
-      Instance.promotions instance
-      |> Map.data
-      |> List.map ~f:(fun promotion ->
-        let path = Drpc.Diagnostic.Promotion.in_source promotion in
-        Uri.of_path path)
-    in
-    Document_store.unregister_promotions active.config.document_store to_unregister)
-;;
-
-let run_instance active (instance : Instance.t) =
-  let cleanup = make_finalizer active instance in
+let run_with_cleanup ~run ~cleanup ~on_error =
+  let cleanup = Lazy_fiber.create cleanup in
   let* (_ : (unit, unit) result) =
     Fiber.map_reduce_errors
       (module Monoid.Unit)
-      (fun () -> Instance.run instance)
+      run
       ~on_error:(fun exn ->
-        let message =
-          Format.asprintf
-            "disconnected %s:@.%a"
-            (Registry.Dune.root (Instance.source instance))
-            Exn_with_backtrace.pp_uncaught
-            exn
-        in
-        let* () = active.config.log ~type_:Error ~message in
+        let* () = on_error exn in
         Lazy_fiber.force cleanup)
   in
   Lazy_fiber.force cleanup
+;;
+
+let cleanup_instance active (instance : Instance.t) =
+  active.instances
+  <- Map.remove active.instances (Registry.Dune.root (Instance.source instance));
+  let to_unregister =
+    Instance.promotions instance
+    |> Map.data
+    |> List.map ~f:(fun promotion ->
+      let path = Drpc.Diagnostic.Promotion.in_source promotion in
+      Uri.of_path path)
+  in
+  Document_store.unregister_promotions active.config.document_store to_unregister
+;;
+
+let run_instance active (instance : Instance.t) =
+  run_with_cleanup
+    ~run:(fun () -> Instance.run instance)
+    ~cleanup:(fun () -> cleanup_instance active instance)
+    ~on_error:(fun exn ->
+      let message =
+        Format.asprintf
+          "disconnected %s:@.%a"
+          (Registry.Dune.root (Instance.source instance))
+          Exn_with_backtrace.pp_uncaught
+          exn
+      in
+      active.config.log ~type_:Error ~message)
 ;;
 
 let poll active last_error =
@@ -1064,3 +1071,7 @@ let for_doc t doc =
   | Closed -> []
   | Active active -> instances_for_uri active (Document.Dune.uri doc)
 ;;
+
+module For_tests = struct
+  let run_with_cleanup = run_with_cleanup
+end

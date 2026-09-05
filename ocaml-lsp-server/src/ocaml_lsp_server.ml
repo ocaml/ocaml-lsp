@@ -4,6 +4,11 @@ module Diagnostics = Diagnostics
 module Position = Position
 module Doc_to_md = Doc_to_md
 module Diff = Diff
+
+module For_tests = struct
+  module Dune = Dune.For_tests
+end
+
 module Testing = Testing
 open Fiber.O
 

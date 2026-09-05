@@ -1,6 +1,7 @@
 (library
  (modules
   destruct_line_quickcheck_tests
+  dune_tests
   ocaml_lsp_tests
   position_prefix_tests
   semantic_tokens_quickcheck_tests)
@@ -9,6 +10,8 @@
   (>= %{ocaml_version} 4.08))
  (inline_tests)
  (libraries
+  fiber
+  lev_fiber
   ordering
   ocaml_lsp_server
   merlin-lib.kernel
