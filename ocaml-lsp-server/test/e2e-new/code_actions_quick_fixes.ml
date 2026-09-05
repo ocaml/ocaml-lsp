@@ -27,29 +27,22 @@ let diagnostic ?(severity = DiagnosticSeverity.Error) message range =
   Diagnostic.create ~message:(`String message) ~range ~severity ~source:"ocamllsp" ()
 ;;
 
-let print_applied_action ?diagnostics ~title source range =
-  match apply_code_action ~path:"test.ml" ?diagnostics title source range with
+let print_applied_action ?(path = "test.ml") ?diagnostics ?filter ~title source range =
+  match apply_code_action ~path ?diagnostics ?filter title source range with
   | None -> print_endline "None"
   | Some source -> print_string source
-;;
-
-let print_inferred_intf_edits source path range =
-  iter_code_actions ~path ~source range (function
-    | None -> print_endline "No code actions"
-    | Some code_actions ->
-      (match List.find code_actions ~f:(find_action "inferred_intf") with
-       | None -> print_endline "No inferred interface action"
-       | Some (`Command _) -> print_endline "Inferred interface action was a command"
-       | Some (`CodeAction { edit = None; _ }) -> print_endline "No edit"
-       | Some (`CodeAction { edit = Some edit; _ }) ->
-         Test.apply_workspace_edit source edit |> print_string))
 ;;
 
 let%expect_test "opens the implementation if not in store" =
   let dir = setup_inferred_intf_workspace () in
   let path = Filename.concat dir "lib.mli" in
   let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
-  print_inferred_intf_edits "" path range;
+  print_applied_action
+    ~path
+    ~filter:(find_action "inferred_intf")
+    ~title:"Insert inferred interface"
+    ""
+    range;
   [%expect {| val x : int |}]
 ;;
 

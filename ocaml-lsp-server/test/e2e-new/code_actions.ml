@@ -66,7 +66,15 @@ let find_annotate_action action = find_action "type-annotate" action
 let find_remove_annotation_action action = find_action "remove type annotation" action
 let parse_selection = Test.parse_selection
 
-let apply_code_action ?prep ?path ?diagnostics title source range =
+let apply_code_action
+      ?prep
+      ?path
+      ?diagnostics
+      ?(filter = fun _ -> true)
+      title
+      source
+      range
+  =
   let open Option.O in
   (* collect code action results *)
   let code_actions = ref None in
@@ -75,16 +83,20 @@ let apply_code_action ?prep ?path ?diagnostics title source range =
   let* m_code_actions = !code_actions in
   let* code_actions = m_code_actions in
   let+ edit =
-    List.find_map code_actions ~f:(function
-      | `CodeAction { title = t; edit = Some edit; _ } when t = title -> Some edit
-      | _ -> None)
+    List.find_map code_actions ~f:(fun action ->
+      if not (filter action)
+      then None
+      else (
+        match action with
+        | `CodeAction { title = t; edit = Some edit; _ } when t = title -> Some edit
+        | `CodeAction _ | `Command _ -> None))
   in
   Test.apply_workspace_edit source edit
 ;;
 
-let code_action_test ?prep ?path ?diagnostics ?(print_none = false) ~title source =
+let code_action_test ?prep ?path ?diagnostics ?filter ?(print_none = false) ~title source =
   let src, range = parse_selection source in
-  match apply_code_action ?prep ?path ?diagnostics title src range with
+  match apply_code_action ?prep ?path ?diagnostics ?filter title src range with
   | None -> if print_none then print_endline "None"
   | Some result -> print_string result
 ;;
