@@ -2,6 +2,28 @@ open Test.Import
 open Lsp_helpers
 open Code_actions
 
+let interface_path = "foo.mli"
+
+let prepare_implementation source client =
+  let uri = DocumentUri.of_path "foo.ml" in
+  Test.open_document ~client ~uri ~source ()
+;;
+
+let apply_interface_action ~implementation ~title interface =
+  code_action_test
+    ~prep:(prepare_implementation implementation)
+    ~path:interface_path
+    ~print_none:true
+    ~title
+    interface
+;;
+
+let insert_inferred_interface = apply_interface_action ~title:"Insert inferred interface"
+
+let update_signatures =
+  apply_interface_action ~title:"Update signature(s) to match implementation"
+;;
+
 let%expect_test "can infer module interfaces" =
   let impl_source =
     {ocaml|
@@ -9,14 +31,7 @@ type t = Foo of int | Bar of bool
 let f (x : t) = x
 |ocaml}
   in
-  let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
-  code_action_test
-    ~prep
-    ~path:"foo.mli"
-    ~print_none:true
-    ~title:"Insert inferred interface"
-    {ocaml|$|ocaml};
+  insert_inferred_interface ~implementation:impl_source {ocaml|$|ocaml};
   [%expect
     {|
     type t = Foo of int | Bar of bool
@@ -32,13 +47,8 @@ type t = Foo of int | Bar of bool
 let f (x : t) = x
 |ocaml}
   in
-  let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
-  code_action_test
-    ~prep
-    ~path:"foo.mli"
-    ~print_none:true
-    ~title:"Insert inferred interface"
+  insert_inferred_interface
+    ~implementation:impl_source
     {ocaml|$
 val f : t -> t
 |ocaml};
@@ -57,8 +67,6 @@ type t = Foo of int | Bar of bool
 let f (x : t) = x
 |ocaml}
   in
-  let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
   let intf_source =
     {ocaml|
 type t = Foo of int | Bar of bool
@@ -69,8 +77,8 @@ val f : t -> t
   print_code_actions
     intf_source
     range
-    ~prep
-    ~path:"foo.mli"
+    ~prep:(prepare_implementation impl_source)
+    ~path:interface_path
     ~filter:(find_action "inferred_intf");
   [%expect {| No code actions |}]
 ;;
@@ -85,13 +93,8 @@ let f (x : t) (d : bool) =
   |Foo _ -> d
 |ocaml}
   in
-  let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
-  code_action_test
-    ~prep
-    ~path:"foo.mli"
-    ~print_none:true
-    ~title:"Update signature(s) to match implementation"
+  update_signatures
+    ~implementation:impl_source
     {ocaml|
 type t = Foo of int | Bar of bool
 $val f : t -> bool
@@ -110,13 +113,8 @@ let f i s b =
   if b then String.length s > i else String.length s < i
 |ocaml}
   in
-  let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
-  code_action_test
-    ~prep
-    ~path:"foo.mli"
-    ~print_none:true
-    ~title:"Update signature(s) to match implementation"
+  update_signatures
+    ~implementation:impl_source
     {ocaml|
 val f : in$t -> string -> 'a list -> bool -> bool
 |ocaml};
@@ -130,13 +128,8 @@ let f i s l b =
   if b then List.length s > i else List.length l < i
   |ocaml}
   in
-  let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
-  code_action_test
-    ~prep
-    ~path:"foo.mli"
-    ~print_none:true
-    ~title:"Update signature(s) to match implementation"
+  update_signatures
+    ~implementation:impl_source
     {ocaml|
 v$al f : int $-> string -> 'a list -> bool -> bool
 |ocaml};
@@ -153,13 +146,8 @@ let g x y z ~another_arg ~yet_another_arg ~keep_them_coming = x - y + z + anothe
 let h x = x *. 2.0;;
   |ocaml}
   in
-  let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
-  code_action_test
-    ~prep
-    ~path:"foo.mli"
-    ~print_none:true
-    ~title:"Update signature(s) to match implementation"
+  update_signatures
+    ~implementation:impl_source
     {ocaml|
 $val f :
     int  (* This comment should stay. *)
@@ -206,13 +194,8 @@ module M = struct
 end
 |ocaml}
   in
-  let uri = DocumentUri.of_path "foo.ml" in
-  let prep client = Test.open_document ~client ~uri ~source:impl_source () in
-  code_action_test
-    ~prep
-    ~path:"foo.mli"
-    ~print_none:true
-    ~title:"Update signature(s) to match implementation"
+  update_signatures
+    ~implementation:impl_source
     {ocaml|
 $module M : sig type t = I of int | B of bool end
 |ocaml};
