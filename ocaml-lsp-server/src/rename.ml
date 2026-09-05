@@ -78,40 +78,35 @@ let prepare
         else None))
 ;;
 
-let workspace_edit_of_locations
-      ~document_changes
-      ~source_for_uri
-      ~version_for_uri
-      ~new_name
-      locations
-  =
-  let locations =
+let workspace_edit_of_locations ~document_changes ~documents ~new_name locations =
+  let edits =
     List.fold_left
       locations
       ~init:(Map.empty (module Uri))
       ~f:(fun acc (uri, range) -> Map.add_multi acc ~key:uri ~data:range)
-  in
-  let edits =
-    Map.mapi locations ~f:(fun ~key:doc_uri ~data:ranges ->
+    |> Map.mapi ~f:(fun ~key:doc_uri ~data:ranges ->
       let source =
-        match source_for_uri doc_uri with
-        | Some source -> source
+        match Map.find documents doc_uri with
+        | Some document -> Document.source document
         | None ->
           let source_path = Uri.to_path doc_uri in
           In_channel.with_open_text source_path In_channel.input_all |> Msource.make
       in
       List.map ranges ~f:(fun range ->
-        let range = identifier_range source range in
-        let edit = TextEdit.create ~range ~newText:new_name in
-        let start_position = edit.range.start in
-        match start_position with
+        let edit =
+          let range = identifier_range source range in
+          TextEdit.create ~range ~newText:new_name
+        in
+        match edit.range.start with
         | { character = 0; _ } -> edit
         | pos ->
-          let mpos = Position.logical pos in
-          let (`Offset index) = Msource.get_offset source mpos in
+          let (`Offset index) =
+            let mpos = Position.logical pos in
+            Msource.get_offset source mpos
+          in
           assert (index > 0)
           (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
-               when [character = 0] in a separate matching branch *);
+              when [character = 0] in a separate matching branch *);
           let source_txt = Msource.text source in
           (* TODO: handle record field puning *)
           (match source_txt.[index - 1] with
@@ -130,8 +125,8 @@ let workspace_edit_of_locations
     let documentChanges =
       Map.to_alist edits
       |> List.map ~f:(fun (uri, edits) ->
-        let version = version_for_uri uri in
         let textDocument =
+          let version = Map.find documents uri |> Option.map ~f:Document.version in
           OptionalVersionedTextDocumentIdentifier.create ~uri ?version ()
         in
         let edits = List.map edits ~f:(fun e -> `TextEdit e) in
@@ -149,6 +144,13 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
   match Document.kind doc with
   | `Other -> Fiber.return (WorkspaceEdit.create ())
   | `Merlin merlin ->
+    let documents =
+      Document_store.fold
+        state.store
+        ~init:(Map.empty (module Uri))
+        ~f:(fun document documents ->
+          Map.set documents ~key:(Document.uri document) ~data:document)
+    in
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position), `Renaming)
     in
@@ -168,22 +170,8 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
           in
           Some (uri, Range.of_loc loc))
     in
-    let source_for_uri doc_uri =
-      match Document_store.get_opt state.store doc_uri with
-      | Some doc when DocumentUri.equal doc_uri (Document.uri doc) ->
-        Some (Document.source doc)
-      | Some _ | None -> None
-    in
-    let version_for_uri uri =
-      Document_store.get_opt state.store uri |> Option.map ~f:Document.version
-    in
     let document_changes =
       Capabilities.workspace_edit_document_changes (State.client_capabilities state)
     in
-    workspace_edit_of_locations
-      ~document_changes
-      ~source_for_uri
-      ~version_for_uri
-      ~new_name:newName
-      locations
+    workspace_edit_of_locations ~document_changes ~documents ~new_name:newName locations
 ;;
