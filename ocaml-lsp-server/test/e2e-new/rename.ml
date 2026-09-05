@@ -307,15 +307,21 @@ ignore (bar ?foo ())
     |}]
 ;;
 
-let setup_multi_file_workspace () =
+let setup_multi_file_workspace
+      ?(files =
+        [ "lib.ml", "let value = 1\n"
+        ; "main.ml", "let result = Lib.value\n"
+        ; "other.ml", "let other = Lib.value\n"
+        ])
+      ()
+  =
   let dir = Test.temp_dir "ocamllsp-rename-" in
   Test.write_file (Filename.concat dir "dune-project") "(lang dune 3.0)\n";
   Test.write_file
     (Filename.concat dir "dune")
     "(library\n (name rename_files)\n (wrapped false))\n";
-  Test.write_file (Filename.concat dir "lib.ml") "let value = 1\n";
-  Test.write_file (Filename.concat dir "main.ml") "let result = Lib.value\n";
-  Test.write_file (Filename.concat dir "other.ml") "let other = Lib.value\n";
+  List.iter files ~f:(fun (name, source) ->
+    Test.write_file (Filename.concat dir name) source);
   Test.run_command ~cwd:dir "dune build @ocaml-index";
   dir
 ;;
@@ -346,6 +352,60 @@ let print_document_changes (edit : WorkspaceEdit.t) =
             failwith "unexpected annotated or snippet edit")
       | `CreateFile _ | `RenameFile _ | `DeleteFile _ ->
         failwith "unexpected resource operation")
+;;
+
+let test_project_rename ~newName ~request_file files =
+  let request_source, { Range.start = position; end_ } =
+    List.Assoc.find_exn files request_file ~equal:String.equal
+    |> Code_actions.parse_selection
+  in
+  assert (Position.compare position end_ = 0);
+  let files =
+    List.map files ~f:(fun (name, source) ->
+      if String.equal name request_file then name, request_source else name, source)
+  in
+  let dir = setup_multi_file_workspace ~files () in
+  let uri name = Filename.concat dir name |> DocumentUri.of_path in
+  let request_uri = uri request_file in
+  let workspace = WorkspaceFolder.create ~uri:(DocumentUri.of_path dir) ~name:"rename" in
+  let stderr = Unix.openfile Test.null_device [ O_WRONLY ] 0 in
+  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  (Test.run_initialized
+     ~cwd:dir
+     ~stderr
+     ~handler
+     ~capabilities:(capabilities ~documentChanges:true)
+     ~workspaceFolders:(Some [ workspace ])
+   @@ fun client ->
+   let* () =
+     open_project_document client ~uri:request_uri ~version:0 ~text:request_source
+   in
+   let textDocument = TextDocumentIdentifier.create ~uri:request_uri in
+   let* response =
+     Client.request
+       client
+       (TextDocumentRename (RenameParams.create ~textDocument ~position ~newName ()))
+   in
+   let document_changes =
+     (Option.value_exn response).documentChanges |> Option.value_exn
+   in
+   List.iter document_changes ~f:(function
+     | `TextDocumentEdit { textDocument = { uri; version = _ }; edits } ->
+       let name = DocumentUri.to_path uri |> Filename.basename in
+       let source = List.Assoc.find_exn files name ~equal:String.equal in
+       let edits =
+         List.map edits ~f:(function
+           | `TextEdit edit -> edit
+           | `AnnotatedTextEdit _ | `SnippetTextEdit _ ->
+             failwith "unexpected annotated or snippet edit")
+       in
+       Printf.printf "%s:\n" name;
+       Test.apply_edits source edits |> print_string
+     | `CreateFile _ | `RenameFile _ | `DeleteFile _ ->
+       failwith "unexpected resource operation");
+   let* () = Client.request client Shutdown in
+   Client.stop client);
+  Unix.close stderr
 ;;
 
 let%expect_test "rename a symbol across open and closed files" =
@@ -414,5 +474,140 @@ let%expect_test "rename a symbol across open and closed files" =
         "start": { "character": 16, "line": 0 }
       }
     }
+    |}]
+;;
+
+let%expect_test "rename cross-file record-punned variable also renames field" =
+  test_project_rename
+    ~newName:"renamed"
+    ~request_file:"lib.ml"
+    [ ( "lib.ml"
+      , {ocaml|type t = { value : int }
+let $value = 1
+|ocaml}
+      )
+    ; ( "main.ml"
+      , {ocaml|open Lib
+let result : t = { value }
+|ocaml}
+      )
+    ];
+  [%expect
+    {|
+    lib.ml:
+    type t = { value : int }
+    let renamed = 1
+    main.ml:
+    open Lib
+    let result : t = { renamed }
+    |}]
+;;
+
+let%expect_test "rename cross-file punned record field also renames variable" =
+  test_project_rename
+    ~newName:"renamed"
+    ~request_file:"lib.ml"
+    [ ( "lib.ml"
+      , {ocaml|type t = { $value : int }
+let value = 1
+|ocaml}
+      )
+    ; ( "main.ml"
+      , {ocaml|open Lib
+let result : t = { value }
+|ocaml}
+      )
+    ];
+  [%expect
+    {|
+    lib.ml:
+    type t = { renamed : int }
+    let value = 1
+    main.ml:
+    open Lib
+    let result : t = { renamed }
+    |}]
+;;
+
+let%expect_test "rename field without local declaration also renames punned variable" =
+  test_project_rename
+    ~newName:"renamed"
+    ~request_file:"main.ml"
+    [ "lib.ml", "type t = { value : int }\n"
+    ; ( "main.ml"
+      , {ocaml|open Lib
+let value = 1
+let explicit : t = { $value = 2 }
+let punned : t = { value }
+|ocaml}
+      )
+    ];
+  [%expect
+    {|
+    lib.ml:
+    type t = { renamed : int }
+    main.ml:
+    open Lib
+    let value = 1
+    let explicit : t = { renamed = 2 }
+    let punned : t = { renamed }
+    |}]
+;;
+
+let%expect_test "rename qualified record-punned variable also renames field" =
+  test_rename
+    ~newName:"y"
+    {ocaml|module M = struct type t = { x : int } end
+let f $x : M.t = { M.x }
+|ocaml};
+  [%expect
+    {|
+    module M = struct type t = { x : int } end
+    let f y : M.t = { y }
+    |}]
+;;
+
+let%expect_test "rename qualified punned field also renames variable" =
+  test_rename
+    ~newName:"y"
+    {ocaml|module M = struct type t = { $x : int } end
+let x = 1
+let value : M.t = { M.x }
+|ocaml};
+  [%expect
+    {|
+    module M = struct type t = { y : int } end
+    let x = 1
+    let value : M.t = { M.y }
+    |}]
+;;
+
+let%expect_test "equal ranges in different files are not record puns" =
+  test_project_rename
+    ~newName:"renamed"
+    ~request_file:"lib.ml"
+    [ ( "lib.ml"
+      , {ocaml|type t = { value : int }
+let $value = 1
+let f value : t = { value }
+|ocaml}
+      )
+    ; ( "main.ml"
+      , {ocaml|let zero = 0
+let one = 1
+let result =    Lib.value
+|ocaml}
+      )
+    ];
+  [%expect
+    {|
+    lib.ml:
+    type t = { value : int }
+    let renamed = 1
+    let f value : t = { value }
+    main.ml:
+    let zero = 0
+    let one = 1
+    let result =    Lib.renamed
     |}]
 ;;
