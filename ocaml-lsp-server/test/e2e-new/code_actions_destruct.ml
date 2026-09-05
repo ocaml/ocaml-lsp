@@ -72,6 +72,37 @@ let%expect_test "destruct-line rejects a cross-line recovery location" =
   [%expect {| No code actions |}]
 ;;
 
+let%expect_test "malformed destruct-line recovery leaks an internal error" =
+  let source = "let o_[\nmatch xwith | 0 -> () |" in
+  let range = range ~start_line:1 ~start_character:7 ~end_line:1 ~end_character:23 in
+  let makeRequest textDocument =
+    let only =
+      [ CodeActionKind.Other "destruct-line (enumerate cases, use existing match)" ]
+    in
+    let context = CodeActionContext.create ~diagnostics:[] ~only () in
+    Lsp.Client_request.CodeAction
+      (CodeActionParams.create ~textDocument ~range ~context ())
+  in
+  Lsp_helpers.iter_lsp_response_result ~language_id:"ocaml" ~makeRequest ~source (function
+    | Error error ->
+      Jsonrpc.Response.Error.yojson_of_t error |> censor_backtraces |> Test.print_result
+    | Ok response ->
+      print_code_action_result
+        response
+        ~filter:(find_action "Destruct-line (enumerate cases, use existing match)"));
+  [%expect
+    {|
+    {
+      "data": {
+        "exn": "(\"Substring not found\" (substring with))",
+        "backtrace": "<censored>"
+      },
+      "code": -32603,
+      "message": "uncaught exception"
+    }
+    |}]
+;;
+
 let%expect_test "can destruct sum types" =
   destruct
     {ocaml|
