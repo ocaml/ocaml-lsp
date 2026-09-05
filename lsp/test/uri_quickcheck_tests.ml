@@ -114,8 +114,6 @@ let source ({ scheme; authority; path; query; fragment } : Case.t) =
   ^ suffix '#' fragment
 ;;
 
-let canonical source = Uri.of_string source |> Uri.to_string
-
 let uri_examples : Case.t list =
   [ { scheme = File
     ; authority = []
@@ -163,29 +161,31 @@ let fail source label expected actual =
        actual)
 ;;
 
-let%expect_test "URI serialization reaches a fixed point" =
+let%expect_test "URI string parsing preserves wire values" =
   Test.run_exn
     (module Case)
     ~examples:uri_examples
     ~f:(fun case ->
       let source = source case in
-      let once = canonical source in
-      let twice = canonical once in
-      if not (String.equal once twice)
-      then fail source "URI serialization is not idempotent" once twice);
+      let serialized = Uri.of_string source |> Uri.to_string in
+      if not (String.equal source serialized)
+      then fail source "URI string parsing changed the URI" source serialized);
   [%expect {| |}]
 ;;
 
-let%expect_test "URI JSON serialization preserves canonical values" =
+let%expect_test "URI JSON serialization preserves wire values" =
   Test.run_exn
     (module Case)
     ~examples:uri_examples
     ~f:(fun case ->
-      let source = source case |> canonical in
-      let uri = Uri.of_string source in
-      let round_trip = Uri.t_of_yojson (Uri.yojson_of_t uri) in
-      if not (Uri.equal uri round_trip)
-      then fail source "JSON round trip changed the URI" source (Uri.to_string round_trip));
+      let source = source case in
+      let serialized =
+        match Uri.t_of_yojson (`String source) |> Uri.yojson_of_t with
+        | `String serialized -> serialized
+        | _ -> assert false
+      in
+      if not (String.equal source serialized)
+      then fail source "JSON round trip changed the URI" source serialized);
   [%expect {| |}]
 ;;
 
