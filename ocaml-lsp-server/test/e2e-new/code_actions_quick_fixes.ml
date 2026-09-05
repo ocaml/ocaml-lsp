@@ -27,6 +27,12 @@ let diagnostic ?(severity = DiagnosticSeverity.Error) message range =
   Diagnostic.create ~message:(`String message) ~range ~severity ~source:"ocamllsp" ()
 ;;
 
+let print_applied_action ?diagnostics ~title source range =
+  match apply_code_action ~path:"test.ml" ?diagnostics title source range with
+  | None -> print_endline "None"
+  | Some source -> print_string source
+;;
+
 let print_inferred_intf_edits source path range =
   iter_code_actions ~path ~source range (function
     | None -> print_endline "No code actions"
@@ -36,19 +42,7 @@ let print_inferred_intf_edits source path range =
        | Some (`Command _) -> print_endline "Inferred interface action was a command"
        | Some (`CodeAction { edit = None; _ }) -> print_endline "No edit"
        | Some (`CodeAction { edit = Some edit; _ }) ->
-         let edits =
-           Option.value edit.documentChanges ~default:[]
-           |> List.filter_map ~f:(function
-             | `TextDocumentEdit (text_document_edit : TextDocumentEdit.t) ->
-               Some
-                 (`List
-                     (List.map text_document_edit.edits ~f:(function
-                        | `TextEdit edit -> TextEdit.yojson_of_t edit
-                        | `AnnotatedTextEdit edit -> AnnotatedTextEdit.yojson_of_t edit
-                        | `SnippetTextEdit edit -> SnippetTextEdit.yojson_of_t edit)))
-             | `CreateFile _ | `RenameFile _ | `DeleteFile _ -> None)
-         in
-         Test.print_result (`List edits)))
+         Test.apply_workspace_edit source edit |> print_string))
 ;;
 
 let%expect_test "opens the implementation if not in store" =
@@ -56,20 +50,7 @@ let%expect_test "opens the implementation if not in store" =
   let path = Filename.concat dir "lib.mli" in
   let range = range ~start_line:0 ~start_character:0 ~end_line:0 ~end_character:0 in
   print_inferred_intf_edits "" path range;
-  [%expect
-    {|
-    [
-      [
-        {
-          "newText": "val x : int\n",
-          "range": {
-            "end": { "character": 0, "line": 0 },
-            "start": { "character": 0, "line": 0 }
-          }
-        }
-      ]
-    ]
-    |}]
+  [%expect {| val x : int |}]
 ;;
 
 let%expect_test "offers Construct an expression code action" =
@@ -106,39 +87,17 @@ let y = M.f M.a
 |ocaml}
   in
   let range = range ~start_line:6 ~start_character:5 ~end_line:6 ~end_character:5 in
-  print_code_actions
-    ~path:"test.ml"
-    ~filter:(action_title "Remove module name from identifiers")
-    source
-    range;
+  print_applied_action ~title:"Remove module name from identifiers" source range;
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "changes": {
-          "file:///test.ml": [
-            {
-              "newText": "f",
-              "range": {
-                "end": { "character": 11, "line": 7 },
-                "start": { "character": 8, "line": 7 }
-              }
-            },
-            {
-              "newText": "a",
-              "range": {
-                "end": { "character": 15, "line": 7 },
-                "start": { "character": 12, "line": 7 }
-              }
-            }
-          ]
-        }
-      },
-      "isPreferred": false,
-      "kind": "remove module name from identifiers",
-      "title": "Remove module name from identifiers"
-    }
+    module M = struct
+      let a = 1
+      let f x = x + 1
+    end
+
+    open M
+
+    let y = f a
     |}]
 ;;
 
@@ -155,39 +114,17 @@ let y = f a
 |ocaml}
   in
   let range = range ~start_line:6 ~start_character:5 ~end_line:6 ~end_character:5 in
-  print_code_actions
-    ~path:"test.ml"
-    ~filter:(action_title "Put module name in identifiers")
-    source
-    range;
+  print_applied_action ~title:"Put module name in identifiers" source range;
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "changes": {
-          "file:///test.ml": [
-            {
-              "newText": "M.f",
-              "range": {
-                "end": { "character": 9, "line": 7 },
-                "start": { "character": 8, "line": 7 }
-              }
-            },
-            {
-              "newText": "M.a",
-              "range": {
-                "end": { "character": 11, "line": 7 },
-                "start": { "character": 10, "line": 7 }
-              }
-            }
-          ]
-        }
-      },
-      "isPreferred": false,
-      "kind": "put module name in identifiers",
-      "title": "Put module name in identifiers"
-    }
+    module M = struct
+      let a = 1
+      let f x = x + 1
+    end
+
+    open M
+
+    let y = M.f M.a
     |}]
 ;;
 
@@ -203,48 +140,8 @@ let%expect_test "add missing rec in toplevel let" =
     ]
   in
   let range = range ~start_line:0 ~start_character:31 ~end_line:0 ~end_character:32 in
-  print_code_actions
-    ~path:"missing-rec-1.ml"
-    ~diagnostics
-    ~filter:add_rec_action
-    source
-    range;
-  [%expect
-    {|
-    Code actions:
-    {
-      "diagnostics": [
-        {
-          "message": "Unbound value",
-          "range": {
-            "end": { "character": 32, "line": 0 },
-            "start": { "character": 23, "line": 0 }
-          },
-          "severity": 1,
-          "source": "ocamllsp"
-        }
-      ],
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "rec ",
-                "range": {
-                  "end": { "character": 4, "line": 0 },
-                  "start": { "character": 4, "line": 0 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///missing-rec-1.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "quickfix",
-      "title": "Add missing `rec` keyword"
-    }
-    |}]
+  print_applied_action ~diagnostics ~title:"Add missing `rec` keyword" source range;
+  [%expect {| let rec needs_rec x = 1 + (needs_rec x) |}]
 ;;
 
 let%expect_test "add missing rec in expression let" =
@@ -261,47 +158,12 @@ let%expect_test "add missing rec in expression let" =
     ]
   in
   let range = range ~start_line:2 ~start_character:14 ~end_line:2 ~end_character:15 in
-  print_code_actions
-    ~path:"missing-rec-2.ml"
-    ~diagnostics
-    ~filter:add_rec_action
-    source
-    range;
+  print_applied_action ~diagnostics ~title:"Add missing `rec` keyword" source range;
   [%expect
     {|
-    Code actions:
-    {
-      "diagnostics": [
-        {
-          "message": "Unbound value",
-          "range": {
-            "end": { "character": 14, "line": 2 },
-            "start": { "character": 9, "line": 2 }
-          },
-          "severity": 1,
-          "source": "ocamllsp"
-        }
-      ],
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "rec ",
-                "range": {
-                  "end": { "character": 6, "line": 1 },
-                  "start": { "character": 6, "line": 1 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///missing-rec-2.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "quickfix",
-      "title": "Add missing `rec` keyword"
-    }
+    let outer =
+      let rec inner x =
+        1 + (inner
     |}]
 ;;
 
@@ -320,47 +182,13 @@ let%expect_test "add missing rec in expression let-and" =
     ]
   in
   let range = range ~start_line:3 ~start_character:14 ~end_line:3 ~end_character:15 in
-  print_code_actions
-    ~path:"missing-rec-3.ml"
-    ~diagnostics
-    ~filter:add_rec_action
-    source
-    range;
+  print_applied_action ~diagnostics ~title:"Add missing `rec` keyword" source range;
   [%expect
     {|
-    Code actions:
-    {
-      "diagnostics": [
-        {
-          "message": "Unbound value",
-          "range": {
-            "end": { "character": 14, "line": 3 },
-            "start": { "character": 9, "line": 3 }
-          },
-          "severity": 1,
-          "source": "ocamllsp"
-        }
-      ],
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "rec ",
-                "range": {
-                  "end": { "character": 6, "line": 1 },
-                  "start": { "character": 6, "line": 1 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///missing-rec-3.ml", "version": 0 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "quickfix",
-      "title": "Add missing `rec` keyword"
-    }
+    let outer =
+      let rec inner1 = 0
+      and inner x =
+        1 + (inner
     |}]
 ;;
 
@@ -620,31 +448,31 @@ let f = function
     in
     let params = CodeActionParams.create ~textDocument ~range:query_range ~context () in
     let* response = Client.request client (CodeAction params) in
-    print_code_action_result ~filter:(find_action "combine-cases") response;
+    let edit =
+      Option.value_exn response
+      |> List.find_map ~f:(function
+        | `CodeAction { CodeAction.title = "Combine-cases"; edit = Some edit; _ } ->
+          Some edit
+        | `CodeAction _ | `Command _ -> None)
+      |> Option.value_exn
+    in
+    let version =
+      match edit.documentChanges with
+      | Some [ `TextDocumentEdit { textDocument = { version; _ }; _ } ] ->
+        Option.value_exn version
+      | None | Some _ -> failwith "expected one versioned document edit"
+    in
+    Printf.printf "edit version: %d\n" version;
+    let source =
+      Test.apply_edits source [ TextEdit.create ~range:edit_range ~newText:" " ]
+    in
+    Test.apply_workspace_edit source edit |> print_string;
     Test.exit_client client);
   [%expect
     {|
-    Code actions:
-    {
-      "edit": {
-        "documentChanges": [
-          {
-            "edits": [
-              {
-                "newText": "  | A | B -> 1\n",
-                "range": {
-                  "end": { "character": 0, "line": 4 },
-                  "start": { "character": 0, "line": 2 }
-                }
-              }
-            ],
-            "textDocument": { "uri": "file:///test.ml", "version": 1 }
-          }
-        ]
-      },
-      "isPreferred": false,
-      "kind": "combine-cases",
-      "title": "Combine-cases"
-    }
+    edit version: 1
+    type t = A | B
+    let f = function
+      | A | B -> 1
     |}]
 ;;
