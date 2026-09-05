@@ -14,6 +14,8 @@
 
 ## Fixes
 
+- Clear stale Dune diagnostics and promotion actions when an RPC instance exits,
+  without removing a replacement instance for the same root. (#2189, @rgrinberg)
 - Ensure recovered selection ranges contain the requested position. (#2170,
   @rgrinberg)
 - Suppress function extraction when a constructor would move out of scope or
