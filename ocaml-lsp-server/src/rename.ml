@@ -78,24 +78,117 @@ let prepare
         else None))
 ;;
 
-let workspace_edit_of_locations ~document_changes ~documents ~new_name locations =
+(* In a qualified pun such as [{ M.x }], Merlin reports [M.x] as the variable
+   occurrence but only [x] as the record-field occurrence. *)
+type record_pun =
+  { variable : Range.t
+  ; field : Range.t
+  }
+
+let record_puns_and_fields (parsetree : Mreader.parsetree) =
+  let record_puns = ref [] in
+  let record_fields = ref [] in
+  let field_name_range (field : Longident.t Loc.loc) =
+    let name = Longident.last field.txt in
+    let loc = field.loc in
+    let loc_start =
+      { loc.loc_end with pos_cnum = loc.loc_end.pos_cnum - String.length name }
+    in
+    Range.of_loc { loc with loc_start }
+  in
+  let add_field (field : Longident.t Loc.loc) =
+    record_fields := field_name_range field :: !record_fields
+  in
+  let add_pun (field : Longident.t Loc.loc) =
+    let pun = { variable = Range.of_loc field.loc; field = field_name_range field } in
+    record_puns := pun :: !record_puns;
+    match field.txt with
+    | Longident.Lident _ -> ()
+    | _ -> record_fields := pun.field :: !record_fields
+  in
+  let iterator =
+    let expr (self : Ast_iterator.iterator) (expr : Parsetree.expression) =
+      (match expr.pexp_desc with
+       | Pexp_record (fields, _) ->
+         List.iter fields ~f:(fun (field, value) ->
+           if Loc.compare field.loc value.pexp_loc = 0
+           then add_pun field
+           else add_field field)
+       | Pexp_field (_, field) | Pexp_setfield (_, field, _) -> add_field field
+       | _ -> ());
+      Ast_iterator.default_iterator.expr self expr
+    in
+    let pat (self : Ast_iterator.iterator) (pat : Parsetree.pattern) =
+      (match pat.ppat_desc with
+       | Ppat_record (fields, _) ->
+         List.iter fields ~f:(fun (field, value) ->
+           if Loc.compare field.loc value.ppat_loc = 0
+           then add_pun field
+           else add_field field)
+       | _ -> ());
+      Ast_iterator.default_iterator.pat self pat
+    in
+    let label_declaration
+          (self : Ast_iterator.iterator)
+          (declaration : Parsetree.label_declaration)
+      =
+      record_fields := Range.of_loc declaration.pld_name.loc :: !record_fields;
+      Ast_iterator.default_iterator.label_declaration self declaration
+    in
+    { Ast_iterator.default_iterator with expr; pat; label_declaration }
+  in
+  (match parsetree with
+   | `Implementation structure -> iterator.structure iterator structure
+   | `Interface signature -> iterator.signature iterator signature);
+  !record_puns, !record_fields
+;;
+
+let same_range left right = Lsp.Range.compare left right = 0
+
+let workspace_edit_of_locations
+      ~document_changes
+      ~documents
+      ~sources
+      ~record_puns
+      ~renames_record_field
+      ~new_name
+      locations
+  =
   let edits =
     List.fold_left
       locations
       ~init:(Map.empty (module Uri))
       ~f:(fun acc (uri, range) -> Map.add_multi acc ~key:uri ~data:range)
     |> Map.mapi ~f:(fun ~key:doc_uri ~data:ranges ->
-      let source =
-        match Map.find documents doc_uri with
-        | Some document -> Document.source document
-        | None ->
-          let source_path = Uri.to_path doc_uri in
-          In_channel.with_open_text source_path In_channel.input_all |> Msource.make
-      in
+      let source = Map.find sources doc_uri |> Option.value_exn in
+      let record_puns = Map.find record_puns doc_uri |> Option.value ~default:[] in
       List.map ranges ~f:(fun range ->
+        let range = identifier_range source range in
+        let is_record_pun =
+          List.exists record_puns ~f:(fun pun ->
+            let pun_range = if renames_record_field then pun.field else pun.variable in
+            same_range range pun_range)
+        in
         let edit =
-          let range = identifier_range source range in
-          TextEdit.create ~range ~newText:new_name
+          if not is_record_pun
+          then TextEdit.create ~range ~newText:new_name
+          else (
+            let source_text = Msource.text source in
+            let (`Offset start_offset) =
+              Msource.get_offset source (Position.logical range.start)
+            in
+            let (`Offset end_offset) =
+              Msource.get_offset source (Position.logical range.end_)
+            in
+            let old_name =
+              String.sub source_text ~pos:start_offset ~len:(end_offset - start_offset)
+            in
+            let newText =
+              if renames_record_field
+              then new_name ^ " = " ^ old_name
+              else old_name ^ " = " ^ new_name
+            in
+            TextEdit.create ~range ~newText)
         in
         match edit.range.start with
         | { character = 0; _ } -> edit
@@ -154,7 +247,7 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position), `Renaming)
     in
-    let+ occurrences, _desync =
+    let* occurrences, _desync =
       Document.Merlin.dispatch_exn ~name:"rename" merlin command
     in
     let locations =
@@ -170,8 +263,59 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
           in
           Some (uri, Range.of_loc loc))
     in
+    let sources =
+      List.fold_left
+        locations
+        ~init:(Map.empty (module Uri))
+        ~f:(fun sources (uri, _) ->
+          if Map.mem sources uri
+          then sources
+          else (
+            let source =
+              match Map.find documents uri with
+              | Some document -> Document.source document
+              | None ->
+                let path = Uri.to_path uri in
+                In_channel.with_open_text path In_channel.input_all |> Msource.make
+            in
+            Map.set sources ~key:uri ~data:source))
+    in
+    (* Occurrences may span files, so analyze the same source snapshots that
+       will be used to construct their edits. *)
+    let* configured_sources =
+      Map.to_alist sources
+      |> Fiber.parallel_map ~f:(fun (uri, source) ->
+        let+ config =
+          Merlin_config.DB.get state.merlin_config uri |> Merlin_config.config
+        in
+        uri, source, config)
+    in
+    let+ record_puns, record_fields =
+      Document.Merlin.with_pipeline_exn ~name:"rename-record-puns" merlin (fun _ ->
+        List.fold_left
+          configured_sources
+          ~init:(Map.empty (module Uri), Map.empty (module Uri))
+          ~f:(fun (record_puns, record_fields) (uri, source, config) ->
+            let parsetree = Mpipeline.make config source |> Mpipeline.reader_parsetree in
+            let puns, fields = record_puns_and_fields parsetree in
+            ( Map.set record_puns ~key:uri ~data:puns
+            , Map.set record_fields ~key:uri ~data:fields )))
+    in
+    let renames_record_field =
+      List.exists locations ~f:(fun (uri, range) ->
+        match Map.find record_fields uri with
+        | None -> false
+        | Some fields -> List.exists fields ~f:(same_range range))
+    in
     let document_changes =
       Capabilities.workspace_edit_document_changes (State.client_capabilities state)
     in
-    workspace_edit_of_locations ~document_changes ~documents ~new_name:newName locations
+    workspace_edit_of_locations
+      ~document_changes
+      ~documents
+      ~sources
+      ~record_puns
+      ~renames_record_field
+      ~new_name:newName
+      locations
 ;;
