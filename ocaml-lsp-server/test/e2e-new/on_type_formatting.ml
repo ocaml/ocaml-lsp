@@ -11,9 +11,13 @@ let request client uri line =
        (DocumentOnTypeFormattingParams.create ~textDocument ~position ~ch:"\n" ~options))
 ;;
 
-let print_edits = function
+let print_edits ?source = function
   | None -> print_endline "on-type formatting unavailable"
-  | Some edits -> `List (List.map edits ~f:TextEdit.yojson_of_t) |> Test.print_result
+  | Some edits ->
+    (match source with
+     | None -> `List (List.map edits ~f:TextEdit.yojson_of_t) |> Test.print_result
+     | Some source ->
+       Test.apply_edits source edits |> Printf.printf "formatted source: %S\n")
 ;;
 
 let%expect_test "a helper that cannot be started is unavailable" =
@@ -83,7 +87,7 @@ let%expect_test "indents after a newline and reuses the RPC process" =
        in
        assert (not (Sys.file_exists log));
        let* edits = request client uri 1 in
-       print_edits edits;
+       print_edits ~source edits;
        let* (_ : TextEdit.t list option) = request client uri 1 in
        let launches =
          Fs_io.read_file log |> Result.ok_exn |> String.split_lines |> List.length
@@ -94,15 +98,7 @@ let%expect_test "indents after a newline and reuses the RPC process" =
        Client.notification client Exit);
   [%expect
     {|
-    [
-      {
-        "newText": "  ",
-        "range": {
-          "end": { "character": 0, "line": 1 },
-          "start": { "character": 0, "line": 1 }
-        }
-      }
-    ]
+    formatted source: "let f =\n  \n"
     RPC launches: 1
     |}]
 ;;
