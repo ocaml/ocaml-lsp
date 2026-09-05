@@ -363,6 +363,13 @@ let parse_selection src =
   src', Range.create ~start ~end_
 ;;
 
+let parse_cursor source_with_cursor =
+  let source, { Range.start = position; end_ } = parse_selection source_with_cursor in
+  if Position.compare position end_ <> 0
+  then failwith "expected a cursor marker, not a selection";
+  source, position
+;;
+
 let offset_of_position src (pos : Position.t) =
   let line_offset =
     String.split_lines src
