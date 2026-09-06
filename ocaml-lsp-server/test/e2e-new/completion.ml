@@ -3,6 +3,7 @@ open Test.Import
 let iter_completions
       ?prep
       ?path
+      ?capabilities
       ?(triggerCharacter = "")
       ?(triggerKind = CompletionTriggerKind.Invoked)
       ~position
@@ -12,7 +13,12 @@ let iter_completions
     Lsp.Client_request.TextDocumentCompletion
       (CompletionParams.create ~textDocument ~position ~context ())
   in
-  Lsp_helpers.iter_lsp_response ?prep ?path ~language_id:"ocaml" ~makeRequest
+  Lsp_helpers.iter_lsp_response
+    ?prep
+    ?path
+    ?capabilities
+    ~language_id:"ocaml"
+    ~makeRequest
 ;;
 
 let print_completion_response
@@ -50,6 +56,7 @@ let print_completion_response
 let print_completions
       ?(prep = fun _ -> Fiber.return ())
       ?(path = "foo.ml")
+      ?capabilities
       ?limit
       ?pre_print
       source
@@ -58,6 +65,7 @@ let print_completions
   iter_completions
     ~prep
     ~path
+    ?capabilities
     ~source
     ~position
     (print_completion_response ?limit ?pre_print)
@@ -106,6 +114,23 @@ let%expect_test "triggered completion inside a comment after Unicode" =
     ~position
     (print_completion_response ~limit:1);
   [%expect {| No completion Items |}]
+;;
+
+let snippet_capabilities =
+  let textDocument =
+    let completion =
+      let completionItem =
+        let insertTextModeSupport =
+          ClientCompletionItemInsertTextModeOptions.create
+            ~valueSet:[ InsertTextMode.AsIs; AdjustIndentation ]
+        in
+        ClientCompletionItemOptions.create ~snippetSupport:true ~insertTextModeSupport ()
+      in
+      CompletionClientCapabilities.create ~completionItem ()
+    in
+    TextDocumentClientCapabilities.create ~completion ()
+  in
+  ClientCapabilities.create ~textDocument ()
 ;;
 
 let%expect_test "completion converts UTF-16 positions before querying Merlin" =
@@ -1017,6 +1042,131 @@ let x : t = `$|ocaml}
 let%expect_test "completion for holes" =
   apply_completion ~label:"0" {ocaml|let u : int = _$|ocaml};
   [%expect {| let u : int = 0 |}]
+;;
+
+let%expect_test "construct completions stay plain without snippet support" =
+  let source = "type t = A | B of int\nlet value : t = _" in
+  let position = Position.create ~line:1 ~character:17 in
+  let only_b =
+    List.filter ~f:(fun (item : CompletionItem.t) ->
+      String.is_prefix item.label ~prefix:"B")
+  in
+  print_completions ~pre_print:only_b source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "filterText": "_(B _)",
+      "kind": 1,
+      "label": "B _",
+      "sortText": "0001",
+      "textEdit": {
+        "newText": "(B _)",
+        "range": {
+          "end": { "character": 17, "line": 1 },
+          "start": { "character": 16, "line": 1 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "construct completions use snippets for generated holes" =
+  let source = "type t = A | B of int\nlet value : t = _" in
+  let position = Position.create ~line:1 ~character:17 in
+  let only_b =
+    List.filter ~f:(fun (item : CompletionItem.t) ->
+      String.is_prefix item.label ~prefix:"B")
+  in
+  print_completions ~capabilities:snippet_capabilities ~pre_print:only_b source position;
+  [%expect
+    {|
+    Completions:
+    {
+      "filterText": "_(B _)",
+      "insertTextFormat": 2,
+      "kind": 1,
+      "label": "B _",
+      "sortText": "0001",
+      "textEdit": {
+        "newText": "(B ${1:_})$0",
+        "range": {
+          "end": { "character": 17, "line": 1 },
+          "start": { "character": 16, "line": 1 }
+        }
+      }
+    }
+    |}]
+;;
+
+let%expect_test "construct snippets respect capabilities and next-hole commands" =
+  let source = "type t = A | B of int\nlet value : t = _" in
+  let position = Position.create ~line:1 ~character:17 in
+  List.iter [ None; Some false; Some true ] ~f:(fun snippetSupport ->
+    List.iter [ false; true ] ~f:(fun jumpToNextHole ->
+      let completionItem = ClientCompletionItemOptions.create ?snippetSupport () in
+      let completion = CompletionClientCapabilities.create ~completionItem () in
+      let textDocument = TextDocumentClientCapabilities.create ~completion () in
+      let capabilities =
+        ClientCapabilities.create
+          ~textDocument
+          ~experimental:(`Assoc [ "jumpToNextHole", `Bool jumpToNextHole ])
+          ()
+      in
+      Printf.printf
+        "snippetSupport=%s jumpToNextHole=%b\n"
+        (Option.value_map snippetSupport ~default:"absent" ~f:string_of_bool)
+        jumpToNextHole;
+      iter_completions ~capabilities ~source ~position (fun response ->
+        let items =
+          match Option.value_exn response with
+          | `CompletionList completions -> completions.items
+          | `List items -> items
+        in
+        List.iter [ "A"; "B _" ] ~f:(fun label ->
+          let item =
+            List.find_exn items ~f:(fun (item : CompletionItem.t) ->
+              String.equal item.label label)
+          in
+          let newText =
+            match item.textEdit with
+            | Some (`TextEdit edit) -> edit.newText
+            | _ -> failwith "expected a text edit"
+          in
+          let format =
+            match item.insertTextFormat with
+            | None -> "absent"
+            | Some PlainText -> "plain"
+            | Some Snippet -> "snippet"
+          in
+          Printf.printf
+            "%s: format=%s text=%S command=%s\n"
+            label
+            format
+            newText
+            (Option.value_map item.command ~default:"none" ~f:(fun command ->
+               command.command))))));
+  [%expect
+    {|
+    snippetSupport=absent jumpToNextHole=false
+    A: format=absent text="A" command=none
+    B _: format=absent text="(B _)" command=none
+    snippetSupport=absent jumpToNextHole=true
+    A: format=absent text="A" command=ocaml.next-hole
+    B _: format=absent text="(B _)" command=ocaml.next-hole
+    snippetSupport=false jumpToNextHole=false
+    A: format=absent text="A" command=none
+    B _: format=absent text="(B _)" command=none
+    snippetSupport=false jumpToNextHole=true
+    A: format=absent text="A" command=ocaml.next-hole
+    B _: format=absent text="(B _)" command=ocaml.next-hole
+    snippetSupport=true jumpToNextHole=false
+    A: format=absent text="A" command=none
+    B _: format=snippet text="(B ${1:_})$0" command=none
+    snippetSupport=true jumpToNextHole=true
+    A: format=absent text="A" command=ocaml.next-hole
+    B _: format=snippet text="(B ${1:_})$0" command=none
+    |}]
 ;;
 
 let%expect_test "construct completion converts Merlin ranges to UTF-16" =

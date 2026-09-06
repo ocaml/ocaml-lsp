@@ -2,6 +2,8 @@
 
 ## Features
 
+- Make generated construct completions interactive for clients with snippet support.
+  (#2198, @rgrinberg)
 - Support `ocp-indent` as an alternative for document and range formatting.
   (#2148, @rgrinberg)
 - Support `textDocument/onTypeFormatting` through the optional, persistent

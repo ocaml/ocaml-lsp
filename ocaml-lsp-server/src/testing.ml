@@ -9,3 +9,4 @@ module Prefix_parser = Prefix_parser
 module Position = Position
 module Range = Range
 module Semantic_tokens = Semantic_highlighting.For_tests
+module Snippet_builder = Snippet_builder

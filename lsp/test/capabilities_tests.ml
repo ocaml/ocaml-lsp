@@ -1,5 +1,34 @@
 open Base
 open Lsp.Types
+module Capabilities = Lsp.Capabilities
+
+let%expect_test "completion snippet support is opt-in" =
+  List.iter
+    [ "no text document", {|{}|}
+    ; "no completion", {|{"textDocument":{}}|}
+    ; "no completion item", {|{"textDocument":{"completion":{}}}|}
+    ; "absent", {|{"textDocument":{"completion":{"completionItem":{}}}}|}
+    ; ( "false"
+      , {|{"textDocument":{"completion":{"completionItem":{"snippetSupport":false}}}}|} )
+    ; ( "true"
+      , {|{"textDocument":{"completion":{"completionItem":{"snippetSupport":true}}}}|} )
+    ]
+    ~f:(fun (name, json) ->
+      let capabilities = Yojson.Safe.from_string json |> ClientCapabilities.t_of_yojson in
+      Stdlib.Printf.printf
+        "%s: %b\n"
+        name
+        (Capabilities.completion_snippet_support capabilities));
+  [%expect
+    {|
+    no text document: false
+    no completion: false
+    no completion item: false
+    absent: false
+    false: false
+    true: true
+    |}]
+;;
 
 let capabilities ?folding_range () =
   let textDocument =
@@ -9,9 +38,9 @@ let capabilities ?folding_range () =
 ;;
 
 let print_folding_range (t : ClientCapabilities.t) =
-  let line_folding_only = Lsp.Capabilities.folding_range_line_folding_only t in
+  let line_folding_only = Capabilities.folding_range_line_folding_only t in
   let kinds =
-    match Lsp.Capabilities.folding_range_kinds t with
+    match Capabilities.folding_range_kinds t with
     | None -> "none"
     | Some kinds ->
       let kind_to_string = function
@@ -23,7 +52,7 @@ let print_folding_range (t : ClientCapabilities.t) =
       kinds |> List.map ~f:kind_to_string |> String.concat ~sep:","
   in
   let limit =
-    match Lsp.Capabilities.folding_range_limit t with
+    match Capabilities.folding_range_limit t with
     | None -> "none"
     | Some limit -> Int.to_string limit
   in

@@ -27,6 +27,11 @@ let completion_preselect_support (t : t) =
   |> Option.value ~default:false
 ;;
 
+let completion_snippet_support (t : t) =
+  Option.bind (completion_item t) (fun item -> item.snippetSupport)
+  |> Option.value ~default:false
+;;
+
 let completion_resolve_properties (t : t) =
   Option.bind (completion_item t) (fun item ->
     map item.resolveSupport (fun resolve -> resolve.properties))
