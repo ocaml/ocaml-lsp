@@ -1,5 +1,63 @@
+open Test.Import
+
 let inline_test ?print_none source =
   Code_actions.code_action_test ?print_none ~title:"Inline into uses" source
+;;
+
+let%expect_test "eager inline action overflows on a deeply recovered expression" =
+  let source = "let opt[()\nlet claion A -x" in
+  let range =
+    Code_actions.range ~start_line:0 ~start_character:7 ~end_line:1 ~end_character:15
+  in
+  let test ?capabilities () =
+    Helpers.test
+      ?capabilities
+      ~extra_env:[ "OCAMLRUNPARAM=l=10000" ]
+      source
+      (fun client ->
+         let textDocument = TextDocumentIdentifier.create ~uri:Helpers.uri in
+         let only = [ CodeActionKind.RefactorInline ] in
+         let context = CodeActionContext.create ~diagnostics:[] ~only () in
+         let* response =
+           Fiber.collect_errors (fun () ->
+             Client.request
+               client
+               (CodeAction (CodeActionParams.create ~textDocument ~range ~context ())))
+         in
+         match response with
+         | Ok response ->
+           Code_actions.print_code_action_result response;
+           Fiber.return ()
+         | Error [ { Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; _ } ] ->
+           let data =
+             Option.map error.data ~f:(function
+               | `Assoc fields ->
+                 `Assoc
+                   (List.filter fields ~f:(fun (name, _) ->
+                      not (String.equal name "backtrace")))
+               | json -> json)
+           in
+           Jsonrpc.Response.Error.yojson_of_t { error with data } |> Test.print_result;
+           Fiber.return ()
+         | Error errors -> Fiber.reraise_all errors)
+  in
+  test ();
+  [%expect
+    {|
+    {
+      "data": { "exn": "Stack overflow" },
+      "code": -32603,
+      "message": "uncaught exception"
+    }
+    |}];
+  let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
+  let codeAction =
+    CodeActionClientCapabilities.create ~dataSupport:true ~resolveSupport ()
+  in
+  let textDocument = TextDocumentClientCapabilities.create ~codeAction () in
+  let capabilities = ClientCapabilities.create ~textDocument () in
+  test ~capabilities ();
+  [%expect {| No code actions |}]
 ;;
 
 let%expect_test "" =
