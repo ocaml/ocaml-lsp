@@ -631,3 +631,205 @@ let result =    Lib.value
     let result =    Lib.renamed
     |}]
 ;;
+
+let%expect_test "rename constrained expression-punned variable" =
+  test_rename
+    ~newName:"y"
+    {ocaml|type t = { x : int }
+let f $x =
+  ({ x : int }, { x :> int }, { x : int :> int }, { x : int = x })
+|ocaml};
+  [%expect
+    {|
+    type t = { x : int }
+    let f y =
+      ({ y : int }, { y :> int }, { y : int :> int }, { x : int = y })
+    |}]
+;;
+
+let%expect_test "rename constrained expression-punned field" =
+  test_rename
+    ~newName:"y"
+    {ocaml|type t = { $x : int }
+let f x =
+  ({ x : int }, { x :> int }, { x : int :> int }, { x : int = x })
+|ocaml};
+  [%expect
+    {|
+    type t = { y : int }
+    let f x =
+      ({ y : int }, { y :> int }, { y : int :> int }, { y : int = x })
+    |}]
+;;
+
+let%expect_test "rename constrained pattern-punned variable" =
+  test_rename
+    ~newName:"y"
+    {ocaml|type t = { x : int }
+let f { x : int } { x : int = explicit } = $x, explicit
+|ocaml};
+  [%expect
+    {|
+    type t = { x : int }
+    let f { y : int } { x : int = explicit } = y, explicit
+    |}]
+;;
+
+let%expect_test "rename constrained pattern-punned field" =
+  test_rename
+    ~newName:"y"
+    {ocaml|type t = { $x : int }
+let f { x : int } { x : int = explicit } = x, explicit
+|ocaml};
+  [%expect
+    {|
+    type t = { y : int }
+    let f { y : int } { y : int = explicit } = x, explicit
+    |}]
+;;
+
+let%expect_test "rename qualified constrained expression-punned variable" =
+  test_rename
+    ~newName:"y"
+    {ocaml|module M = struct type t = { x : int } end
+let f $x = { M.x (* keep *) :
+  int }
+|ocaml};
+  [%expect
+    {|
+    module M = struct type t = { x : int } end
+    let f y = { y (* keep *) :
+      int }
+    |}]
+;;
+
+let%expect_test "rename qualified constrained expression-punned field" =
+  test_rename
+    ~newName:"y"
+    {ocaml|module M = struct type t = { $x : int } end
+let f x = { M.x (* keep *) :
+  int }
+|ocaml};
+  [%expect
+    {|
+    module M = struct type t = { y : int } end
+    let f x = { M.y (* keep *) :
+      int }
+    |}]
+;;
+
+let%expect_test "rename qualified pattern-punned variable with and without a constraint" =
+  test_rename
+    ~newName:"y"
+    {ocaml|module M = struct type t = { x : int } end
+let f { M.x : int } = $x
+let g { M.x } = x
+|ocaml};
+  [%expect
+    {|
+    module M = struct type t = { x : int } end
+    let f { y : int } = y
+    let g { M.x } = x
+    |}]
+;;
+
+let%expect_test "rename qualified pattern-punned field with and without a constraint" =
+  test_rename
+    ~newName:"y"
+    {ocaml|module M = struct type t = { $x : int } end
+let f { M.x : int } = x
+let g { M.x } = x
+|ocaml};
+  [%expect
+    {|
+    module M = struct type t = { y : int } end
+    let f { M.y : int } = x
+    let g { M.y } = x
+    |}]
+;;
+
+let%expect_test "rename does not retain the Merlin configuration process after close" =
+  List.iter [ 0; 1; 3 ] ~f:(fun renames ->
+    let dir = setup_multi_file_workspace () in
+    let uri file = DocumentUri.of_path (Filename.concat dir file) in
+    let workspace =
+      WorkspaceFolder.create ~uri:(DocumentUri.of_path dir) ~name:"rename"
+    in
+    let stopped = Fiber.Ivar.create () in
+    let handler =
+      Client.Handler.make
+        ~on_notification:(fun _ notification ->
+          match notification with
+          | LogTrace { message = "Stopping Merlin configuration process"; _ } ->
+            Fiber.Ivar.fill stopped ()
+          | _ -> Fiber.return ())
+        ()
+    in
+    let stderr = Unix.openfile Test.null_device [ O_WRONLY ] 0 in
+    Fun.protect
+      ~finally:(fun () -> Unix.close stderr)
+      (fun () ->
+         Test.run_initialized
+           ~cwd:dir
+           ~stderr
+           ~handler
+           ~timeout:10.
+           ~trace:Verbose
+           ~capabilities:(capabilities ~documentChanges:true)
+           ~workspaceFolders:(Some [ workspace ])
+         @@ fun client ->
+         let* () =
+           open_project_document
+             client
+             ~uri:(uri "lib.ml")
+             ~version:0
+             ~text:"let value = 1\n"
+         in
+         let* () =
+           open_project_document
+             client
+             ~uri:(uri "main.ml")
+             ~version:0
+             ~text:"let result = Lib.value\n"
+         in
+         let textDocument = TextDocumentIdentifier.create ~uri:(uri "lib.ml") in
+         let rec rename_times = function
+           | 0 -> Fiber.return ()
+           | n ->
+             let* response =
+               Client.request
+                 client
+                 (TextDocumentRename
+                    (RenameParams.create
+                       ~textDocument
+                       ~position:(Position.create ~line:0 ~character:5)
+                       ~newName:"renamed"
+                       ()))
+             in
+             let changes =
+               (Option.value_exn response).documentChanges |> Option.value_exn
+             in
+             (* Exercise both open documents and the closed [other.ml]. *)
+             assert (List.length changes = 3);
+             rename_times (n - 1)
+         in
+         let* () = rename_times renames in
+         let close file =
+           let textDocument = TextDocumentIdentifier.create ~uri:(uri file) in
+           Client.notification client (TextDocumentDidClose { textDocument })
+         in
+         let* () = close "main.ml" in
+         let* () = close "lib.ml" in
+         (* Trace notifications are detached tasks. Wait for the stop itself,
+            before shutdown could release an otherwise leaked handle. *)
+         let* () = Fiber.Ivar.read stopped in
+         Printf.printf "renames=%d: configuration process stopped\n" renames;
+         let* () = Client.request client Shutdown in
+         Client.stop client));
+  [%expect
+    {|
+    renames=0: configuration process stopped
+    renames=1: configuration process stopped
+    renames=3: configuration process stopped
+    |}]
+;;
