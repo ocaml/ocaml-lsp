@@ -78,6 +78,7 @@
     hover_extended
     hover_ocamlformat_restart
     infer_intf
+    implementation
     inlay_hints
     jump_to_typed_hole
     merlin_call_compatible
