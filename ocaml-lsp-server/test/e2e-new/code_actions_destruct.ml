@@ -378,6 +378,25 @@ $  | C -> _
     |}]
 ;;
 
+let%expect_test "destruct-line corrupts a nested or-pattern" =
+  destruct_line
+    {ocaml|
+type t = A | B | C
+let f (x : t) =
+  match (x, true) with
+$  | A, _ -> _
+|ocaml};
+  [%expect
+    {|
+    type t = A | B | C
+    let f (x : t) =
+      match (x, true) with
+      | A, _ -> _
+      | (B -> _
+      | C), _ -> _
+    |}]
+;;
+
 let%expect_test "can destruct hole" =
   destruct_line
     {ocaml|
