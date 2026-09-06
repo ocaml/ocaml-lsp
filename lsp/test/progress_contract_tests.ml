@@ -15,6 +15,13 @@ let print_work_done { ProgressParams.token; value } =
     (Yojson.Safe.to_string (Progress.yojson_of_t value))
 ;;
 
+let print_progress { ProgressParams.token; value } =
+  Printf.printf
+    "Progress token=%s value=%s\n"
+    (Yojson.Safe.to_string (ProgressToken.yojson_of_t token))
+    (Yojson.Safe.to_string value)
+;;
+
 let check label ?params () =
   print_endline label;
   let notification = Jsonrpc.Notification.create ~method_:"$/progress" ?params () in
@@ -32,6 +39,7 @@ let check label ?params () =
     "client to server"
     (function
       | Client_notification.WorkDoneProgress params -> print_work_done params
+      | Progress params -> print_progress params
       | _ -> failwith "expected a progress notification")
     Client_notification.to_jsonrpc
     (Client_notification.of_jsonrpc notification);
@@ -39,6 +47,7 @@ let check label ?params () =
     "server to client"
     (function
       | Server_notification.WorkDoneProgress params -> print_work_done params
+      | Progress params -> print_progress params
       | _ -> failwith "expected a progress notification")
     Server_notification.to_jsonrpc
     (Server_notification.of_jsonrpc notification)
@@ -63,8 +72,10 @@ let%expect_test "generic progress notifications" =
   [%expect
     {|
     partial reference results
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token="partial" value=[{"range":{"end":{"character":4,"line":2},"start":{"character":4,"line":2}},"uri":"file:///workspace/test.ml"}]
+    round-trip preserved: true
+    server to client: Progress token="partial" value=[{"range":{"end":{"character":4,"line":2},"start":{"character":4,"line":2}},"uri":"file:///workspace/test.ml"}]
+    round-trip preserved: true
     |}]
 ;;
 
@@ -86,32 +97,50 @@ let%expect_test "generic progress values with integer tokens" =
   [%expect
     {|
     empty array
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token=42 value=[]
+    round-trip preserved: true
+    server to client: Progress token=42 value=[]
+    round-trip preserved: true
     semantic token chunk
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token=42 value={"data":[0,0,3,0,0]}
+    round-trip preserved: true
+    server to client: Progress token=42 value={"data":[0,0,3,0,0]}
+    round-trip preserved: true
     nested object
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token=42 value={"items":[{"id":1,"metadata":null}]}
+    round-trip preserved: true
+    server to client: Progress token=42 value={"items":[{"id":1,"metadata":null}]}
+    round-trip preserved: true
     empty object
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token=42 value={}
+    round-trip preserved: true
+    server to client: Progress token=42 value={}
+    round-trip preserved: true
     string
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token=42 value="chunk"
+    round-trip preserved: true
+    server to client: Progress token=42 value="chunk"
+    round-trip preserved: true
     integer
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token=42 value=17
+    round-trip preserved: true
+    server to client: Progress token=42 value=17
+    round-trip preserved: true
     decimal
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token=42 value=1.5
+    round-trip preserved: true
+    server to client: Progress token=42 value=1.5
+    round-trip preserved: true
     boolean
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token=42 value=true
+    round-trip preserved: true
+    server to client: Progress token=42 value=true
+    round-trip preserved: true
     null
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token=42 value=null
+    round-trip preserved: true
+    server to client: Progress token=42 value=null
+    round-trip preserved: true
     |}]
 ;;
 
@@ -167,7 +196,7 @@ let%expect_test "work-done notifications preserve typed variants and payloads" =
     |}]
 ;;
 
-let%expect_test "work-done-looking generic values expose rejection and data loss" =
+let%expect_test "work-done-looking generic values preserve payloads" =
   (* A generic payload may use work-done field names with unrelated meanings. *)
   List.iter
     (fun (label, value) ->
@@ -184,37 +213,74 @@ let%expect_test "work-done-looking generic values expose rejection and data loss
   [%expect
     {|
     unknown kind
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token="partial" value={"kind":"chunk","items":[1]}
+    round-trip preserved: true
+    server to client: Progress token="partial" value={"kind":"chunk","items":[1]}
+    round-trip preserved: true
     non-string kind
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token="partial" value={"kind":7,"items":[1]}
+    round-trip preserved: true
+    server to client: Progress token="partial" value={"kind":7,"items":[1]}
+    round-trip preserved: true
     missing work-done field
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token="partial" value={"kind":"begin"}
+    round-trip preserved: true
+    server to client: Progress token="partial" value={"kind":"begin"}
+    round-trip preserved: true
     wrong work-done field type
-    client to server: rejected
-    server to client: rejected
+    client to server: Progress token="partial" value={"kind":"report","percentage":"half"}
+    round-trip preserved: true
+    server to client: Progress token="partial" value={"kind":"report","percentage":"half"}
+    round-trip preserved: true
     extra begin field
-    client to server: WorkDoneProgress/begin token="partial" value={"kind":"begin","title":"Chunk"}
-    round-trip preserved: false
-    server to client: WorkDoneProgress/begin token="partial" value={"kind":"begin","title":"Chunk"}
-    round-trip preserved: false
+    client to server: Progress token="partial" value={"kind":"begin","title":"Chunk","items":[1]}
+    round-trip preserved: true
+    server to client: Progress token="partial" value={"kind":"begin","title":"Chunk","items":[1]}
+    round-trip preserved: true
     extra report field
-    client to server: WorkDoneProgress/report token="partial" value={"kind":"report"}
-    round-trip preserved: false
-    server to client: WorkDoneProgress/report token="partial" value={"kind":"report"}
-    round-trip preserved: false
+    client to server: Progress token="partial" value={"kind":"report","items":[1]}
+    round-trip preserved: true
+    server to client: Progress token="partial" value={"kind":"report","items":[1]}
+    round-trip preserved: true
     extra end field
-    client to server: WorkDoneProgress/end token="partial" value={"kind":"end","message":"done"}
-    round-trip preserved: false
-    server to client: WorkDoneProgress/end token="partial" value={"kind":"end","message":"done"}
-    round-trip preserved: false
+    client to server: Progress token="partial" value={"kind":"end","message":"done","items":[1]}
+    round-trip preserved: true
+    server to client: Progress token="partial" value={"kind":"end","message":"done","items":[1]}
+    round-trip preserved: true
     null optional field
-    client to server: WorkDoneProgress/report token="partial" value={"kind":"report"}
-    round-trip preserved: false
-    server to client: WorkDoneProgress/report token="partial" value={"kind":"report"}
-    round-trip preserved: false
+    client to server: Progress token="partial" value={"kind":"report","message":null}
+    round-trip preserved: true
+    server to client: Progress token="partial" value={"kind":"report","message":null}
+    round-trip preserved: true
+    |}]
+;;
+
+let%expect_test "generic constructors can send exact work-done shapes" =
+  let token = `Int 42 in
+  let value = `Assoc [ "message", `String "done"; "kind", `String "end" ] in
+  let params = ProgressParams.create ~token ~value in
+  let expected =
+    Jsonrpc.Notification.create
+      ~method_:"$/progress"
+      ~params:(`Assoc [ "token", ProgressToken.yojson_of_t token; "value", value ])
+      ()
+    |> Jsonrpc.Notification.yojson_of_t
+  in
+  List.iter
+    (fun notification ->
+       assert (Yojson.Safe.equal expected (Jsonrpc.Notification.yojson_of_t notification)))
+    [ Client_notification.to_jsonrpc (Progress params)
+    ; Server_notification.to_jsonrpc (Progress params)
+    ];
+  (* The wire payload is preserved, but decoding chooses the typed constructor. *)
+  check_progress "exact work-done shape" (ProgressToken.yojson_of_t token) value;
+  [%expect
+    {|
+    exact work-done shape
+    client to server: WorkDoneProgress/end token=42 value={"kind":"end","message":"done"}
+    round-trip preserved: true
+    server to client: WorkDoneProgress/end token=42 value={"kind":"end","message":"done"}
+    round-trip preserved: true
     |}]
 ;;
 

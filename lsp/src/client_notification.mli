@@ -19,6 +19,11 @@ type t =
   | WorkDoneProgressCancel of WorkDoneProgressCancelParams.t
   | SetTrace of SetTraceParams.t
   | WorkDoneProgress of Progress.t ProgressParams.t
+  (** Typed work-done progress, used by decoding when conversion is lossless. *)
+  | Progress of Json.t ProgressParams.t
+  (** Raw progress values, including partial results and work-done-looking objects
+      that would lose fields in typed conversion. Decoding uses payload shape, not
+      token state: an exact work-done payload decodes as [WorkDoneProgress]. *)
   | NotebookDocumentDidOpen of DidOpenNotebookDocumentParams.t
   | NotebookDocumentDidChange of DidChangeNotebookDocumentParams.t
   | NotebookDocumentDidSave of DidSaveNotebookDocumentParams.t

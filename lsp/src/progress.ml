@@ -22,4 +22,11 @@ let t_of_yojson json =
     json
 ;;
 
+let t_of_yojson_opt json =
+  match t_of_yojson json with
+  | value when Yojson.Safe.equal json (yojson_of_t value) -> Some value
+  | _ -> None
+  | exception Json.Conv.Of_yojson_error (_, _) -> None
+;;
+
 let method_ = "$/progress"
