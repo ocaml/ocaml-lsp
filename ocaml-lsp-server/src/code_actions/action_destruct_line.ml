@@ -322,18 +322,91 @@ let strip_case_line line =
   |> String.strip
 ;;
 
-let strip_parens line =
-  String.chop_prefix_if_exists line ~prefix:"("
-  |> String.chop_suffix_if_exists ~suffix:")"
+let strip_enclosing_parens code =
+  let next = Staged.unstage (Search.lexer code) in
+  match next () with
+  | Some { kind = LPAREN; end_ = inner_start; _ } ->
+    let rec loop depth =
+      match next () with
+      | None -> None
+      | Some { kind = LPAREN; _ } -> loop (depth + 1)
+      | Some { kind = RPAREN; start = inner_end; _ } when depth = 1 ->
+        let rec at_end () =
+          match next () with
+          | None -> true
+          | Some { kind = EOL; _ } -> at_end ()
+          | Some _ -> false
+        in
+        Option.some_if
+          (at_end ())
+          (String.sub code ~pos:inner_start ~len:(inner_end - inner_start))
+      | Some { kind = RPAREN; _ } -> loop (depth - 1)
+      | Some _ -> loop depth
+    in
+    loop 1
+  | None | Some _ -> None
 ;;
 
-(** Combines match-case lines that have already been stripped. *)
-let format_match_cases lines ~indent =
+let split_top_level_bars code =
+  let next = Staged.unstage (Search.lexer code) in
+  let rec loop depth chunk_start chunks =
+    match next () with
+    | None -> List.rev (String.drop_prefix code chunk_start :: chunks)
+    | Some { kind = BAR; start; end_; _ } when depth = 0 ->
+      let chunk = String.sub code ~pos:chunk_start ~len:(start - chunk_start) in
+      loop depth end_ (chunk :: chunks)
+    | Some
+        { kind =
+            ( LPAREN
+            | LBRACKET
+            | LBRACKETBAR
+            | LBRACKETLESS
+            | LBRACKETGREATER
+            | LBRACKETPERCENT
+            | LBRACKETPERCENTPERCENT
+            | LBRACKETAT
+            | LBRACKETATAT
+            | LBRACKETATATAT
+            | LBRACE
+            | LBRACELESS
+            | METAOCAML_BRACKET_OPEN )
+        ; _
+        } -> loop (depth + 1) chunk_start chunks
+    | Some
+        { kind =
+            ( RPAREN
+            | RBRACKET
+            | BARRBRACKET
+            | GREATERRBRACKET
+            | RBRACE
+            | GREATERRBRACE
+            | METAOCAML_BRACKET_CLOSE )
+        ; _
+        } -> loop (max 0 (depth - 1)) chunk_start chunks
+    | Some _ -> loop depth chunk_start chunks
+  in
+  loop 0 0 []
+;;
+
+let split_case_patterns code =
+  split_top_level_bars code
+  |> List.concat_map ~f:(fun case ->
+    let pattern = strip_case_line case in
+    match strip_enclosing_parens pattern with
+    | None -> [ pattern ]
+    | Some inner ->
+      (match split_top_level_bars inner with
+       | [ _ ] -> [ pattern ]
+       | patterns -> patterns))
+;;
+
+(** Combines match-case patterns that have already been stripped. *)
+let format_match_cases patterns ~indent =
   "\n"
-  ^ (List.filter_map lines ~f:(fun l ->
-       match strip_parens (strip_case_line l) with
+  ^ (List.filter_map patterns ~f:(fun pattern ->
+       match String.strip pattern with
        | "" -> None
-       | l -> Some (indent ^ "| " ^ l ^ " -> _"))
+       | pattern -> Some (indent ^ "| " ^ pattern ^ " -> _"))
      |> String.concat ~sep:"\n")
 ;;
 
@@ -356,9 +429,9 @@ let format_merlin_reply ~(statement : destructable_statement) (new_code : string
     let match_line, rest = separate_match_line new_code in
     let rest = String.chop_suffix_if_exists rest ~suffix:")" in
     let match_line = String.chop_prefix_if_exists match_line ~prefix:"(" in
-    let lines = String.split ~on:'|' rest in
-    match_line ^ format_match_cases lines ~indent
-  | CaseLine -> format_match_cases (String.split ~on:'|' new_code) ~indent
+    let patterns = String.split ~on:'|' rest |> List.map ~f:strip_case_line in
+    match_line ^ format_match_cases patterns ~indent
+  | CaseLine -> format_match_cases (split_case_patterns new_code) ~indent
   | Hole | OffsetHole _ ->
     let lines = String.split ~on:'|' new_code in
     (match List.hd lines, List.tl lines with
