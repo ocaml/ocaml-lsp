@@ -164,7 +164,7 @@ let f (x : t) =
     let f (x : t) =
       match (x, ((module M) : (module S with
       | type u = int))) with -> _
-      | _, _ -> _
+      | (_, _) -> _
     |}]
 ;;
 
