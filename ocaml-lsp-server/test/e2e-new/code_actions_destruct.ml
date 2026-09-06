@@ -378,7 +378,7 @@ $  | C -> _
     |}]
 ;;
 
-let%expect_test "destruct-line corrupts a nested or-pattern" =
+let%expect_test "destruct-line preserves a nested or-pattern" =
   destruct_line
     {ocaml|
 type t = A | B | C
@@ -392,8 +392,7 @@ $  | A, _ -> _
     let f (x : t) =
       match (x, true) with
       | A, _ -> _
-      | (B -> _
-      | C), _ -> _
+      | ((B | C), _) -> _
     |}]
 ;;
 
