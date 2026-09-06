@@ -131,6 +131,43 @@ let f (x:bool) =
     |}]
 ;;
 
+let%expect_test "destruct-line mistakes with in the scrutinee for the separator" =
+  destruct_line
+    {ocaml|
+let f (xwith : bool) =
+  mat$ch xwith
+|ocaml};
+  [%expect
+    {|
+    let f (xwith : bool) =
+      match xwith
+      | with -> _
+      | false -> _
+      | true -> _
+    |}]
+;;
+
+let%expect_test "destruct-line mistakes a package constraint for the match separator" =
+  destruct_line
+    {ocaml|
+type t = A | B
+module type S = sig type u end
+module M : S with type u = int = struct type u = int end
+let f (x : t) =
+  mat$ch (x, (module M : S with type u = int))
+|ocaml};
+  [%expect
+    {|
+    type t = A | B
+    module type S = sig type u end
+    module M : S with type u = int = struct type u = int end
+    let f (x : t) =
+      match (x, ((module M) : (module S with
+      | type u = int))) with -> _
+      | _, _ -> _
+    |}]
+;;
+
 let%expect_test "destruct-line is available on a whole inline match expression" =
   destruct_line
     {ocaml|
