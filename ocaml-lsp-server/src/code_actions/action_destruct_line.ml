@@ -31,11 +31,16 @@ module Search = struct
   ;;
 
   let find_case code ~start next =
-    (* The stack tracks the innermost open constructs: [`Match] for a nested
-     [match]/[try] and [`Brace] for a record-update brace. A [with] closes the
-     innermost [`Match]; a [with] above a [`Brace] belongs to the record
-     update; and a [with] with an empty stack belongs to the [match] we started
-     from, whose first case (if any) immediately follows. *)
+    (* The stack tracks the innermost open constructs:
+       - [`Match] for a nested [match]/[try]
+       - [`Brace] for a record-update brace
+       - [`End] for [begin]/[struct]/[sig]/[object]
+       [paren_depth] tracks [(] nesting so module-type constraints such as
+       [(module M : S with type t = _)] do not look like the outer match [with].
+       A [with] closes the innermost [`Match]; a [with] above another stack frame
+       belongs to that construct; a [with] inside parentheses is ignored; and a
+       [with] with an empty stack at depth 0 belongs to the [match] we started
+       from, whose first case (if any) immediately follows. *)
     (* The search is bounded to a few lines after the [match] to avoid lexing the
      rest of the file when the [match] has no cases yet. *)
     let max_lines = 100 in
@@ -50,27 +55,36 @@ module Search = struct
       prev_end := token.end_;
       !lines <= max_lines
     in
-    let rec loop stack =
+    let rec loop stack paren_depth =
       match next () with
       | None -> None
       | Some token when not (budget_ok token) -> None
-      | Some { kind = MATCH | TRY; _ } -> loop (`Match :: stack)
-      | Some { kind = LBRACE; _ } -> loop (`Brace :: stack)
+      | Some { kind = MATCH | TRY; _ } -> loop (`Match :: stack) paren_depth
+      | Some { kind = LBRACE; _ } -> loop (`Brace :: stack) paren_depth
+      | Some { kind = BEGIN | STRUCT | SIG | OBJECT; _ } ->
+        loop (`End :: stack) paren_depth
       | Some { kind = RBRACE; _ } ->
         (match stack with
-         | `Brace :: rest -> loop rest
-         | _ -> loop stack)
+         | `Brace :: rest -> loop rest paren_depth
+         | _ -> loop stack paren_depth)
+      | Some { kind = END; _ } ->
+        (match stack with
+         | `End :: rest -> loop rest paren_depth
+         | _ -> loop stack paren_depth)
+      | Some { kind = LPAREN; _ } -> loop stack (paren_depth + 1)
+      | Some { kind = RPAREN; _ } -> loop stack (max 0 (paren_depth - 1))
       | Some { kind = WITH; _ } ->
         (match stack with
-         | `Match :: rest -> loop rest
-         | `Brace :: _ -> loop stack
+         | `Match :: rest -> loop rest paren_depth
+         | [] when paren_depth > 0 -> loop stack paren_depth
          | [] ->
            (match next () with
             | Some ({ kind = BAR; start; _ } as token) when budget_ok token -> Some start
-            | None | Some _ -> None))
-      | Some _ -> loop stack
+            | None | Some _ -> None)
+         | _ -> loop stack paren_depth)
+      | Some _ -> loop stack paren_depth
     in
-    loop []
+    loop [] 0
   ;;
 
   let find code ~position =
