@@ -398,22 +398,28 @@ let disabled_code_action error =
 ;;
 
 let code_action_for_task pipeline doc task =
-  let open Option.O in
-  let* edits, m_error = inline_edits pipeline task in
-  match edits, m_error with
-  | [], None -> None
-  | [], Some error -> Some (disabled_code_action error)
-  | _ :: _, (Some _ | None) ->
-    let action =
-      let edit = Text_document.workspace_edit (Document.text_document doc) edits in
-      CodeAction.create
-        ~title:action_title
-        ~kind:RefactorInline
-        ~edit
-        ~isPreferred:false
-        ()
-    in
-    Some action
+  (* Recovery can produce deeply nested parse trees even for short bindings.
+     Do not construct or print replacements unless there is an applicable use. *)
+  match inline_applicability pipeline task with
+  | `Not_applicable -> None
+  | `Disabled error -> Some (disabled_code_action error)
+  | `Applicable ->
+    let open Option.O in
+    let* edits, m_error = inline_edits pipeline task in
+    (match edits, m_error with
+     | [], None -> None
+     | [], Some error -> Some (disabled_code_action error)
+     | _ :: _, (Some _ | None) ->
+       let action =
+         let edit = Text_document.workspace_edit (Document.text_document doc) edits in
+         CodeAction.create
+           ~title:action_title
+           ~kind:RefactorInline
+           ~edit
+           ~isPreferred:false
+           ()
+       in
+       Some action)
 ;;
 
 module Resolve_data = struct
