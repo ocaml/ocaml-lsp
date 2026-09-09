@@ -375,6 +375,48 @@ let%expect_test "range_of_utf8_offsets rejects invalid offsets" =
     |}]
 ;;
 
+let print_position ({ Position.line; character } : Position.t) =
+  printf "%d:%d" line character
+;;
+
+let%expect_test "offset and position conversions" =
+  let text = "a😀b\né€c" in
+  let offsets = [ -1; 0; 1; 5; 6; 7; 9; 12; 13; 100 ] in
+  List.iter [ `UTF8; `UTF16 ] ~f:(fun position_encoding ->
+    let doc = make_document ~position_encoding (Uri.of_path "foo.ml") ~text in
+    printf
+      "%s: "
+      (match position_encoding with
+       | `UTF8 -> "UTF-8"
+       | `UTF16 -> "UTF-16");
+    List.iter offsets ~f:(fun offset ->
+      Text_document.position doc ~offset |> print_position;
+      printf " ");
+    print_newline ());
+  [%expect
+    {|
+    UTF-8: 0:0 0:0 0:1 0:5 0:6 1:0 1:2 1:5 1:6 1:6
+    UTF-16: 0:0 0:0 0:1 0:3 0:4 1:0 1:1 1:2 1:3 1:3 |}]
+;;
+
+let%expect_test "offsets and range conversions" =
+  let text = "a😀b\né€c" in
+  List.iter [ `UTF8; `UTF16 ] ~f:(fun position_encoding ->
+    let doc = make_document ~position_encoding (Uri.of_path "foo.ml") ~text in
+    let range =
+      Text_document.range doc ~start_offset_inclusive:1 ~end_offset_exclusive:12
+    in
+    let start, stop = Text_document.offsets doc range in
+    print_position range.start;
+    printf "-";
+    print_position range.end_;
+    printf " = %d-%d\n" start stop);
+  [%expect
+    {|
+    0:1-1:5 = 1-12
+    0:1-1:2 = 1-12 |}]
+;;
+
 let%expect_test "replace second line first line is \\n" =
   let range = tuple_range (1, 2) (1, 2) in
   let doc = make_document (Uri.of_path "foo.ml") ~text:"\nfoo\nbar\nbaz\n" in

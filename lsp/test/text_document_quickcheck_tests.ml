@@ -131,24 +131,37 @@ let apply_operation state = function
     state
   | Query_position selector ->
     let cursor = select_cursor state.text state.encoding selector in
-    let actual = Text_document.absolute_position state.document (position cursor) in
-    if actual <> cursor.byte_offset then fail state "absolute position differs";
+    let expected = position cursor in
+    let actual_offset = Text_document.offset state.document expected in
+    if actual_offset <> cursor.byte_offset then fail state "position offset differs";
+    let actual_position =
+      Text_document.position state.document ~offset:cursor.byte_offset
+    in
+    if not (Poly.equal actual_position expected) then fail state "offset position differs";
     state
   | Query_range (first_selector, second_selector) ->
     let first, second =
       ordered_cursors state.text state.encoding first_selector second_selector
     in
-    let range = Range.create ~start:(position first) ~end_:(position second) in
-    let actual_start, actual_stop = Text_document.absolute_range state.document range in
+    let expected = Range.create ~start:(position first) ~end_:(position second) in
+    let actual_start, actual_stop = Text_document.offsets state.document expected in
     if actual_start <> first.byte_offset || actual_stop <> second.byte_offset
-    then fail state "absolute range differs";
+    then fail state "range offsets differ";
     let round_trip =
       Text_document.range_of_utf8_offsets
         state.document
         ~start_offset:first.byte_offset
         ~end_offset:second.byte_offset
     in
-    if not (Poly.equal round_trip range) then fail state "UTF-8 offset range differs";
+    if not (Poly.equal round_trip expected)
+    then fail state "UTF-8 offset range differs";
+    let actual =
+      Text_document.range
+        state.document
+        ~start_offset_inclusive:first.byte_offset
+        ~end_offset_exclusive:second.byte_offset
+    in
+    if not (Poly.equal actual expected) then fail state "offsets range differs";
     state
   | Set_version version ->
     let version = normalized_version version in
