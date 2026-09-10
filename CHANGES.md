@@ -2,6 +2,8 @@
 
 ## Features
 
+- Offer whole-call completions for OCaml functions with multiple labelled or
+  optional arguments, with editable slots for all arguments. (#2199, @rgrinberg)
 - Make generated construct completions interactive for clients with snippet support.
   (#2198, @rgrinberg)
 - Support `ocp-indent` as an alternative for document and range formatting.
