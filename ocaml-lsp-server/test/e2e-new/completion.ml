@@ -1832,6 +1832,100 @@ let%expect_test "deprecated completions use tags when supported" =
     |}]
 ;;
 
+let%expect_test "deprecation on argument labels versus record fields" =
+  let definitions =
+    "module M : sig\n\
+     val old_fun : legacy:int -> ?optional:int -> unit -> int [@@deprecated]\n\
+     type t = { legacy : int [@deprecated]; current : int }\n\
+     val consume : t -> unit\n\
+     end = struct\n\
+     let old_fun ~legacy ?optional:_ () = legacy\n\
+     type t = { legacy : int; current : int }\n\
+     let consume _ = ()\n\
+     end\n\
+     let pattern ~legacy:(legacy [@deprecated]) = legacy\n\
+     let optional_pattern ?legacy:(legacy [@deprecated]) () = legacy\n"
+  in
+  List.iter [ false; true ] ~f:(fun supports_tags ->
+    let tagSupport =
+      Option.some_if
+        supports_tags
+        (CompletionItemTagOptions.create ~valueSet:[ CompletionItemTag.Deprecated ])
+    in
+    let completionItem =
+      ClientCompletionItemOptions.create ~deprecatedSupport:true ?tagSupport ()
+    in
+    let completion = CompletionClientCapabilities.create ~completionItem () in
+    let textDocument = TextDocumentClientCapabilities.create ~completion () in
+    let capabilities = ClientCapabilities.create ~textDocument () in
+    Printf.printf "tags=%b\n" supports_tags;
+    List.iter
+      [ "M.old_f$", "old_fun"
+      ; "M.old_fun ~leg$", "~legacy"
+      ; "M.old_fun ?opt$", "?optional"
+      ; "M.old_fun ~opt$", "~optional"
+      ; "pattern ~leg$", "~legacy"
+      ; "optional_pattern ?leg$", "?legacy"
+      ; "(fun ~legacy:(legacy [@deprecated]) -> leg$)", "legacy"
+      ; "(fun ?legacy:(legacy [@deprecated]) () -> leg$)", "legacy"
+        (* These record fields really are deprecated, but Merlin's record-field
+           completion path currently drops their attributes. They are distinct
+           from the application-context labels synthesized by [Compl]. *)
+      ; "(fun (r : M.t) -> r.leg$)", "legacy"
+      ; "({ leg$ = 1; current = 2 } : M.t)", "legacy"
+      ; "M.consume { leg$ = 1; current = 2 }", "legacy"
+      ]
+      ~f:(fun (expression, label) ->
+        let source, position =
+          Test.parse_cursor (definitions ^ "let _ = " ^ expression)
+        in
+        iter_completions ~capabilities ~source ~position (fun response ->
+          let items =
+            match Option.value_exn response with
+            | `CompletionList list -> list.items
+            | `List items -> items
+          in
+          let item =
+            List.find_exn items ~f:(fun (item : CompletionItem.t) ->
+              String.equal item.label label)
+          in
+          Printf.printf
+            "%s: deprecated=%s tags=%s\n"
+            expression
+            (Option.value_map item.deprecated ~default:"absent" ~f:string_of_bool)
+            (match item.tags with
+             | None -> "absent"
+             | Some [ CompletionItemTag.Deprecated ] -> "deprecated"
+             | Some _ -> "other"))));
+  [%expect
+    {|
+    tags=false
+    M.old_f$: deprecated=true tags=absent
+    M.old_fun ~leg$: deprecated=absent tags=absent
+    M.old_fun ?opt$: deprecated=absent tags=absent
+    M.old_fun ~opt$: deprecated=absent tags=absent
+    pattern ~leg$: deprecated=absent tags=absent
+    optional_pattern ?leg$: deprecated=absent tags=absent
+    (fun ~legacy:(legacy [@deprecated]) -> leg$): deprecated=true tags=absent
+    (fun ?legacy:(legacy [@deprecated]) () -> leg$): deprecated=true tags=absent
+    (fun (r : M.t) -> r.leg$): deprecated=absent tags=absent
+    ({ leg$ = 1; current = 2 } : M.t): deprecated=absent tags=absent
+    M.consume { leg$ = 1; current = 2 }: deprecated=absent tags=absent
+    tags=true
+    M.old_f$: deprecated=absent tags=deprecated
+    M.old_fun ~leg$: deprecated=absent tags=absent
+    M.old_fun ?opt$: deprecated=absent tags=absent
+    M.old_fun ~opt$: deprecated=absent tags=absent
+    pattern ~leg$: deprecated=absent tags=absent
+    optional_pattern ?leg$: deprecated=absent tags=absent
+    (fun ~legacy:(legacy [@deprecated]) -> leg$): deprecated=absent tags=deprecated
+    (fun ?legacy:(legacy [@deprecated]) () -> leg$): deprecated=absent tags=deprecated
+    (fun (r : M.t) -> r.leg$): deprecated=absent tags=absent
+    ({ leg$ = 1; current = 2 } : M.t): deprecated=absent tags=absent
+    M.consume { leg$ = 1; current = 2 }: deprecated=absent tags=absent
+    |}]
+;;
+
 let%expect_test "completion doesn't autocomplete record fields" =
   let source =
     {ocaml|
