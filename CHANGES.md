@@ -21,6 +21,8 @@
 
 ## Fixes
 
+- Avoid overlapping semantic tokens in `with type` constraints and destructive
+  substitutions. (#2206, @rgrinberg)
 - Preserve nested or-patterns when formatting destruct-line case-analysis
   replies. (#2194, @rgrinberg)
 - Clear stale Dune diagnostics and promotion actions when an RPC instance exits,

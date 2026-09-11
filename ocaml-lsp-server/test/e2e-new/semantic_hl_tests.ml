@@ -1520,9 +1520,9 @@ module type T = S with module M = N
     |}]
 ;;
 
-let%expect_test "with type constraints produce overlapping semantic tokens" =
-  (* Snapshot the current protocol violation before fixing it. Do not rely only on
-     source annotations: an overlapping token makes that helper omit later tokens. *)
+let%expect_test "with type constraints produce non-overlapping semantic tokens" =
+  (* Check ranges as well as annotations: an overlapping token makes the source
+     annotation helper omit later tokens. *)
   List.iter
     [ "type 'a t = 'a list"; "type 'a t := 'a list"; "type M.t = int"; "type M.t := int" ]
     ~f:(fun constraint_ ->
@@ -1555,37 +1555,31 @@ let%expect_test "with type constraints produce overlapping semantic tokens" =
     {|
     type 'a t = 'a list:
     protocol violations:
-    [ "token at 1:31 overlaps token at 1:31 with length 1" ]
+    []
     module type <interface-0>S</0> = sig type <typeParameter-1>'a</1> <type-2>t</2> module <namespace-3>M</3> : sig type <type-4>t</4> end end
-    module type <interface-5>T</5> = <interface-6>S</6> with type <typeParameter-7>'a</7> <type-8>t</8> = 'a list
-    let after = 0
+    module type <interface-5>T</5> = <interface-6>S</6> with type <typeParameter-7>'a</7> <type-8>t</8> = <typeParameter-9>'a</9> <type-10>list</10>
+    let <variable-11>after</11> = <number-12>0</12>
 
     type 'a t := 'a list:
     protocol violations:
-    [ "token at 1:31 overlaps token at 1:31 with length 1" ]
+    []
     module type <interface-0>S</0> = sig type <typeParameter-1>'a</1> <type-2>t</2> module <namespace-3>M</3> : sig type <type-4>t</4> end end
-    module type <interface-5>T</5> = <interface-6>S</6> with type <typeParameter-7>'a</7> <type-8>t</8> := 'a list
-    let after = 0
+    module type <interface-5>T</5> = <interface-6>S</6> with type <typeParameter-7>'a</7> <type-8>t</8> := <typeParameter-9>'a</9> <type-10>list</10>
+    let <variable-11>after</11> = <number-12>0</12>
 
     type M.t = int:
     protocol violations:
-    [
-      "token at 1:28 overlaps token at 1:28 with length 1",
-      "token at 1:30 overlaps token at 1:28 with length 3"
-    ]
+    []
     module type <interface-0>S</0> = sig type <typeParameter-1>'a</1> <type-2>t</2> module <namespace-3>M</3> : sig type <type-4>t</4> end end
-    module type <interface-5>T</5> = <interface-6>S</6> with type <namespace-7>M</7>.t = int
-    let after = 0
+    module type <interface-5>T</5> = <interface-6>S</6> with type <namespace-7>M</7>.<type-8>t</8> = <type-9>int</9>
+    let <variable-10>after</10> = <number-11>0</11>
 
     type M.t := int:
     protocol violations:
-    [
-      "token at 1:28 overlaps token at 1:28 with length 1",
-      "token at 1:30 overlaps token at 1:28 with length 3"
-    ]
+    []
     module type <interface-0>S</0> = sig type <typeParameter-1>'a</1> <type-2>t</2> module <namespace-3>M</3> : sig type <type-4>t</4> end end
-    module type <interface-5>T</5> = <interface-6>S</6> with type <namespace-7>M</7>.t := int
-    let after = 0
+    module type <interface-5>T</5> = <interface-6>S</6> with type <namespace-7>M</7>.<type-8>t</8> := <type-9>int</9>
+    let <variable-10>after</10> = <number-11>0</11>
     |}]
 ;;
 
@@ -1667,9 +1661,9 @@ let openpat = match m with M2.(C) -> 1 | #t -> 2 | _ -> 0
     module <namespace|definition-69>M2</69> : <interface|-70>S</70> = struct end
     module type <interface|-71>T</71> = <interface|-72>S</72>
     module type <interface|-73>Alias</73> = <interface|-74>M2</74>
-    module type <interface|-75>Constrained</75> = <interface|-76>S</76> with type <type|-77>t</77> = int and module N = M2
-    let long = M2(F).x
-    let openpat = match m with M2.(C) -> 1 | #t -> 2 | _ -> 0
+    module type <interface|-75>Constrained</75> = <interface|-76>S</76> with type <type|-77>t</77> = <type|-78>int</78> and module <namespace|-79>N</79> = <namespace|-80>M2</80>
+    let <variable|-81>long</81> = <enumMember|-82>M2</82>(<enumMember|-83>F</83>).<property|-84>x</84>
+    let <variable|-85>openpat</85> = match <variable|-86>m</86> with <namespace|-87>M2</87>.(<enumMember|-88>C</88>) -> <number|-89>1</89> | #<type|-90>t</90> -> <number|-91>2</91> | _ -> <number|-92>0</92>
     |}]
 ;;
 

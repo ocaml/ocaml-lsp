@@ -990,7 +990,8 @@ end = struct
     match wc with
     | Pwith_type (l, td) | Pwith_typesubst (l, td) ->
       lident l (Token_type.of_builtin Type) ();
-      self.type_declaration self td
+      (* The long identifier already covers the declaration name. *)
+      Ast_iterator.default_iterator.type_declaration self td
     | Pwith_module (l, l') | Pwith_modsubst (l, l') ->
       lident l Token_type.module_ ();
       lident l' Token_type.module_ ()
