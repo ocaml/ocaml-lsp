@@ -1520,6 +1520,75 @@ module type T = S with module M = N
     |}]
 ;;
 
+let%expect_test "with type constraints produce overlapping semantic tokens" =
+  (* Snapshot the current protocol violation before fixing it. Do not rely only on
+     source annotations: an overlapping token makes that helper omit later tokens. *)
+  List.iter
+    [ "type 'a t = 'a list"; "type 'a t := 'a list"; "type M.t = int"; "type M.t := int" ]
+    ~f:(fun constraint_ ->
+      let src =
+        Printf.sprintf
+          "module type S = sig type 'a t module M : sig type t end end\n\
+           module type T = S with %s\n\
+           let after = 0\n"
+          constraint_
+      in
+      Printf.printf "%s:\n" constraint_;
+      test
+        ~src
+        (fun params -> SemanticTokensFull params)
+        (fun { initializeResult; resp } ->
+           let { SemanticTokens.data; _ } = Option.value_exn resp in
+           print_endline "protocol violations:";
+           Semantic_hl_helpers.single_line_non_overlapping_violations
+             ~source:src
+             ~encoded_tokens:data
+           |> Test.print_list (fun violation -> `String violation);
+           print_endline
+             (Semantic_hl_helpers.annotate_src_with_tokens
+                ~legend:(semantic_tokens_legend initializeResult)
+                ~encoded_tokens:data
+                ~annot_mods:false
+                src);
+           Fiber.return ()));
+  [%expect
+    {|
+    type 'a t = 'a list:
+    protocol violations:
+    [ "token at 1:31 overlaps token at 1:31 with length 1" ]
+    module type <interface-0>S</0> = sig type <typeParameter-1>'a</1> <type-2>t</2> module <namespace-3>M</3> : sig type <type-4>t</4> end end
+    module type <interface-5>T</5> = <interface-6>S</6> with type <typeParameter-7>'a</7> <type-8>t</8> = 'a list
+    let after = 0
+
+    type 'a t := 'a list:
+    protocol violations:
+    [ "token at 1:31 overlaps token at 1:31 with length 1" ]
+    module type <interface-0>S</0> = sig type <typeParameter-1>'a</1> <type-2>t</2> module <namespace-3>M</3> : sig type <type-4>t</4> end end
+    module type <interface-5>T</5> = <interface-6>S</6> with type <typeParameter-7>'a</7> <type-8>t</8> := 'a list
+    let after = 0
+
+    type M.t = int:
+    protocol violations:
+    [
+      "token at 1:28 overlaps token at 1:28 with length 1",
+      "token at 1:30 overlaps token at 1:28 with length 3"
+    ]
+    module type <interface-0>S</0> = sig type <typeParameter-1>'a</1> <type-2>t</2> module <namespace-3>M</3> : sig type <type-4>t</4> end end
+    module type <interface-5>T</5> = <interface-6>S</6> with type <namespace-7>M</7>.t = int
+    let after = 0
+
+    type M.t := int:
+    protocol violations:
+    [
+      "token at 1:28 overlaps token at 1:28 with length 1",
+      "token at 1:30 overlaps token at 1:28 with length 3"
+    ]
+    module type <interface-0>S</0> = sig type <typeParameter-1>'a</1> <type-2>t</2> module <namespace-3>M</3> : sig type <type-4>t</4> end end
+    module type <interface-5>T</5> = <interface-6>S</6> with type <namespace-7>M</7>.t := int
+    let after = 0
+    |}]
+;;
+
 let%expect_test "open in a signature" =
   test_semantic_tokens_full
   @@ String.strip
