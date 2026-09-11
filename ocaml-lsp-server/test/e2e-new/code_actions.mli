@@ -34,6 +34,8 @@ val print_code_actions
   -> Range.t
   -> unit
 
+val snippet_edit_capabilities : ClientCapabilities.t
+
 val find_action
   :  string
   -> [ `Command of Command.t | `CodeAction of CodeAction.t ]
@@ -50,6 +52,7 @@ val parse_selection : string -> string * Range.t
 val apply_code_action
   :  ?prep:(unit Test.Import.Client.t -> unit Fiber.t)
   -> ?path:string
+  -> ?capabilities:ClientCapabilities.t
   -> ?diagnostics:Diagnostic.t list
   -> ?filter:([ `Command of Command.t | `CodeAction of CodeAction.t ] -> bool)
   -> string
@@ -63,6 +66,7 @@ val apply_code_action
 val code_action_test
   :  ?prep:(unit Test.Import.Client.t -> unit Fiber.t)
   -> ?path:string
+  -> ?capabilities:ClientCapabilities.t
   -> ?diagnostics:Diagnostic.t list
   -> ?filter:([ `Command of Command.t | `CodeAction of CodeAction.t ] -> bool)
   -> ?print_none:bool

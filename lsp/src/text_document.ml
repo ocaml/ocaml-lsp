@@ -123,13 +123,18 @@ let apply_text_document_edits t (edits : TextEdit.t list) =
   { t with text = Some text; zipper }
 ;;
 
-let workspace_edit t text_edits =
-  let textDocument =
-    OptionalVersionedTextDocumentIdentifier.create ~uri:t.uri ~version:t.version ()
+let workspace_edit_of_edits t edits =
+  let edit =
+    let textDocument =
+      OptionalVersionedTextDocumentIdentifier.create ~uri:t.uri ~version:t.version ()
+    in
+    TextDocumentEdit.create ~textDocument ~edits
   in
-  let edits = List.map text_edits ~f:(fun edit -> `TextEdit edit) in
-  let edit = TextDocumentEdit.create ~textDocument ~edits in
   WorkspaceEdit.create ~documentChanges:[ `TextDocumentEdit edit ] ()
+;;
+
+let workspace_edit t text_edits =
+  List.map text_edits ~f:(fun edit -> `TextEdit edit) |> workspace_edit_of_edits t
 ;;
 
 let absolute_position t pos =

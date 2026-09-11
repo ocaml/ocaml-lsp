@@ -273,6 +273,8 @@ include struct
   module Server_notification = Lsp.Server_notification
   module SetTraceParams = SetTraceParams
   module Snippet = Lsp.Snippet
+  module SnippetTextEdit = SnippetTextEdit
+  module StringValue = StringValue
   module ShowDocumentClientCapabilities = ShowDocumentClientCapabilities
   module ShowDocumentParams = ShowDocumentParams
   module ShowDocumentResult = ShowDocumentResult

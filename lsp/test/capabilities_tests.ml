@@ -30,6 +30,33 @@ let%expect_test "completion snippet support is opt-in" =
     |}]
 ;;
 
+let%expect_test "workspace snippet edit support is opt-in" =
+  List.iter
+    [ "no workspace", {|{}|}
+    ; "no workspace edit", {|{"workspace":{}}|}
+    ; "absent", {|{"workspace":{"workspaceEdit":{}}}|}
+    ; "false", {|{"workspace":{"workspaceEdit":{"snippetEditSupport":false}}}|}
+    ; "true", {|{"workspace":{"workspaceEdit":{"snippetEditSupport":true}}}|}
+    ; ( "completion snippets only"
+      , {|{"textDocument":{"completion":{"completionItem":{"snippetSupport":true}}}}|} )
+    ]
+    ~f:(fun (name, json) ->
+      let capabilities = Yojson.Safe.from_string json |> ClientCapabilities.t_of_yojson in
+      Stdlib.Printf.printf
+        "%s: %b\n"
+        name
+        (Capabilities.workspace_edit_snippet_support capabilities));
+  [%expect
+    {|
+    no workspace: false
+    no workspace edit: false
+    absent: false
+    false: false
+    true: true
+    completion snippets only: false
+    |}]
+;;
+
 let capabilities ?folding_range () =
   let textDocument =
     TextDocumentClientCapabilities.create ?foldingRange:folding_range ()

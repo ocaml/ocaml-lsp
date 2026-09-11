@@ -18,6 +18,7 @@ type fragment =
   | Function_with_wildcard
   | Match_with_wildcards
   | Tuple_holes
+  | Function_type_wildcard
 [@@deriving quickcheck, sexp_of]
 
 module Source_case = struct
@@ -31,14 +32,15 @@ let fragment = function
   | String_backslash -> "\"\\\\\""
   | Expression_hole -> "_"
   | Hole_identifier -> "_value"
-  | String_hole -> "\"_\""
+  | String_hole -> "\"-> _\""
   | Character_hole -> "'_'"
-  | Comment_hole -> "((* _ *) x)"
-  | Nested_comment_hole -> "((* outer (* _ *) *) x)"
-  | Quoted_string_hole -> "{tag|_ $}\\|tag}"
+  | Comment_hole -> "((* -> _ *) x)"
+  | Nested_comment_hole -> "((* -> (* -> _ *) _ *) x)"
+  | Quoted_string_hole -> "{tag|-> _ $}\\|tag}"
   | Function_with_wildcard -> "(fun _ -> _)"
   | Match_with_wildcards -> "(match _ with | Some _ -> _ | None -> _)"
   | Tuple_holes -> "(_, _)"
+  | Function_type_wildcard -> "(fun (f : int -> _) -> f)"
 ;;
 
 let placeholder_count = function
@@ -55,7 +57,8 @@ let placeholder_count = function
   | Character_hole
   | Comment_hole
   | Nested_comment_hole
-  | Quoted_string_hole -> 0
+  | Quoted_string_hole
+  | Function_type_wildcard -> 0
 ;;
 
 let source fragments =
@@ -99,7 +102,9 @@ let defaults snippet =
 
 let check_source fragments =
   let source = source fragments in
-  let { Builder.snippet; placeholders = actual_count } = Builder.source ~source in
+  let { Builder.snippet; placeholders = actual_count } =
+    Builder.source ~holes:`Expression ~source
+  in
   let expected_count = List.sum (module Int) fragments ~f:placeholder_count in
   if actual_count <> expected_count
   then
@@ -127,6 +132,7 @@ let source_examples =
   ; [ Match_with_wildcards ]
   ; [ String_hole; Comment_hole; Quoted_string_hole; Hole_identifier ]
   ; [ String_dollar; String_close_brace; String_backslash; Tuple_holes ]
+  ; [ Function_type_wildcard ]
   ]
 ;;
 
@@ -134,8 +140,8 @@ let%test_unit "only expression holes become placeholders without changing source
   Test.run_exn (module Source_case) ~examples:source_examples ~f:check_source
 ;;
 
-let print_source source =
-  let { Builder.snippet; placeholders } = Builder.source ~source in
+let print_source ?(holes = `Expression) source =
+  let { Builder.snippet; placeholders } = Builder.source ~holes ~source in
   Stdlib.Printf.printf "%d: %s\n" placeholders (Snippet.to_string snippet)
 ;;
 
@@ -180,7 +186,7 @@ let%expect_test "attributes on holes retain wildcard patterns and visit expressi
 let%expect_test "parse failures preserve source without placeholders" =
   List.iter
     [ ""; "(_"; "\"unterminated"; "(* unterminated"; {ocaml|("$}", _|ocaml} ]
-    ~f:print_source;
+    ~f:(print_source ~holes:`Expression);
   [%expect
     {|
     0: $0
@@ -188,6 +194,162 @@ let%expect_test "parse failures preserve source without placeholders" =
     0: "unterminated$0
     0: (* unterminated$0
     0: ("\$\}", _$0
+    |}]
+;;
+
+let after_arrow_placeholder_count = function
+  | Function_with_wildcard -> 1
+  | Match_with_wildcards -> 2
+  | Variable
+  | String_dollar
+  | String_close_brace
+  | String_backslash
+  | Expression_hole
+  | Hole_identifier
+  | String_hole
+  | Character_hole
+  | Comment_hole
+  | Nested_comment_hole
+  | Quoted_string_hole
+  | Tuple_holes
+  | Function_type_wildcard -> 0
+;;
+
+let check_after_arrow fragments =
+  let source = source fragments in
+  let { Builder.snippet; placeholders = actual_count } =
+    Builder.source ~holes:`After_arrow ~source
+  in
+  let expected_count = List.sum (module Int) fragments ~f:after_arrow_placeholder_count in
+  if actual_count <> expected_count
+  then
+    failwith
+      (Printf.sprintf
+         "branch-body placeholder count for %S: expected %d, got %d"
+         source
+         expected_count
+         actual_count);
+  let rendered = Snippet.to_string snippet in
+  let round_trip = defaults rendered in
+  if not (String.equal source round_trip)
+  then
+    failwith
+      (Printf.sprintf
+         "branch-body round trip: expected %S, got %S via %S"
+         source
+         round_trip
+         rendered)
+;;
+
+let%test_unit "only branch-body holes become placeholders in destruct output" =
+  Test.run_exn (module Source_case) ~examples:source_examples ~f:check_after_arrow
+;;
+
+let%expect_test "after-arrow holes ignore comments, strings, and non-body underscores" =
+  List.iter
+    [ "function | Some _ -> (* -> _ (* -> _ *) *) _ | None ->\n _"
+    ; {ocaml|function | _ when "-> _ $}\\" = {tag|-> _|tag} -> _|ocaml}
+    ; {ocaml|function | _ -> _value | _ -> "-> _"|ocaml}
+    ; "function | _ -> (_ : _) | _ -> [%merlin.hole]"
+    ; "fun _ -> _ [@foo? _]"
+    ; "fun _ -> _ [@foo (fun _ -> _)]"
+    ; "fun _ -> _ + 1"
+    ; "function _ when (fun _ -> _) () -> _"
+    ; "match (let café = \"😀\" in _) with | Some _ -> _ | None -> _"
+    ]
+    ~f:(print_source ~holes:`After_arrow);
+  [%expect
+    {|
+    2: function | Some _ -> (* -> _ (* -> _ *) *) ${1:_} | None ->
+     ${2:_}$0
+    1: function | _ when "-> _ \$\}\\\\" = {tag|-> _|tag\} -> ${1:_}$0
+    0: function | _ -> _value | _ -> "-> _"$0
+    0: function | _ -> (_ : _) | _ -> [%merlin.hole]$0
+    1: fun _ -> ${1:_} [@foo? _]$0
+    2: fun _ -> ${1:_} [@foo (fun _ -> ${2:_})]$0
+    1: fun _ -> ${1:_} + 1$0
+    2: function _ when (fun _ -> ${1:_}) () -> ${2:_}$0
+    2: match (let café = "😀" in _) with | Some _ -> ${1:_} | None -> ${2:_}$0
+    |}]
+;;
+
+let%expect_test "after-arrow holes work in complete and partial case fragments" =
+  List.iter
+    [ "| Some _ -> _ | None -> _"
+    ; "false -> _ | true"
+    ; "| (Some _ | None) -> _"
+    ; "Some _ | None"
+    ; "None -> (_)"
+    ; "| Some \"😀\" -> _ | None"
+    ]
+    ~f:(print_source ~holes:`After_arrow);
+  [%expect
+    {|
+    2: | Some _ -> ${1:_} | None -> ${2:_}$0
+    1: false -> ${1:_} | true$0
+    1: | (Some _ | None) -> ${1:_}$0
+    0: Some _ | None$0
+    0: None -> (_)$0
+    1: | Some "😀" -> ${1:_} | None$0
+    |}]
+;;
+
+let%expect_test "case context preserves holes at source boundaries and around comments" =
+  List.iter
+    [ "_ -> _"
+    ; "_ -> _ | _"
+    ; "| Some \"😀\" -> _ | None (* -> _ *)"
+    ; "(* 😀 *)\n| Some _ -> _\n| None (* end *)"
+    ; "_ | _"
+    ]
+    ~f:(print_source ~holes:`After_arrow);
+  [%expect
+    {|
+    1: _ -> ${1:_}$0
+    1: _ -> ${1:_} | _$0
+    1: | Some "😀" -> ${1:_} | None (* -> _ *)$0
+    1: (* 😀 *)
+    | Some _ -> ${1:_}
+    | None (* end *)$0
+    0: _ | _$0
+    |}]
+;;
+
+let%expect_test "after-arrow parse and lexing failures preserve the entire source" =
+  List.iter
+    [ ""
+    ; "| A -> _ | B -> \"unterminated"
+    ; "| A -> _ (* unterminated"
+    ; "| A -> _ | B -> {tag|unterminated"
+    ; "function | A -> _ |"
+    ; "fun -> _"
+    ]
+    ~f:(print_source ~holes:`After_arrow);
+  [%expect
+    {|
+    0: $0
+    0: | A -> _ | B -> "unterminated$0
+    0: | A -> _ (* unterminated$0
+    0: | A -> _ | B -> {tag|unterminated$0
+    0: function | A -> _ |$0
+    0: fun -> _$0
+    |}]
+;;
+
+let%expect_test
+    "after-arrow holes exclude type wildcards in expressions and case fragments"
+  =
+  List.iter
+    [ "match (f : int -> _) 0 with | Some _ -> _ | None -> _"
+    ; "| (Some (_ : int -> _)) -> _ | None -> _"
+    ; "| Some _ -> _ | Some (_ : int -> _)"
+    ]
+    ~f:(print_source ~holes:`After_arrow);
+  [%expect
+    {|
+    2: match (f : int -> _) 0 with | Some _ -> ${1:_} | None -> ${2:_}$0
+    2: | (Some (_ : int -> _)) -> ${1:_} | None -> ${2:_}$0
+    1: | Some _ -> ${1:_} | Some (_ : int -> _)$0
     |}]
 ;;
 
@@ -236,7 +398,7 @@ let check_application arguments =
     let rendered = Snippet.to_string snippet in
     let expected_placeholders = List.length arguments in
     let { Builder.placeholders = actual_placeholders; _ } =
-      Builder.source ~source:(defaults rendered)
+      Builder.source ~holes:`Expression ~source:(defaults rendered)
     in
     if actual_placeholders <> expected_placeholders
     then

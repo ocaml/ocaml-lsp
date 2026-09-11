@@ -7,6 +7,11 @@ type t =
   ; placeholders : int
   }
 
+type hole_kind =
+  [ `Expression
+  | `After_arrow
+  ]
+
 let rec lexer_result = function
   | Lexer.Return token -> token
   | Refill refill -> lexer_result (refill ())
@@ -15,11 +20,44 @@ let rec lexer_result = function
 
 let lexer_token lexer lexbuf = lexer_result (Lexer.token_without_comments lexer lexbuf)
 
-let expression_hole_ranges source =
+let expression_hole_ranges ~context ~holes source =
+  let arrow_holes = ref (Set.empty (module Int)) in
   match
-    let lexbuf = Lexing.from_string source in
-    let lexer = Lexer.make (Lexer.keywords []) in
-    Parser.parse_expression (lexer_token lexer) lexbuf
+    let next_source_token =
+      let lexer = Lexer.make (Lexer.keywords []) in
+      match holes with
+      | `Expression -> lexer_token lexer
+      | `After_arrow ->
+        let previous = ref Parser.EOF in
+        fun lexbuf ->
+          let token = lexer_token lexer lexbuf in
+          (match token, !previous with
+           | Parser.UNDERSCORE, Parser.MINUSGREATER ->
+             arrow_holes := Set.add !arrow_holes (Lexing.lexeme_start lexbuf)
+           | _ -> ());
+          previous := token;
+          token
+    in
+    let prefix, suffix =
+      match context with
+      | `Expression -> [], []
+      | `Cases -> [ Parser.FUNCTION ], []
+      | `Cases_with_final_pattern ->
+        [ Parser.FUNCTION ], [ Parser.MINUSGREATER; Parser.LPAREN; Parser.RPAREN ]
+    in
+    let prefix = Queue.of_list prefix in
+    let suffix = Queue.of_list suffix in
+    (* Synthetic tokens have zero-width locations at the start or EOF. Lexing
+       the original source keeps every real token's location unchanged. *)
+    let next lexbuf =
+      match Queue.dequeue prefix with
+      | Some token -> token
+      | None ->
+        (match next_source_token lexbuf with
+         | Parser.EOF -> Option.value (Queue.dequeue suffix) ~default:Parser.EOF
+         | token -> token)
+    in
+    Parser.parse_expression next (Lexing.from_string source)
   with
   | exception Parser.Error -> Error ()
   | expression ->
@@ -44,16 +82,31 @@ let expression_hole_ranges source =
     in
     let iterator = { Ocaml_parsing.Ast_iterator.default_iterator with expr } in
     iterator.expr iterator expression;
+    let ranges =
+      List.dedup_and_sort !ranges ~compare:(fun (start, _) (start', _) ->
+        Int.compare start start')
+    in
     Ok
-      (List.dedup_and_sort !ranges ~compare:(fun (start, _) (start', _) ->
-         Int.compare start start'))
+      (match holes with
+       | `Expression -> ranges
+       | `After_arrow ->
+         (* An underscore after an arrow can also be a type wildcard. Retain only
+            candidates confirmed to be expression holes by the parser. *)
+         List.filter ranges ~f:(fun (start, _) -> Set.mem !arrow_holes start))
 ;;
 
-let source ~source =
+let source ~holes ~source =
   let ranges =
-    match expression_hole_ranges source with
-    | Ok ranges -> ranges
-    | Error () -> []
+    let contexts =
+      match holes with
+      | `Expression -> [ `Expression ]
+      | `After_arrow -> [ `Expression; `Cases; `Cases_with_final_pattern ]
+    in
+    List.find_map contexts ~f:(fun context ->
+      match expression_hole_ranges ~context ~holes source with
+      | Error () -> None
+      | Ok ranges -> Some ranges)
+    |> Option.value ~default:[]
   in
   let rec snippets offset = function
     | [] -> [ Snippet.text (String.drop_prefix source offset); Snippet.tabstop 0 ]
