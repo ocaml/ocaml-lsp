@@ -29,6 +29,8 @@
 
 ## Fixes
 
+- Simplify partially applied functions when inlining, preserving argument scope
+  and evaluation. (#2214, @rgrinberg)
 - Avoid overlapping semantic tokens in `with type` constraints and destructive
   substitutions. (#2206, @rgrinberg)
 - Preserve nested or-patterns when formatting destruct-line case-analysis
