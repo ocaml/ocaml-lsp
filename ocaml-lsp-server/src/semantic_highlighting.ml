@@ -383,9 +383,15 @@ module Typedtree_locations : sig
   type t
 
   val collect : Mtyper.typedtree -> t
+  val is_builtin_type : t -> Loc.t -> bool
   val is_parameter : t -> Loc.t -> bool
 end = struct
-  type t = Loc.Set.t
+  module Predef = Ocaml_typing.Predef
+
+  type t =
+    { builtin_types : Loc.Set.t
+    ; parameters : Loc.Set.t
+    }
 
   let iter_typedtree (iterator : Ocaml_typing.Tast_iterator.iterator) = function
     | `Interface signature -> iterator.signature iterator signature
@@ -398,7 +404,15 @@ end = struct
       Typedtree.pat_bound_idents pattern
       |> List.iter ~f:(fun id -> parameter_ids := Ident.Set.add id !parameter_ids)
     in
+    let builtin_types = ref Loc.Set.empty in
     let parameters = ref Loc.Set.empty in
+    let typ (self : Ocaml_typing.Tast_iterator.iterator) (typ : Typedtree.core_type) =
+      (match typ.ctyp_desc with
+       | Ttyp_constr (path, name, _) when Option.is_some (Predef.find_type_constr path) ->
+         builtin_types := Loc.Set.add name.loc !builtin_types
+       | _ -> ());
+      Ocaml_typing.Tast_iterator.default_iterator.typ self typ
+    in
     let expr (self : Ocaml_typing.Tast_iterator.iterator) (expr : Typedtree.expression) =
       (match expr.exp_desc with
        | Texp_function (params, body) ->
@@ -416,11 +430,14 @@ end = struct
        | _ -> ());
       Ocaml_typing.Tast_iterator.default_iterator.expr self expr
     in
-    iter_typedtree { Ocaml_typing.Tast_iterator.default_iterator with expr } typedtree;
-    !parameters
+    iter_typedtree
+      { Ocaml_typing.Tast_iterator.default_iterator with typ; expr }
+      typedtree;
+    { builtin_types = !builtin_types; parameters = !parameters }
   ;;
 
-  let is_parameter t loc = Loc.Set.mem loc t
+  let is_builtin_type t loc = Loc.Set.mem loc t.builtin_types
+  let is_parameter t loc = Loc.Set.mem loc t.parameters
 end
 
 (** To traverse OCaml parsetree and produce semantic tokens. *)
@@ -501,7 +518,7 @@ end = struct
     | Lapply (fn, arg) -> longident_components fn @ longident_components arg
   ;;
 
-  let lident longident rightmost_name =
+  let lident ?(modifiers = Token_modifiers_set.empty) longident rightmost_name =
     let components = longident_components longident in
     let last = List.length components - 1 in
     List.iteri components ~f:(fun index (name, loc) ->
@@ -511,7 +528,10 @@ end = struct
           if is_operator_name name then Token_type.of_builtin Operator else rightmost_name
         else Token_type.module_
       in
-      add_name_token loc name token_type Token_modifiers_set.empty)
+      let token_modifiers =
+        if index = last then modifiers else Token_modifiers_set.empty
+      in
+      add_name_token loc name token_type token_modifiers)
   ;;
 
   let add_parameter_label loc = function
@@ -548,7 +568,16 @@ end = struct
       | Ptyp_var _ ->
         add_token ptyp_loc (Token_type.of_builtin TypeParameter) Token_modifiers_set.empty;
         `Custom_iterator
-      | Ptyp_constr (name, cts) | Ptyp_class (name, cts) ->
+      | Ptyp_constr (name, cts) ->
+        List.iter cts ~f:(fun ct -> self.typ self ct);
+        let modifiers =
+          if Typedtree_locations.is_builtin_type M.typedtree_locations name.loc
+          then Token_modifiers_set.singleton DefaultLibrary
+          else Token_modifiers_set.empty
+        in
+        lident ~modifiers name (Token_type.of_builtin Type);
+        `Custom_iterator
+      | Ptyp_class (name, cts) ->
         List.iter cts ~f:(fun ct -> self.typ self ct);
         lident name (Token_type.of_builtin Type);
         `Custom_iterator
