@@ -4,6 +4,30 @@ let inline_test ?print_none source =
   Code_actions.code_action_test ?print_none ~title:"Inline into uses" source
 ;;
 
+(* Repro: the partial application retains a redundant [self] parameter instead
+   of becoming [fun (case : int) -> self.visit self case]. The fully applied use
+   below is reduced correctly. *)
+let%expect_test "inline partial application retains a redundant parameter" =
+  inline_test
+    {|
+type iterator = { visit : iterator -> int -> unit }
+let iter cases ~f = List.iter f cases
+let $function_case (self : iterator) (case : int) = self.visit self case
+let function_body (self : iterator) cases =
+  iter cases ~f:(function_case self)
+let direct self case = function_case self case
+|};
+  [%expect
+    {|
+    type iterator = { visit : iterator -> int -> unit }
+    let iter cases ~f = List.iter f cases
+    let function_case (self : iterator) (case : int) = self.visit self case
+    let function_body (self : iterator) cases =
+      iter cases ~f:((fun (self : iterator) (case : int) -> self.visit self case) self)
+    let direct self case = (self.visit self case)
+    |}]
+;;
+
 let%expect_test "inline a shorthand function used as a value and a labelled argument" =
   inline_test
     {|
