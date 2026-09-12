@@ -19,8 +19,15 @@ type hole_kind =
     is always appended. *)
 val source : holes:hole_kind -> source:string -> t
 
-(** A whole-call snippet with one hole per top-level function argument, derived
-    by parsing a rendered OCaml core type. Requires at least two labelled or
-    optional arguments; positional arguments do not count toward this threshold.
-    Returns [None] for other types, unsafe names, or unparseable types. *)
-val application : name:string -> typ:string -> Snippet.t option
+type application_kind =
+  [ `Function
+  | `Constructor
+  ]
+
+(** An application snippet derived from a rendered type. Functions require at
+    least two labelled or optional arguments and get one hole per argument.
+    Constructor applications are parenthesized and get one hole per argument,
+    including one for a tuple-valued or inline-record argument. Nullary
+    constructors are excluded. Names must be identifier paths, not operators.
+    Returns [None] for unsuitable types, unsafe names, or unparseable types. *)
+val application : kind:application_kind -> name:string -> typ:string -> Snippet.t option

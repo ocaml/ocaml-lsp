@@ -183,7 +183,62 @@ module Complete_by_prefix = struct
     Query_commands.dispatch pipeline complete
   ;;
 
+  let constructor_qualifier pipeline doc range =
+    let text_document = Document.Merlin.to_doc doc |> Document.text_document in
+    let start_offset, end_offset = Text_document.absolute_range text_document range in
+    let exception Found of Loc.t in
+    match
+      let reference name (loc : Loc.t) =
+        (* The primary edit must replace exactly the final identifier, not part of
+           it or its qualifier. In particular, do not move a partial name into the
+           qualifier when an existing position-encoding bug misplaces the edit. *)
+        if
+          loc.loc_start.pos_cnum <= start_offset
+          && loc.loc_end.pos_cnum = end_offset
+          && end_offset - String.length name = start_offset
+          && loc.loc_start.pos_lnum = loc.loc_end.pos_lnum
+        then raise_notrace (Found loc)
+      in
+      let iterator =
+        { Ast_iterator.default_iterator with
+          expr =
+            (fun iter expr ->
+              (match expr.pexp_desc with
+               (* Merlin inserts a zero-width value identifier for empty prefixes
+                  such as [M.], which can also complete to a constructor. *)
+               | Pexp_construct (name, _) | Pexp_ident name ->
+                 reference (Longident.last name.txt) name.loc
+               | _ -> ());
+              Ast_iterator.default_iterator.expr iter expr)
+        ; pat =
+            (fun iter pat ->
+              (match pat.ppat_desc with
+               | Ppat_construct (name, _) -> reference (Longident.last name.txt) name.loc
+               | Ppat_var name -> reference name.txt name.loc
+               | _ -> ());
+              Ast_iterator.default_iterator.pat iter pat)
+        }
+      in
+      match Mpipeline.reader_parsetree pipeline with
+      | `Implementation structure -> iterator.structure iterator structure
+      | `Interface signature -> iterator.signature iterator signature
+    with
+    | () -> None
+    | exception Found loc when loc.loc_start.pos_cnum = start_offset -> Some ("", None)
+    | exception Found loc ->
+      let range =
+        Text_document.range_of_utf8_offsets
+          text_document
+          ~start_offset:loc.loc_start.pos_cnum
+          ~end_offset:start_offset
+      in
+      let open Option.O in
+      let+ prefix = Text_document.substring text_document range in
+      prefix, Some [ TextEdit.create ~range ~newText:"" ]
+  ;;
+
   let process_dispatch_resp
+        ~pipeline
         ~supports_deprecated_field
         ~supports_deprecated_tag
         ~supports_enum_member
@@ -195,6 +250,15 @@ module Complete_by_prefix = struct
         (completion : Query_protocol.completions)
     =
     let range = edit_range doc pos in
+    (* Only inspect constructor syntax when a snippet-capable client receives a
+       constructor candidate. Function and plain completions do not need it. *)
+    let constructor_qualifier =
+      lazy
+        (constructor_qualifier
+           (Mpipeline.for_completion (Position.logical pos) pipeline)
+           doc
+           range)
+    in
     let supports_snippets =
       supports_snippets && Document.syntax (Document.Merlin.to_doc doc) = Ocaml
     in
@@ -247,18 +311,30 @@ module Complete_by_prefix = struct
           | false -> []
           | true ->
             (match entry.kind with
-             | `Label
-             | `Constructor
-             | `Keyword
-             | `MethodCall
-             | `Module
-             | `Modtype
-             | `Type
-             | `Variant -> []
-             | `Value ->
-               (match Snippet_builder.application ~name:entry.name ~typ:entry.desc with
-                | None -> []
-                | Some snippet -> [ snippet_completion_item plain ~range snippet ]))
+             | `Label | `Keyword | `MethodCall | `Module | `Modtype | `Type | `Variant ->
+               []
+             | (`Value | `Constructor) as kind ->
+               let application =
+                 let open Option.O in
+                 let* kind, name, additionalTextEdits =
+                   match kind with
+                   | `Value -> Some (`Function, entry.name, None)
+                   | `Constructor ->
+                     let+ prefix, edits = Lazy.force constructor_qualifier in
+                     `Constructor, prefix ^ entry.name, edits
+                 in
+                 let+ item =
+                   let+ snippet =
+                     Snippet_builder.application ~kind ~name ~typ:entry.desc
+                   in
+                   snippet_completion_item plain ~range snippet
+                 in
+                 (* Keep filtering and the primary edit on the ordinary name.
+                    Move the complete qualifier, including comments, inside the
+                    parentheses rather than opening its scope over the payload. *)
+                 { item with additionalTextEdits }
+               in
+               Option.to_list application)
         in
         plain :: snippets)
     in
@@ -298,12 +374,21 @@ module Complete_by_prefix = struct
         ~supports_snippets
         ~resolve
     =
-    let+ (completion : Query_protocol.completions) =
-      let logical_pos = Position.logical pos in
-      Document.Merlin.with_pipeline_exn
-        ~name:"completion-prefix"
-        doc
-        (dispatch_cmd ~prefix logical_pos)
+    let+ items =
+      let position = Position.logical pos in
+      Document.Merlin.with_pipeline_exn ~name:"completion-prefix" doc (fun pipeline ->
+        let completion = dispatch_cmd ~prefix position pipeline in
+        process_dispatch_resp
+          ~pipeline
+          ~supports_deprecated_field
+          ~supports_deprecated_tag
+          ~supports_enum_member
+          ~supports_snippets
+          ~resolve
+          ~prefix
+          doc
+          pos
+          completion)
     in
     let keyword_completionItems =
       (* we complete only keyword 'in' for now *)
@@ -311,18 +396,7 @@ module Complete_by_prefix = struct
       | Intf -> []
       | Impl -> complete_keywords pos prefix
     in
-    keyword_completionItems
-    @ process_dispatch_resp
-        ~supports_deprecated_field
-        ~supports_deprecated_tag
-        ~supports_enum_member
-        ~supports_snippets
-        ~resolve
-        ~prefix
-        doc
-        pos
-        completion
-    |> reindex_sortText
+    keyword_completionItems @ items |> reindex_sortText
   ;;
 end
 
@@ -489,7 +563,7 @@ let complete
                  | ci :: rest -> { ci with CompletionItem.preselect = Some true } :: rest
                else fun x -> x
              in
-             let+ construct_cmd_resp, compl_by_prefix_resp =
+             let+ construct_cmd_resp, compl_by_prefix_completionItems =
                Document.Merlin.with_pipeline_exn
                  ~name:"completion"
                  merlin
@@ -497,10 +571,20 @@ let complete
                     let construct_cmd_resp =
                       Complete_with_construct.dispatch_cmd position pipeline
                     in
-                    let compl_by_prefix_resp =
+                    let compl_by_prefix_completionItems =
                       Complete_by_prefix.dispatch_cmd ~prefix position pipeline
+                      |> Complete_by_prefix.process_dispatch_resp
+                           ~pipeline
+                           ~resolve
+                           ~supports_deprecated_field
+                           ~supports_deprecated_tag
+                           ~supports_enum_member
+                           ~supports_snippets
+                           ~prefix
+                           merlin
+                           pos
                     in
-                    construct_cmd_resp, compl_by_prefix_resp)
+                    construct_cmd_resp, compl_by_prefix_completionItems)
              in
              let construct_completionItems =
                let supportsJumpToNextHole =
@@ -514,18 +598,6 @@ let complete
                  ~fallback_range:(edit_range merlin pos)
                  ~position:pos
                  construct_cmd_resp
-             in
-             let compl_by_prefix_completionItems =
-               Complete_by_prefix.process_dispatch_resp
-                 ~resolve
-                 ~supports_deprecated_field
-                 ~supports_deprecated_tag
-                 ~supports_enum_member
-                 ~supports_snippets
-                 ~prefix
-                 merlin
-                 pos
-                 compl_by_prefix_resp
              in
              construct_completionItems @ compl_by_prefix_completionItems
              |> reindex_sortText
