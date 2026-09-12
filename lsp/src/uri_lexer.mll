@@ -2,100 +2,79 @@
 
 open Import
 
+(* Components retain their encoded spelling. In particular, None and Some ""
+   distinguish an absent delimiter from a present but empty component. *)
 type t =
-  { scheme : string
-  ; authority : string
+  { scheme : string option
+  ; authority : string option
   ; path : string
-  ; query: string option
-  ; fragment: string option
+  ; query : string option
+  ; fragment : string option
   }
 
-let int_of_hex_char c =
-  let c = int_of_char (Char.uppercase_ascii c) - 48 in
-  if c > 9 then
-    if c > 16 && c < 23 then Some (c - 7) else None
-  else if c >= 0 then
-    Some c
-  else
-    None
+let int_of_hex_char = function
+  | '0' .. '9' as c -> Some (Char.code c - Char.code '0')
+  | 'a' .. 'f' as c -> Some (Char.code c - Char.code 'a' + 10)
+  | 'A' .. 'F' as c -> Some (Char.code c - Char.code 'A' + 10)
+  | _ -> None
 
-(* https://github.com/mirage/ocaml-uri/blob/master/lib/uri.ml#L318 *)
-let decode b =
-  let len = String.length b in
-  let buf = Buffer.create len in
-  let rec scan start cur =
-    if cur >= len then
-      Buffer.add_substring buf b start (cur - start)
-    else if b.[cur] = '%' then (
-      Buffer.add_substring buf b start (cur - start);
-      let cur = cur + 1 in
-      if cur >= len then
-        Buffer.add_char buf '%'
-      else
-        match int_of_hex_char b.[cur] with
-        | None ->
-          Buffer.add_char buf '%';
-          scan cur cur
-        | Some highbits ->
-          let cur = cur + 1 in
-          if cur >= len then (
+let is_unreserved = function
+  | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '-' | '.' | '_' | '~' -> true
+  | _ -> false
+
+(* Full decoding is for component access and filesystem conversion. Normalization
+   only decodes unreserved characters and uppercases the remaining escape digits.
+   In that mode, quote malformed '%' bytes: otherwise decoding their neighbours
+   can introduce a new escape, e.g. %%36%31 would become %61 and then decode as 'a'. *)
+let decode ?(only_unreserved = false) s =
+  if not (String.contains s '%') then s
+  else
+    let len = String.length s in
+    let buf = Buffer.create len in
+    let rec scan i =
+      if i < len then
+        let escape =
+          if s.[i] = '%' && i + 2 < len then
+            match int_of_hex_char s.[i + 1], int_of_hex_char s.[i + 2] with
+            | Some high, Some low -> Some (Char.chr ((high lsl 4) + low))
+            | _ -> None
+          else None
+        in
+        match escape with
+        | Some c ->
+          if only_unreserved && not (is_unreserved c) then (
             Buffer.add_char buf '%';
-            Buffer.add_char buf b.[cur - 1])
-          else
-            let start_at =
-              match int_of_hex_char b.[cur] with
-              | Some lowbits ->
-                Buffer.add_char buf (Char.chr ((highbits lsl 4) + lowbits));
-                cur + 1
-              | None ->
-                Buffer.add_char buf '%';
-                Buffer.add_char buf b.[cur - 1];
-                cur
-            in
-            scan start_at start_at)
-    else
-      scan start (cur + 1)
-  in
-  scan 0 0;
-  Buffer.contents buf
+            Buffer.add_char buf (Char.uppercase_ascii s.[i + 1]);
+            Buffer.add_char buf (Char.uppercase_ascii s.[i + 2]))
+          else Buffer.add_char buf c;
+          scan (i + 3)
+        | None ->
+          if only_unreserved && s.[i] = '%' then Buffer.add_string buf "%25"
+          else Buffer.add_char buf s.[i];
+          scan (i + 1)
+    in
+    scan 0;
+    Buffer.contents buf
 }
 
 rule uri = parse
 ([^':' '/' '?' '#']+ as scheme ':') ?
 ("//" ([^ '/' '?' '#']* as authority)) ?
 ([^ '?' '#']* as path)
-('?' ([^ '#']* as raw_query)) ?
+('?' ([^ '#']* as query)) ?
 ('#' (_ * as fragment)) ?
-{
-  let scheme = scheme |> Option.value ~default:"file" in
-  let authority =
-    authority |> Option.map decode |> Option.value ~default:""
-  in
-  let path =
-    let path = path |> decode in
-    match scheme with
-    | "http" | "https" | "file" ->
-      String.add_prefix_if_not_exists path ~prefix:"/"
-    | _ -> path
-  in
-  let query = raw_query |> Option.map decode in
-  let fragment = fragment |> Option.map decode in
-  { scheme; authority; path; query; fragment }
-}
+{ { scheme; authority; path; query; fragment } }
 
+(* Filesystem paths are not URI syntax: '%' is a literal character and only
+   the leading UNC authority is split off here. Encoding belongs to of_path. *)
 and path = parse
-| "" { { scheme = "file"; authority = ""; path = "/"; query = None; fragment = None } }
-| "//" ([^ '/']* as authority) (['/']_* as path) { { scheme = "file"; authority; path ; query = None ; fragment = None } }
-| "//" ([^ '/']* as authority) { { scheme = "file"; authority; path = "/" ; query = None ; fragment = None } }
-| ("/" _* as path) { { scheme = "file"; authority = ""; path ; query = None ; fragment = None } }
-| (_* as path) { { scheme = "file"; authority = ""; path = "/" ^ path ; query = None ; fragment = None } }
+| "" { "", "/" }
+| "//" ([^ '/']* as authority) (['/']_* as path) { authority, path }
+| "//" ([^ '/']* as authority) { authority, "/" }
+| ("/" _* as path) { "", path }
+| (_* as path) { "", "/" ^ path }
 
 {
-  let of_string s =
-    let lexbuf = Lexing.from_string s in
-    uri lexbuf
-
-  let of_path s =
-    let lexbuf = Lexing.from_string s in
-    path lexbuf
+  let of_string s = uri (Lexing.from_string s)
+  let of_path s = path (Lexing.from_string s)
 }
