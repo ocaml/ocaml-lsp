@@ -4,6 +4,24 @@ let inline_test ?print_none source =
   Code_actions.code_action_test ?print_none ~title:"Inline into uses" source
 ;;
 
+(* Execute assertions in both versions as well as snapshotting the edit. *)
+let inline_runtime_test source =
+  let source, range = Code_actions.parse_selection source in
+  let result =
+    Code_actions.apply_code_action "Inline into uses" source range |> Option.value_exn
+  in
+  let dir = Test.temp_dir "ocamllsp-inline-runtime-" in
+  Fun.protect
+    ~finally:(fun () -> Test.run_command ("rm -rf -- " ^ Filename.quote dir))
+    (fun () ->
+       List.iter [ source; result ] ~f:(fun source ->
+         Test.write_file (Filename.concat dir "program.ml") source;
+         Test.run_command
+           ~cwd:dir
+           "ocamlc -w -a -o program.exe program.ml && ./program.exe");
+       print_string result)
+;;
+
 (* Repro: the partial application retains a redundant [self] parameter instead
    of becoming [fun (case : int) -> self.visit self case]. The fully applied use
    below is reduced correctly. *)
@@ -25,6 +43,173 @@ let direct self case = function_case self case
     let function_body (self : iterator) cases =
       iter cases ~f:((fun (self : iterator) (case : int) -> self.visit self case) self)
     let direct self case = (self.visit self case)
+    |}]
+;;
+
+let%expect_test "inline partial applications with matching parameter names" =
+  inline_test
+    {|
+let $f x y z = x + y + z
+let one x = f x
+let two x y = f x y
+|};
+  [%expect
+    {|
+    let f x y z = x + y + z
+    let one x = ((fun x y z -> (x + y) + z) x)
+    let two x y = ((fun x y z -> (x + y) + z) x y)
+    |}]
+;;
+
+let%expect_test "partial inlining preserves parameter type annotations" =
+  inline_runtime_test
+    {|
+type first = { value : int }
+type second = { value : int; extra : unit }
+let $f (self : first) ignored = self.value
+let g self = f self
+let () = assert (g ({ value = 3 } : first) () = 3)
+|};
+  [%expect
+    {|
+    type first = { value : int }
+    type second = { value : int; extra : unit }
+    let f (self : first) ignored = self.value
+    let g self = ((fun (self : first) ignored -> self.value) self)
+    let () = assert (g ({ value = 3 } : first) () = 3)
+    |}]
+;;
+
+let%expect_test "partial inlining preserves capture and argument evaluation" =
+  inline_runtime_test
+    {|
+type cell = { mutable value : int }
+let $f x y = let outer = y + 1 in x - outer
+let y = 10
+let outer = 20
+let captured = f y
+let nested = f outer
+let calls = ref 0
+let effectful = f (incr calls; 30)
+let cell = { value = 40 }
+let snapshot = f cell.value
+let raised = try ignore (f (failwith "argument")); false with Failure _ -> true
+let () =
+  assert (!calls = 1);
+  cell.value <- 100;
+  assert (captured 2 = 7);
+  assert (nested 2 = 17);
+  assert (effectful 2 = 27);
+  assert (effectful 3 = 26);
+  assert (!calls = 1);
+  assert (snapshot 2 = 37);
+  assert raised
+|};
+  [%expect
+    {|
+    type cell = { mutable value : int }
+    let f x y = let outer = y + 1 in x - outer
+    let y = 10
+    let outer = 20
+    let captured = ((fun x y -> let outer = y + 1 in x - outer) y)
+    let nested = ((fun x y -> let outer = y + 1 in x - outer) outer)
+    let calls = ref 0
+    let effectful = ((fun x y -> let outer = y + 1 in x - outer) (incr calls; 30))
+    let cell = { value = 40 }
+    let snapshot = ((fun x y -> let outer = y + 1 in x - outer) cell.value)
+    let raised = try ignore ((fun x y -> let outer = y + 1 in x - outer) (failwith "argument")); false with Failure _ -> true
+    let () =
+      assert (!calls = 1);
+      cell.value <- 100;
+      assert (captured 2 = 7);
+      assert (nested 2 = 17);
+      assert (effectful 2 = 27);
+      assert (effectful 3 = 26);
+      assert (!calls = 1);
+      assert (snapshot 2 = 37);
+      assert raised
+    |}]
+;;
+
+let%expect_test "partial inlining preserves multiple argument scope and order" =
+  inline_runtime_test
+    {|
+let $f x y z = x - y + z
+let x = 3
+let y = 10
+let swapped = f y x
+let log = ref []
+let argument tag value = log := !log @ [tag]; value
+let effectful = f (argument 1 10) (argument 2 3)
+let () =
+  assert (swapped 0 = 7);
+  assert (!log = [2; 1]);
+  assert (effectful 1 = 8);
+  assert (effectful 2 = 9);
+  assert (!log = [2; 1])
+|};
+  [%expect
+    {|
+    let f x y z = x - y + z
+    let x = 3
+    let y = 10
+    let swapped = ((fun x y z -> (x - y) + z) y x)
+    let log = ref []
+    let argument tag value = log := !log @ [tag]; value
+    let effectful = ((fun x y z -> (x - y) + z) (argument 1 10) (argument 2 3))
+    let () =
+      assert (swapped 0 = 7);
+      assert (!log = [2; 1]);
+      assert (effectful 1 = 8);
+      assert (effectful 2 = 9);
+      assert (!log = [2; 1])
+    |}]
+;;
+
+let%expect_test "partial inlining leaves refutable parameter matching in the function" =
+  inline_runtime_test
+    {|
+let $f (Some x) y = x + y
+let deferred = f None
+let () =
+  assert (try ignore (deferred 1); false with Match_failure _ -> true)
+|};
+  [%expect
+    {|
+    let f (Some x) y = x + y
+    let deferred = ((fun (Some x) y -> x + y) None)
+    let () =
+      assert (try ignore (deferred 1); false with Match_failure _ -> true)
+    |}]
+;;
+
+let%expect_test "inline partial application with duplicate parameter names" =
+  inline_runtime_test
+    {|
+let $f x x z = x + z
+let partial = f 1 2
+let () = assert (partial 3 = 5)
+|};
+  [%expect
+    {|
+    let f x x z = x + z
+    let partial = ((fun x x z -> x + z) 1 2)
+    let () = assert (partial 3 = 5)
+    |}]
+;;
+
+let%expect_test "partial inlining retains labelled parameters" =
+  inline_runtime_test
+    {|
+let $f x ~y = x + y
+let partial = f 1
+let () = assert (partial ~y:2 = 3)
+|};
+  [%expect
+    {|
+    let f x ~y = x + y
+    let partial = ((fun x ~y -> x + y) 1)
+    let () = assert (partial ~y:2 = 3)
     |}]
 ;;
 

@@ -50,6 +50,29 @@ let print_optional_code_action label = function
   | Some action -> print_code_action label action
 ;;
 
+let%expect_test "resolved inline edit for a partial application" =
+  let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
+  let capabilities = code_action_capabilities resolveSupport in
+  let source, range =
+    Code_actions.parse_selection
+      {|
+let $f self case = self + case
+let caller self = f self
+|}
+  in
+  Helpers.test ~capabilities source (fun client ->
+    let* action = request_inline_action client ~uri:Helpers.uri ~range in
+    let action = Option.value_exn action in
+    if Option.is_some action.edit then failwith "expected an unresolved action";
+    let+ resolved = Client.request client (CodeActionResolve action) in
+    Test.apply_workspace_edit source (Option.value_exn resolved.edit) |> print_string);
+  [%expect
+    {|
+    let f self case = self + case
+    let caller self = ((fun self case -> self + case) self)
+    |}]
+;;
+
 let%expect_test "inline edit is resolved lazily when supported" =
   let resolveSupport = ClientCodeActionResolveOptions.create ~properties:[ "edit" ] in
   let capabilities = code_action_capabilities resolveSupport in
