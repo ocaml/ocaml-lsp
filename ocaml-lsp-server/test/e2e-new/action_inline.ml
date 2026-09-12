@@ -22,6 +22,33 @@ let inline_runtime_test source =
        print_string result)
 ;;
 
+let%expect_test "partial inlining snapshots mutable instance variables" =
+  inline_runtime_test
+    {|
+let $f x y = x + y
+class counter = object
+  val mutable x = 1
+  method set n = x <- n
+  method callback = let callback = f x in callback
+end
+let counter = new counter
+let callback = counter#callback
+let () = counter#set 10; assert (callback 2 = 3)
+|};
+  [%expect
+    {|
+    let f x y = x + y
+    class counter = object
+      val mutable x = 1
+      method set n = x <- n
+      method callback = let callback = ((fun x y -> x + y) x) in callback
+    end
+    let counter = new counter
+    let callback = counter#callback
+    let () = counter#set 10; assert (callback 2 = 3)
+    |}]
+;;
+
 (* Repro: the partial application retains a redundant [self] parameter instead
    of becoming [fun (case : int) -> self.visit self case]. The fully applied use
    below is reduced correctly. *)
