@@ -373,8 +373,6 @@ let%expect_test "Dune success refreshes load paths in every Merlin state" =
     {|
     Dune trace: Connected to Dune RPC
     Dune trace: Dune build finished (verbose details present)
-    Unbound module Bar
-    Unbound value x
     Dune trace: Merlin configuration process started
     Dune trace: Merlin configuration request completed
     Dune trace: Merlin configuration process stopped and exited
