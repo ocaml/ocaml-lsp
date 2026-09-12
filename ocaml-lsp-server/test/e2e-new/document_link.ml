@@ -328,6 +328,39 @@ let x = 1
     |}]
 ;;
 
+(* FIXME: [section:intro] must not link to the value [intro]; without section
+   resolution it should have no target. [exception:E] must link to the exception
+   on line 1, not the module on line 2. *)
+let%expect_test "explicit reference kinds fall back to unrelated namespaces" =
+  test_resolved
+    {ocaml|exception E
+module E = struct end
+let intro = 1
+(** {1:intro Introduction}
+    {!section:intro} {!exception:E} *)
+let x = 1
+|ocaml};
+  [%expect
+    {|
+    [
+      {
+        "range": {
+          "end": { "character": 20, "line": 4 },
+          "start": { "character": 4, "line": 4 }
+        },
+        "target": "file:///test.ml#L3,5"
+      },
+      {
+        "range": {
+          "end": { "character": 35, "line": 4 },
+          "start": { "character": 21, "line": 4 }
+        },
+        "target": "file:///test.ml#L2,8"
+      }
+    ]
+    |}]
+;;
+
 let%expect_test "ignores ordinary comments" =
   test
     {|(* {{:https://ocaml.org} not a doc comment} *)

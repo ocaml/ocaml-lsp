@@ -5,6 +5,13 @@ let print_doc = function
   | Markdown s -> print_endline s
 ;;
 
+(* FIXME: [-] inside an operator is not a kind qualifier. The labels should
+   retain [Stdlib.(-)] and [(--)], even when no resolver is supplied. *)
+let%expect_test "operator cross-reference labels lose hyphens" =
+  translate "Use {!Stdlib.(+)} or {!Stdlib.(-)} or {!val:(--)}." |> print_doc;
+  [%expect {| Use `Stdlib.(+)` or `Stdlib.)` or `)`. |}]
+;;
+
 let%expect_test "superscript" =
   let doc = {| 2{^30} |} in
   translate doc |> print_doc;

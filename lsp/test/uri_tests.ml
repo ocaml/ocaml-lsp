@@ -146,6 +146,27 @@ let%expect_test "sub-delimiters in a query and in a fragment" =
     |}]
 ;;
 
+(* FIXME: escapes within a query value must remain escaped. In particular,
+   [%26admin%3Dtrue] is data in [q], not a second parameter, and [%2B] is a
+   literal plus rather than the space an HTML form decoder reads from [+]. *)
+let%expect_test "escaped query values are treated as separators" =
+  let test source =
+    Printf.printf "%s -> %s\n" source (Uri.of_string source |> Uri.to_string)
+  in
+  List.iter
+    test
+    [ "https://example.org/?q=%26"
+    ; "https://example.org/?q=a%2Bb"
+    ; "https://example.org/?q=a%26admin%3Dtrue"
+    ];
+  [%expect
+    {|
+    https://example.org/?q=%26 -> https://example.org/?q=&
+    https://example.org/?q=a%2Bb -> https://example.org/?q=a+b
+    https://example.org/?q=a%26admin%3Dtrue -> https://example.org/?q=a&admin=true
+    |}]
+;;
+
 let%expect_test "an unescaped Unicode URI query is preserved" =
   let uri = Uri.of_string "file:///foo.ml?search=😀&limit=1" in
   Printf.printf

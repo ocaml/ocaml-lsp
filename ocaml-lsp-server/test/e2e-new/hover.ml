@@ -446,6 +446,46 @@ let f ({ px; py } as p : point) = px + py
     |}]
 ;;
 
+(* FIXME: both hovers should link to [M.t] on line 2. The use-site hover
+   instead resolves the documentation's reference to the unrelated outer [t]. *)
+let%expect_test "hover cross-references use the caller's scope" =
+  Hover_helpers.test_hover
+    ~capabilities:Hover_helpers.markdown_capabilities
+    {ocaml|module M = struct
+  type t = A
+  (** Returns a {!t}. *)
+  let f () = A
+end
+
+type t = B
+let result = M.f ()
+|ocaml}
+    [ Position.create ~line:3 ~character:6; Position.create ~line:7 ~character:15 ];
+  [%expect
+    {|
+    {
+      "contents": {
+        "kind": "markdown",
+        "value": "```ocaml\nunit -> t\n```\n***\nReturns a [`t`](file:///test.ml#L2,8)."
+      },
+      "range": {
+        "end": { "character": 7, "line": 3 },
+        "start": { "character": 6, "line": 3 }
+      }
+    }
+    {
+      "contents": {
+        "kind": "markdown",
+        "value": "```ocaml\nunit -> M.t\n```\n***\nReturns a [`t`](file:///test.ml#L7,6)."
+      },
+      "range": {
+        "end": { "character": 16, "line": 7 },
+        "start": { "character": 13, "line": 7 }
+      }
+    }
+    |}]
+;;
+
 (* A cross-reference resolves to the definition it names, so the popup can link
    it. The kind qualifying one is not part of what the reader should see. *)
 let%expect_test "links cross-references in hover documentation" =
