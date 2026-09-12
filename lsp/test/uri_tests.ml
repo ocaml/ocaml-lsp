@@ -130,6 +130,32 @@ let%expect_test "JSON URI serialization normalizes wire spelling" =
     |}]
 ;;
 
+(* FIXME: serialization should preserve both literal query separators and
+   escapes within values. It currently encodes the separators as well. *)
+let%expect_test "query separators and escaped values" =
+  List.iter
+    (fun source ->
+       let serialized = Uri.of_string source |> Uri.to_string in
+       assert (Uri.yojson_of_t (Uri.t_of_yojson (`String source)) = `String serialized);
+       Printf.printf "%s -> %s\n" source serialized)
+    [ "https://ocaml.org/search?q=a+b&page=1"
+    ; "https://example.org/?q=%26"
+    ; "https://example.org/?q=a%2Bb"
+    ; "https://example.org/?q=a%26admin%3Dtrue"
+    ; "https://ocaml.org/?q=%23tag"
+    ; "file:///foo.ml#L3,4"
+    ];
+  [%expect
+    {|
+    https://ocaml.org/search?q=a+b&page=1 -> https://ocaml.org/search?q%3Da%2Bb%26page%3D1
+    https://example.org/?q=%26 -> https://example.org/?q%3D%26
+    https://example.org/?q=a%2Bb -> https://example.org/?q%3Da%2Bb
+    https://example.org/?q=a%26admin%3Dtrue -> https://example.org/?q%3Da%26admin%3Dtrue
+    https://ocaml.org/?q=%23tag -> https://ocaml.org/?q%3D%23tag
+    file:///foo.ml#L3,4 -> file:///foo.ml#L3%2C4
+    |}]
+;;
+
 let%expect_test "an unescaped Unicode URI query is preserved" =
   let uri = Uri.of_string "file:///foo.ml?search=😀&limit=1" in
   Printf.printf

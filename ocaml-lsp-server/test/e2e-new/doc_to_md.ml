@@ -5,6 +5,11 @@ let print_doc = function
   | Markdown s -> print_endline s
 ;;
 
+let%expect_test "operator cross-reference labels" =
+  translate "Use {!Stdlib.(+)} or {!Stdlib.(-)} or {!val:(--)}." |> print_doc;
+  [%expect {| Use `Stdlib.(+)` or `Stdlib.(-)` or `val:(--)`. |}]
+;;
+
 let%expect_test "superscript" =
   let doc = {| 2{^30} |} in
   translate doc |> print_doc;
