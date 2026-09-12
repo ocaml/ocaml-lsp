@@ -134,6 +134,7 @@ module Loc = struct
 
   include T
   module Map = Stdlib.MoreLabels.Map.Make (T)
+  module Set = Stdlib.Set.Make (T)
 end
 
 include struct
