@@ -97,14 +97,43 @@ let message = function
   | Unexpected_result { message } -> message
 ;;
 
+module Topiary_language = struct
+  type t =
+    | OCaml
+    | OCaml_interface
+    | OCamllex
+
+  let to_string = function
+    | OCaml -> "ocaml"
+    | OCaml_interface -> "ocaml_interface"
+    | OCamllex -> "ocamllex"
+  ;;
+
+  let of_path path =
+    match Filename.extension path with
+    | ".ml" | ".eliom" -> Some OCaml
+    | ".mli" | ".eliomi" -> Some OCaml_interface
+    | ".mll" -> Some OCamllex
+    | _ -> None
+  ;;
+
+  let of_URI uri =
+    match of_path (Uri.to_path uri) with
+    | Some lang -> Result.Ok lang
+    | None -> Result.Error (Unknown_extension uri)
+  ;;
+end
+
 type formatter =
   | Reason of Document.Kind.t
   | Ocaml of Uri.t
   | Ocp_indent of Uri.t
+  | Topiary of Uri.t * Topiary_language.t
   | Mlx of Uri.t
 
 let args = function
   | Ocp_indent _ -> []
+  | Topiary (_, lang) -> [ "format"; "--language"; Topiary_language.to_string lang ]
   | Ocaml uri ->
     let name = Uri.to_path uri in
     let flag =
@@ -126,6 +155,7 @@ let binary_name t =
   match t with
   | Ocaml _ -> "ocamlformat"
   | Ocp_indent _ -> "ocp-indent"
+  | Topiary _ -> "topiary"
   | Mlx _ -> "ocamlformat-mlx"
   | Reason _ -> "refmt"
 ;;
@@ -153,6 +183,7 @@ let formatter doc =
 type configured_formatter =
   | Configured_ocamlformat
   | Configured_ocp_indent
+  | Configured_Topiary
   | Not_configured
 
 let normalize_directory path =
@@ -180,6 +211,8 @@ let configured_formatter ~workspace_root uri =
     then Configured_ocamlformat
     else if Sys.file_exists (Filename.concat directory ".ocp-indent")
     then Configured_ocp_indent
+    else if Sys.file_exists (Filename.concat directory ".topiary")
+    then Configured_Topiary
     else (
       match workspace_root with
       | None -> Not_configured
@@ -195,22 +228,33 @@ let document_formatter ~workspace_root doc =
   let open Result.O in
   let+ formatter = formatter doc in
   match formatter with
-  | Reason _ | Ocp_indent _ | Mlx _ -> formatter
+  | Reason _ | Ocp_indent _ | Topiary _ | Mlx _ -> formatter
   | Ocaml uri ->
     (match configured_formatter ~workspace_root uri with
      | Configured_ocp_indent -> Ocp_indent uri
      | Configured_ocamlformat -> formatter
+     | Configured_Topiary ->
+       (match Topiary_language.of_URI uri with
+        | Ok lang -> Topiary (uri, lang)
+        | Error _ -> formatter)
      | Not_configured ->
        (match Bin.which "ocamlformat" with
         | Some _ -> formatter
         | None ->
           (match Bin.which "ocp-indent" with
            | Some _ -> Ocp_indent uri
-           | None -> formatter)))
+           | None ->
+             (match Bin.which "topiary" with
+              | Some _ ->
+                (match Topiary_language.of_URI uri with
+                 | Ok lang -> Topiary (uri, lang)
+                 | Error _ -> formatter)
+              | None -> formatter))))
 ;;
 
 let working_directory = function
-  | Ocp_indent uri -> Spawn.Working_dir.Path (Uri.to_path uri |> Filename.dirname)
+  | Ocp_indent uri | Topiary (uri, _) ->
+    Spawn.Working_dir.Path (Uri.to_path uri |> Filename.dirname)
   | Reason _ | Ocaml _ | Mlx _ -> Spawn.Working_dir.Inherit
 ;;
 
@@ -270,7 +314,7 @@ let compute_modified_margin binary cancel offset formatter =
       in
       let margin = margin - offset in
       "--margin=" ^ Int.to_string margin)
-  | Ocp_indent _ -> assert false
+  | Ocp_indent _ | Topiary _ -> assert false
   | Reason _ ->
     let margin =
       Sys.getenv_opt "REFMT_PRINT_WIDTH"
@@ -354,11 +398,23 @@ let run_ocp_indent_on_range doc uri (range : Range.t) cancel =
          ~f:(Result.map ~f:(fun { stdout = to_; _ } -> Diff.edit ~from:contents ~to_))
 ;;
 
+let run_topiary_on_range doc topiary _range cancel =
+  match binary topiary with
+  | Error e -> Fiber.return (Error e)
+  | Ok binary ->
+    let contents = Document.source doc |> Msource.text
+    and args = args topiary in
+    exec ~cwd:(working_directory topiary) cancel binary args contents
+    |> Fiber.map
+         ~f:(Result.map ~f:(fun { stdout = to_; _ } -> Diff.edit ~from:contents ~to_))
+;;
+
 let run_on_range ~workspace_root doc range cancel
   : (TextEdit.t list, error) result Fiber.t
   =
   match document_formatter ~workspace_root doc with
   | Ok (Ocp_indent uri) -> run_ocp_indent_on_range doc uri range cancel
+  | Ok (Topiary _ as topiary) -> run_topiary_on_range doc topiary range cancel
   | Error _ | Ok (Reason _ | Ocaml _ | Mlx _) ->
     (match
        let open Result.O in
