@@ -56,8 +56,8 @@ let compute_ocaml_code_actions (params : CodeActionParams.t) state doc =
       ; (if client_can_resolve_edits state
          then Action_inline.unresolved
          else Action_inline.t)
-      ; Action_extract.local
-      ; Action_extract.function_
+      ; Action_extract.local state
+      ; Action_extract.function_ state
       ]
   in
   let batchable, non_batchable =

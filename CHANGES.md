@@ -2,6 +2,8 @@
 
 ## Features
 
+- Let clients with workspace snippet-edit support rename extracted locals and
+  functions interactively. (#2207, @rgrinberg)
 - Offer parenthesized application snippets for constructors with payloads, with
   independent argument slots, while retaining name-only completions. (#2212, @rgrinberg)
 - Make generated destruct branch bodies interactive for clients with snippet edit

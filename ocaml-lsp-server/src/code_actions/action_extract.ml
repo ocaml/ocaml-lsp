@@ -3,6 +3,53 @@ open Option.O
 module H = Ocaml_parsing.Ast_helper
 module Typedtree_utils = Merlin_analysis.Typedtree_utils
 
+type extraction =
+  { range : Range.t
+  ; insert_range : Range.t
+  ; name : string
+  ; binding_suffix : string
+  ; call_suffix : string
+  }
+
+let workspace_edit state doc { range; insert_range; name; binding_suffix; call_suffix } =
+  let text_document = Document.text_document doc in
+  if State.client_capabilities state |> Capabilities.workspace_edit_snippet_support
+  then
+    (* Only snippet clients need to copy the source between the insertion and
+       replacement. Keep the ordinary-edit fallback independent of this work. *)
+    let+ before_expression =
+      Text_document.substring
+        text_document
+        (Range.create ~start:insert_range.start ~end_:range.start)
+    in
+    let name = Snippet.placeholder ~index:1 (Snippet.text name) in
+    let snippet =
+      Snippet.concat
+        [ Snippet.text "let "
+        ; name
+        ; Snippet.text binding_suffix
+        ; Snippet.text before_expression
+        ; name
+        ; Snippet.text call_suffix
+        ; Snippet.tabstop 0
+        ]
+    in
+    let edit =
+      SnippetTextEdit.create
+        ~range:(Range.create ~start:insert_range.start ~end_:range.end_)
+        ~snippet:(StringValue.create ~value:(Snippet.to_string snippet))
+        ()
+    in
+    Text_document.workspace_edit_of_edits text_document [ `SnippetTextEdit edit ]
+  else
+    Some
+      (Text_document.workspace_edit
+         text_document
+         [ TextEdit.create ~range:insert_range ~newText:("let " ^ name ^ binding_suffix)
+         ; TextEdit.create ~range ~newText:(name ^ call_suffix)
+         ])
+;;
+
 let range_contains_loc range loc =
   match Range.of_loc_opt loc with
   | Some range' -> Range.contains range range'
@@ -169,15 +216,14 @@ let constructors_available (expr : Typedtree.expression) destination_env =
 let extract_local doc typedtree range =
   let* to_extract = largest_enclosed_expression typedtree range in
   let* extract_range = Range.of_loc_opt to_extract.exp_loc in
-  let* edit_pos = tightest_enclosing_binder_position typedtree range in
-  let new_name = "var_name" in
   let* local_text = Text_document.substring (Document.text_document doc) extract_range in
-  let newText = sprintf "let %s = %s in\n" new_name local_text in
-  let insert_range = { Range.start = edit_pos; end_ = edit_pos } in
-  Some
-    [ TextEdit.create ~newText ~range:insert_range
-    ; TextEdit.create ~newText:new_name ~range:extract_range
-    ]
+  let+ edit_pos = tightest_enclosing_binder_position typedtree range in
+  { range = extract_range
+  ; insert_range = Range.create ~start:edit_pos ~end_:edit_pos
+  ; name = "var_name"
+  ; binding_suffix = " = " ^ local_text ^ " in\n"
+  ; call_suffix = ""
+  }
 ;;
 
 let extract_function doc typedtree range =
@@ -186,7 +232,6 @@ let extract_function doc typedtree range =
   let* parent_item = enclosing_structure_item typedtree range in
   let* () = Option.some_if (constructors_available to_extract parent_item.str_env) () in
   let* edit_pos = Position.of_lexical_position parent_item.str_loc.loc_start in
-  let new_name = "fun_name" in
   let* args_str =
     let free_vars = must_pass to_extract parent_item.str_env in
     let+ args =
@@ -198,47 +243,50 @@ let extract_function doc typedtree range =
     let s = String.concat ~sep:" " args in
     if String.is_empty s then "()" else s
   in
-  let* func_text = Text_document.substring (Document.text_document doc) extract_range in
-  let new_function = sprintf "let %s %s = %s\n\n" new_name args_str func_text in
-  let new_call = sprintf "%s %s" new_name args_str in
-  let insert_range = { Range.start = edit_pos; end_ = edit_pos } in
-  Some
-    [ TextEdit.create ~newText:new_function ~range:insert_range
-    ; TextEdit.create ~newText:new_call ~range:extract_range
-    ]
+  let+ func_text = Text_document.substring (Document.text_document doc) extract_range in
+  { range = extract_range
+  ; insert_range = Range.create ~start:edit_pos ~end_:edit_pos
+  ; name = "fun_name"
+  ; binding_suffix = " " ^ args_str ^ " = " ^ func_text ^ "\n\n"
+  ; call_suffix = " " ^ args_str
+  }
 ;;
 
-let run_extract_local pipeline doc (params : CodeActionParams.t) =
-  let typer = Mpipeline.typer_result pipeline in
-  let* typedtree =
-    match Mtyper.get_typedtree typer with
-    | `Interface _ -> None
-    | `Implementation x -> Some x
+let run_extract_local state pipeline doc (params : CodeActionParams.t) =
+  let* extraction =
+    let* typedtree =
+      match Mpipeline.typer_result pipeline |> Mtyper.get_typedtree with
+      | `Interface _ -> None
+      | `Implementation x -> Some x
+    in
+    extract_local doc typedtree params.range
   in
-  let+ edits = extract_local doc typedtree params.range in
+  let+ edit = workspace_edit state doc extraction in
   CodeAction.create
     ~title:"Extract local"
     ~kind:CodeActionKind.RefactorExtract
-    ~edit:(Text_document.workspace_edit (Document.text_document doc) edits)
+    ~edit
     ~isPreferred:false
     ()
 ;;
 
-let run_extract_function pipeline doc (params : CodeActionParams.t) =
-  let typer = Mpipeline.typer_result pipeline in
-  let* typedtree =
-    match Mtyper.get_typedtree typer with
-    | `Interface _ -> None
-    | `Implementation x -> Some x
+let run_extract_function state pipeline doc (params : CodeActionParams.t) =
+  let* extraction =
+    let* typedtree =
+      match Mpipeline.typer_result pipeline |> Mtyper.get_typedtree with
+      | `Interface _ -> None
+      | `Implementation x -> Some x
+    in
+    extract_function doc typedtree params.range
   in
-  let+ edits = extract_function doc typedtree params.range in
+  let+ edit = workspace_edit state doc extraction in
   CodeAction.create
     ~title:"Extract function"
     ~kind:CodeActionKind.RefactorExtract
-    ~edit:(Text_document.workspace_edit (Document.text_document doc) edits)
+    ~edit
     ~isPreferred:false
     ()
 ;;
 
-let local = Code_action.batchable RefactorExtract run_extract_local
-let function_ = Code_action.batchable RefactorExtract run_extract_function
+let local state = Code_action.batchable RefactorExtract (run_extract_local state)
+let function_ state = Code_action.batchable RefactorExtract (run_extract_function state)
