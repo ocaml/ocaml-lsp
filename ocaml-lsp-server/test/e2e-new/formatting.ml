@@ -338,6 +338,183 @@ let%expect_test "ocp-indent formats documents and ranges" =
     |}]
 ;;
 
+let%expect_test "reports a missing configured topiary executable" =
+  let dir = Test.temp_dir "ocamllsp-no-topiary-" in
+  let topiary_dir = Filename.concat dir ".topiary" in
+  Unix.mkdir topiary_dir 0o700;
+  Test.write_file
+    (Filename.concat topiary_dir "languages.ncl")
+    "{languages = {ocaml = {}}}\n";
+  let empty_path = Filename.concat dir "bin" in
+  Unix.mkdir empty_path 0o700;
+  let path = Filename.concat dir "format_failure.ml" in
+  test_formatter_failure ~path ~workspace_root:dir ~path_env:empty_path "let  x=1";
+  [%expect
+    {|
+    code=InvalidRequest message=Unable to find topiary binary. You need to install topiary manually to use the formatting feature.
+    |}]
+;;
+
+let%expect_test "topiary priority" =
+  let outer = Test.temp_dir "ocamllsp-topiary-priority-" in
+  let dir = Filename.concat outer "workspace" in
+  Unix.mkdir dir 0o700;
+  let bin_dir = Filename.concat dir "bin" in
+  Unix.mkdir bin_dir 0o700;
+  write_formatter bin_dir "ocamlformat";
+  write_formatter bin_dir "ocp-indent";
+  write_formatter bin_dir "topiary";
+  let project name configs =
+    let project = Filename.concat dir name in
+    Unix.mkdir project 0o700;
+    List.iter configs ~f:(fun (path, content) ->
+      let full = Filename.concat project path in
+      let parent = Filename.dirname full in
+      if not (Sys.file_exists parent) then Unix.mkdir parent 0o700;
+      Test.write_file full content);
+    Filename.concat project "test.ml"
+  in
+  let only_topiary =
+    project "only-topiary" [ ".topiary/languages.ncl", "{languages = {ocaml = {}}}\n" ]
+  and with_ocp =
+    project
+      "with-ocp"
+      [ ".topiary/languages.ncl", "{languages = {ocaml = {}}}\n"
+      ; ".ocp-indent", "base=4\n"
+      ]
+  and with_ocamlformat =
+    project
+      "with-ocamlformat"
+      [ ".topiary/languages.ncl", "{languages = {ocaml = {}}}\n"
+      ; ".ocamlformat", "profile=default\n"
+      ]
+  and source = "let selected = \"source\"\n"
+  and handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) ()
+  and path = Sys.getenv_opt "PATH" |> Option.value ~default:"" in
+  Test.run_initialized
+    ~handler
+    ~workspaceFolders:(Some [ workspace_folder dir ])
+    ~extra_env:[ "PATH=" ^ bin_dir ^ ":" ^ path ]
+    (fun client ->
+       let format label path =
+         print_endline label;
+         let uri = DocumentUri.of_path path in
+         let* () = Test.open_document ~client ~uri ~source () in
+         let textDocument = TextDocumentIdentifier.create ~uri in
+         let+ response = Client.request client (make_request textDocument) in
+         print_formatting_textedits ~source response
+       in
+       let* () = format "only .topiary:" only_topiary in
+       let* () = format "topiary + ocp-indent (ocp wins):" with_ocp in
+       let* () = format "topiary + ocamlformat (ocamlformat wins):" with_ocamlformat in
+       let* () = Client.request client Shutdown in
+       Client.notification client Exit);
+  [%expect
+    {|
+    only .topiary:
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "topiary"
+    topiary + ocp-indent (ocp wins):
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "ocp-indent"
+    topiary + ocamlformat (ocamlformat wins):
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "ocamlformat"
+    |}]
+;;
+
+let%expect_test "falls back to topiary when ocamlformat & ocp-indent are unavailable" =
+  let dir = Test.temp_dir "ocamllsp-topiary-fallback-" in
+  let bin_dir = Filename.concat dir "bin" in
+  Unix.mkdir bin_dir 0o700;
+  write_formatter bin_dir "topiary";
+  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  Test.run_initialized
+    ~handler
+    ~extra_env:[ "PATH=" ^ bin_dir ]
+    (fun client ->
+       let uri = DocumentUri.of_path (Filename.concat dir "test.ml")
+       and source = "let selected = \"source\"\n" in
+       let* () = Test.open_document ~client ~uri ~source () in
+       let* response =
+         let textDocument = TextDocumentIdentifier.create ~uri in
+         Client.request client (make_request textDocument)
+       in
+       print_formatting_textedits ~source response;
+       Test.exit_client client);
+  [%expect
+    {|
+    edit: ((0, 0), (1, 0))
+    result:
+    let selected = "topiary"
+    |}]
+;;
+
+let%expect_test "topiary formats documents and ranges (full-file)" =
+  let dir = Test.temp_dir "ocamllsp-topiary-formatting-" in
+  let topiary_dir = Filename.concat dir ".topiary" in
+  Unix.mkdir topiary_dir 0o700;
+  Test.write_file
+    (Filename.concat topiary_dir "languages.ncl")
+    "{languages = {ocaml = {}}}\n";
+  let bin_dir = Filename.concat dir "bin" in
+  Unix.mkdir bin_dir 0o700;
+  let topiary = Filename.concat bin_dir "topiary" in
+  Test.write_file
+    topiary
+    "#!/bin/sh\n\
+     while IFS= read -r line; do :; done\n\
+     printf '%s\\n' 'let formatted = \"topiary\"'\n";
+  Unix.chmod topiary 0o700;
+  let handler = Client.Handler.make ~on_notification:(fun _ _ -> Fiber.return ()) () in
+  let path = Sys.getenv_opt "PATH" |> Option.value ~default:"" in
+  Test.run_initialized
+    ~handler
+    ~workspaceFolders:(Some [ workspace_folder dir ])
+    ~extra_env:[ "PATH=" ^ bin_dir ^ ":" ^ path ]
+    (fun client ->
+       let uri =
+         let path = Filename.concat dir "test.ml" in
+         DocumentUri.of_path path
+       in
+       let source = "let selected = \"source\"\n" in
+       let* () = Test.open_document ~client ~uri ~source () in
+       let textDocument = TextDocumentIdentifier.create ~uri in
+       let* response = Client.request client (make_request textDocument) in
+       print_endline "document:";
+       print_formatting_textedits ~source response;
+       let* response =
+         let request =
+           let range =
+             Range.create
+               ~start:(Position.create ~line:0 ~character:0)
+               ~end_:(Position.create ~line:0 ~character:5)
+           in
+           let options = FormattingOptions.create ~tabSize:2 ~insertSpaces:true () in
+           Lsp.Client_request.TextDocumentRangeFormatting
+             (DocumentRangeFormattingParams.create ~textDocument ~range ~options ())
+         in
+         Client.request client request
+       in
+       print_endline "range (full-file):";
+       print_formatting_textedits ~source response;
+       Test.exit_client client);
+  [%expect
+    {|
+    document:
+    edit: ((0, 0), (1, 0))
+    result:
+    let formatted = "topiary"
+    range (full-file):
+    edit: ((0, 0), (1, 0))
+    result:
+    let formatted = "topiary"
+    |}]
+;;
+
 let%expect_test "can format an ocaml impl file" =
   let source =
     {ocaml|let rec gcd a b =

@@ -139,6 +139,7 @@
                     ocaml-index
                     ocp-indent-rpc
                     (ocamlformat pkgs)
+                    pkgs.topiary
                   ];
                 buildInputs = [
                   jsonrpc
