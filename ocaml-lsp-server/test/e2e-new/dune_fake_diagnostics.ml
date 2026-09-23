@@ -87,8 +87,22 @@ let%expect_test
          ~runtime_dir:(Fake.runtime_dir fake)
          events
          ~f:(fun client _workspace ->
+           (* The client sends a noncanonical URI; Dune constructs one from a
+              filesystem path. Both must normalize to the same document. *)
            let uri = source_uri fake in
-           let* () = open_document client ~uri ~text:"let value : string = 1\n" in
+           let wire_uri =
+             String.substr_replace_all
+               (Uri.to_string uri)
+               ~pattern:"/main.ml"
+               ~with_:"/%6dain.ml"
+           in
+           let* () =
+             Test.open_document_raw
+               ~client
+               ~uri:wire_uri
+               ~source:"let value : string = 1\n"
+               ()
+           in
            let+ merged =
              Events.wait_for_diagnostics events.dune ~f:(fun params ->
                for_uri uri params
@@ -97,6 +111,7 @@ let%expect_test
                && List.exists params.diagnostics ~f:(fun (d : Diagnostic.t) ->
                  Option.equal String.equal d.source (Some "ocamllsp")))
            in
+           assert (String.equal (Uri.to_string merged.uri) (Uri.to_string uri));
            print_publication fake "merged:" merged));
   [%expect
     {|

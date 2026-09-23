@@ -1,6 +1,21 @@
 open Test.Import
 open Dune_rpc_test
 
+let escaped_uri path =
+  Uri.of_path path
+  |> Uri.to_string
+  |> fun uri ->
+  String.substr_replace_all uri ~pattern:"/expected.ml" ~with_:"/%65xpected.ml"
+;;
+
+let close_document client uri =
+  Client.notification
+    client
+    (TextDocumentDidClose
+       (DidCloseTextDocumentParams.create
+          ~textDocument:(TextDocumentIdentifier.create ~uri:(Uri.of_string uri))))
+;;
+
 let%expect_test "promotion removal while its document is open" =
   let project = create_project "po" in
   Fun.protect
@@ -10,11 +25,17 @@ let%expect_test "promotion removal while its document is open" =
        run project events ~f:(fun client _workspace ->
          let* () = Signal.wait (Events.dune_ready events.dune) in
          Test.write_file project.gate "";
-         let uri = Uri.of_path project.expected in
+         let uri = escaped_uri project.expected in
          let* initial = Events.wait_for_diagnostics events.dune ~f:has_dune_diagnostic in
          let* registration = Mailbox.wait events.registrations in
-         let* () = open_document client ~uri ~text:project.old_source in
+         let* () = Test.open_document_raw ~client ~uri ~source:project.old_source () in
          let* opened_unregistration = Mailbox.wait events.unregistrations in
+         let* () = close_document client uri in
+         let* closed_registration = Mailbox.wait events.registrations in
+         assert (Poly.equal registration closed_registration);
+         let* () = Test.open_document_raw ~client ~uri ~source:project.old_source () in
+         let* reopened_unregistration = Mailbox.wait events.unregistrations in
+         assert (Poly.equal opened_unregistration reopened_unregistration);
          Test.write_file project.expected "let answer = 42";
          Test.write_file project.trigger "fixed\n";
          let* cleared =
@@ -90,4 +111,36 @@ let%expect_test "promotion removal while its document is open" =
     client/unregisterCapability after removing the promotion:
     []
     |}]
+;;
+
+let%expect_test "promotion IDs normalize the URI used to open the document" =
+  let project = create_project "pu" in
+  Fun.protect
+    ~finally:(fun () -> destroy_project project)
+    (fun () ->
+       let events = Lifecycle_events.create () in
+       run project events ~f:(fun client _workspace ->
+         let* () = Signal.wait (Events.dune_ready events.dune) in
+         let uri = escaped_uri project.expected in
+         let* () = Test.open_document_raw ~client ~uri ~source:project.old_source () in
+         Test.write_file project.gate "";
+         let* (_ : PublishDiagnosticsParams.t) =
+           Events.wait_for_diagnostics events.dune ~f:has_dune_diagnostic
+         in
+         let* () = close_document client uri in
+         let* registration = Mailbox.wait events.registrations in
+         Test.write_file project.expected "let answer = 42";
+         Test.write_file project.trigger "fixed\n";
+         let* unregistration = Mailbox.wait events.unregistrations in
+         (match registration.registrations, unregistration.unregisterations with
+          | [ { Registration.id; _ } ], [ { Unregistration.id = removed; _ } ] ->
+            assert (String.equal id removed);
+            assert (
+              String.equal
+                id
+                ("ocamllsp-promote/" ^ Uri.to_string (Uri.of_path project.expected)))
+          | _ -> failwith "expected one registration and unregistration");
+         print_endline "registration ID preserved";
+         Fiber.return ()));
+  [%expect {| registration ID preserved |}]
 ;;
