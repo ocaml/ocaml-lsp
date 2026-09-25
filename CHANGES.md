@@ -29,6 +29,8 @@
 
 ## Fixes
 
+- Document that `ocamllsp/switchImplIntf` and `ocamllsp/inferIntf` take their
+  URI in a single-element array. (#2218, fixes #1330, @dayangac)
 - Avoid overlapping semantic tokens in `with type` constraints and destructive
   substitutions. (#2206, @rgrinberg)
 - Preserve nested or-patterns when formatting destruct-line case-analysis
