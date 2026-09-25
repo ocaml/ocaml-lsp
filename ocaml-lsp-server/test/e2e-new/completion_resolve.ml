@@ -317,9 +317,12 @@ let _ = Stdlib.
   Helpers.test source req;
   [%expect
     {|
-    { "documentation": "Boolean values.\n\n    @since 4.08", "label": "(&&)" }
     {
-      "documentation": "The OCaml Standard library.\n\n    This module is automatically opened at the beginning of each\n    compilation. All components of this module can therefore be\n    referred by their short name, without prefixing them by [Stdlib].\n\n    In particular, it provides the basic operations over the built-in\n    types (numbers, booleans, byte sequences, strings, exceptions,\n    references, lists, arrays, input-output channels, ...) and the\n    {{!modules}standard library modules}.",
+      "documentation": "[e0 && e1] is the lazy boolean conjunction of expressions [e0] and [e1].\n    If [e0] evaluates to [false], [e1] is not evaluated. Right-associative\n    operator at precedence level 3/11.",
+      "label": "(&&)"
+    }
+    {
+      "documentation": "Integer multiplication.\n    Left-associative operator, see {!Ocaml_operators} for more information.",
       "label": "( * )"
     }
     |}]
