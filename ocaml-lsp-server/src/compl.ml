@@ -623,10 +623,11 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~mark
        [compl.label] *)
     let position : Position.t = resolve.position in
     let logical_position = Position.logical position in
+    let prefix =
+      prefix_of_position ~short_path:true (Document.Merlin.source doc) logical_position
+    in
+    let start = { position with character = position.character - String.length prefix } in
     let doc =
-      let prefix =
-        prefix_of_position ~short_path:true (Document.Merlin.source doc) logical_position
-      in
       let suffix =
         let is_operator =
           (not (String.is_empty prefix))
@@ -638,9 +639,6 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~mark
         suffix_of_position ~is_char (Document.Merlin.source doc) logical_position
       in
       let complete =
-        let start =
-          { position with character = position.character - String.length prefix }
-        in
         let end_ =
           { position with character = position.character + String.length suffix }
         in
@@ -651,6 +649,15 @@ let resolve doc (compl : CompletionItem.t) (resolve : Resolve.t) query_doc ~mark
       Document.update_text (Document.Merlin.to_doc doc) [ complete ]
     in
     let+ documentation =
+      (* Query at the first character of the name: at the opening paren of an
+         operator such as [M.( * )], merlin documents [M] instead *)
+      let logical_position =
+        let offset =
+          String.lfindi compl.label ~f:(fun _ c -> c <> '(' && c <> ' ')
+          |> Option.value ~default:0
+        in
+        Position.logical { start with character = start.character + offset }
+      in
       let+ documentation = query_doc (Document.merlin_exn doc) logical_position in
       Option.map ~f:(format_doc ~markdown) documentation
     in
