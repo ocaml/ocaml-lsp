@@ -559,7 +559,7 @@ let g () = let y = 1 in ()
             "end": { "character": 16, "line": 0 },
             "start": { "character": 15, "line": 0 }
           },
-          "severity": 2,
+          "severity": 1,
           "source": "ocamllsp"
         },
         {
