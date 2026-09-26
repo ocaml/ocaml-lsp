@@ -541,3 +541,38 @@ let () = f 1 2
     }
     |}]
 ;;
+
+let%expect_test "warnings turned into errors have error severity" =
+  test
+    {ocaml|let f () = let x = 1 in ()
+[@@warnerror "+26"]
+let g () = let y = 1 in ()
+|ocaml};
+  [%expect
+    {|
+    textDocument/publishDiagnostics
+    {
+      "diagnostics": [
+        {
+          "message": "Error (warning 26): unused variable x.",
+          "range": {
+            "end": { "character": 16, "line": 0 },
+            "start": { "character": 15, "line": 0 }
+          },
+          "severity": 2,
+          "source": "ocamllsp"
+        },
+        {
+          "message": "Warning 26: unused variable y.",
+          "range": {
+            "end": { "character": 16, "line": 2 },
+            "start": { "character": 15, "line": 2 }
+          },
+          "severity": 2,
+          "source": "ocamllsp"
+        }
+      ],
+      "uri": "file:///test.ml"
+    }
+    |}]
+;;
