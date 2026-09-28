@@ -369,7 +369,7 @@ let type_enclosing_hover
     Document.Merlin.type_enclosing
       ~name:"hover-enclosing"
       merlin
-      (Position.logical position)
+      (Document.merlin_position doc position :> Msource.position)
       verbosity
       ~with_syntax_doc
   in
@@ -407,7 +407,7 @@ let type_enclosing_hover
       in
       format_type_enclosing ~syntax ~markdown ~typ ~doc:documentation ~syntax_doc
     in
-    let range = Range.of_loc loc in
+    let range = Document.range_of_loc doc loc in
     let hover = Hover.create ~contents ~range () in
     Fiber.return (Some hover)
 ;;
@@ -428,7 +428,7 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
           (Document.merlin_exn doc)
           (fun pipeline -> Mpipeline.reader_parsetree pipeline)
       in
-      (match hover_at_cursor parsetree (Position.logical position) with
+      (match hover_at_cursor parsetree (Document.merlin_position doc position) with
        | None -> Fiber.return None
        | Some `Type_enclosing ->
          let with_syntax_doc =
@@ -442,12 +442,14 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
            Document.Merlin.dispatch_exn
              ~name:"expand-ppx"
              (Document.merlin_exn doc)
-             (Query_protocol.Expand_ppx (Position.logical position))
+             (Query_protocol.Expand_ppx
+                (Document.merlin_position doc position :> Msource.position))
          in
          (match ppxed_source with
           | `Found { Query_protocol.code; attr_start; attr_end } ->
             let range =
-              Range.of_loc
+              Document.range_of_loc
+                doc
                 { loc_start = attr_start; loc_end = attr_end; loc_ghost = false }
             in
             let contents = format_ppx_expansion ~ppx ~expansion:code in

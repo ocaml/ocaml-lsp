@@ -29,6 +29,10 @@
 
 ## Fixes
 
+- Translate positions to and from the position encoding negotiated with the
+  client, so diagnostics, hovers, symbols, folding ranges, code actions and
+  Dune locations are correct in files containing multi-byte characters.
+  (#2228, fixes #2138, @rgrinberg)
 - Avoid overlapping semantic tokens in `with type` constraints and destructive
   substitutions. (#2206, @rgrinberg)
 - Preserve nested or-patterns when formatting destruct-line case-analysis

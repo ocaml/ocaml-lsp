@@ -79,17 +79,19 @@ let find_unused_diagnostic pos ds =
 
 (* Return contexts enclosing `pos` in order from most specific to most
    general. *)
-let enclosing_pos pipeline pos =
+let enclosing_pos doc pipeline pos =
   let browse =
     Mpipeline.typer_result pipeline |> Mtyper.get_typedtree |> Mbrowse.of_typedtree
   in
-  Mbrowse.enclosing (Mpipeline.get_lexing_pos pipeline @@ Position.logical pos) [ browse ]
+  Mbrowse.enclosing
+    (Mpipeline.get_lexing_pos pipeline @@ Document.merlin_position doc pos)
+    [ browse ]
 ;;
 
 (* `name` is an unused binding. `contexts` is a list of Mbrowse.t enclosing an
    unused definition of `name`, in order from most general to most specific.
    Returns an edit that silences the 'unused value' warning. *)
-let rec mark_value_unused_edit name contexts =
+let rec mark_value_unused_edit doc name contexts =
   match contexts with
   | Browse_raw.Pattern { pat_desc = Tpat_record (pats, _); _ } :: cs ->
     let m_field_edit =
@@ -104,11 +106,13 @@ let rec mark_value_unused_edit name contexts =
                field_loc.loc_start = pat_loc.loc_start
                && field_loc.loc_end = pat_loc.loc_end
              then
-               let+ end_pos = Position.of_lexical_position pat_loc.loc_end in
+               let+ end_pos = Document.position_of_lexical_position doc pat_loc.loc_end in
                TextEdit.
                  { range = Range.create ~start:end_pos ~end_:end_pos; newText = " = _" }
              else
-               let+ start_pos = Position.of_lexical_position pat_loc.loc_start in
+               let+ start_pos =
+                 Document.position_of_lexical_position doc pat_loc.loc_start
+               in
                TextEdit.
                  { range = Range.create ~start:start_pos ~end_:start_pos; newText = "_" }
            | _ -> None
@@ -119,14 +123,14 @@ let rec mark_value_unused_edit name contexts =
     in
     (match m_field_edit with
      | Some e -> Some e
-     | None -> mark_value_unused_edit name cs)
+     | None -> mark_value_unused_edit doc name cs)
   | Pattern { pat_desc = Tpat_var (ident, _, _); pat_loc = loc; _ } :: _ ->
     if Ident.name ident = name
     then
-      let+ start = Position.of_lexical_position loc.loc_start in
+      let+ start = Document.position_of_lexical_position doc loc.loc_start in
       { TextEdit.range = Range.create ~start ~end_:start; newText = "_" }
     else None
-  | _ :: cs -> mark_value_unused_edit name cs
+  | _ :: cs -> mark_value_unused_edit doc name cs
   | _ -> None
 ;;
 
@@ -135,7 +139,9 @@ let code_action_mark_value_unused pipeline doc (diagnostic : Diagnostic.t) =
   let* var_name = Text_document.substring (Document.text_document doc) diagnostic.range in
   let pos = diagnostic.range.start in
   let+ text_edit =
-    enclosing_pos pipeline pos |> List.rev_map ~f:snd |> mark_value_unused_edit var_name
+    enclosing_pos doc pipeline pos
+    |> List.rev_map ~f:snd
+    |> mark_value_unused_edit doc var_name
   in
   let edit = Text_document.workspace_edit (Document.text_document doc) [ text_edit ] in
   CodeAction.create
@@ -149,7 +155,7 @@ let code_action_mark_value_unused pipeline doc (diagnostic : Diagnostic.t) =
 
 (* Takes a list of contexts enclosing a binding of `name`. Returns the range of
    the most specific binding. *)
-let enclosing_value_binding_range name =
+let enclosing_value_binding_range doc name =
   List.find_map ~f:(function
     | Browse_raw.Expression
         { exp_desc =
@@ -161,8 +167,8 @@ let enclosing_value_binding_range name =
         ; _
         }
       when name = name' ->
-      let* start = Position.of_lexical_position let_start in
-      let+ end_ = Position.of_lexical_position let_end in
+      let* start = Document.position_of_lexical_position doc let_start in
+      let+ end_ = Document.position_of_lexical_position doc let_end in
       Range.create ~start ~end_
     | _ -> None)
 ;;
@@ -189,9 +195,9 @@ let code_action_remove_range
 (* Create a code action that removes the value mentioned in [diagnostic]. *)
 let code_action_remove_value pipeline doc pos (diagnostic : Diagnostic.t) =
   let* var_name = Text_document.substring (Document.text_document doc) diagnostic.range in
-  enclosing_pos pipeline pos
+  enclosing_pos doc pipeline pos
   |> List.map ~f:snd
-  |> enclosing_value_binding_range var_name
+  |> enclosing_value_binding_range doc var_name
   |> Option.map ~f:(fun range -> code_action_remove_range doc diagnostic range)
 ;;
 
@@ -215,7 +221,7 @@ let create_mark_action ~title doc pos d =
 let action_mark_type pipeline doc pos (d : Diagnostic.t) =
   let open Option.O in
   let m_name_loc_start =
-    enclosing_pos pipeline pos
+    enclosing_pos doc pipeline pos
     |> List.find_map ~f:(fun (_, node) ->
       match node with
       | Browse_raw.Type_declaration { typ_name = { loc = { loc_start; _ }; _ }; _ } ->
@@ -223,7 +229,7 @@ let action_mark_type pipeline doc pos (d : Diagnostic.t) =
       | _ -> None)
   in
   let* name_loc_start = m_name_loc_start in
-  let+ start = Position.of_lexical_position name_loc_start in
+  let+ start = Document.position_of_lexical_position doc name_loc_start in
   create_mark_action ~title:"Mark type as unused" doc start d
 ;;
 
@@ -231,17 +237,21 @@ let action_mark_for_loop_index pipeline doc pos (d : Diagnostic.t) =
   let open Option.O in
   let module I = Ocaml_parsing.Ast_iterator in
   let exception Found of Warnings.loc in
+  (* The parsetree locations below are in Merlin's UTF-8 byte coordinates. *)
+  let merlin_pos =
+    (Document.merlin_range doc (Range.create ~start:pos ~end_:pos)).start
+  in
   let iterator =
     let expr iter (e : Parsetree.expression) =
-      if Range.contains_loc e.pexp_loc pos
+      if Range.contains_loc e.pexp_loc merlin_pos
       then (
         match e.pexp_desc with
-        | Pexp_for ({ ppat_loc; _ }, _, _, _, _) when Range.contains_loc ppat_loc pos ->
-          raise_notrace (Found ppat_loc)
+        | Pexp_for ({ ppat_loc; _ }, _, _, _, _)
+          when Range.contains_loc ppat_loc merlin_pos -> raise_notrace (Found ppat_loc)
         | _ -> I.default_iterator.expr iter e)
     in
     let structure_item iter (item : Parsetree.structure_item) =
-      if Range.contains_loc item.pstr_loc pos
+      if Range.contains_loc item.pstr_loc merlin_pos
       then I.default_iterator.structure_item iter item
     in
     { I.default_iterator with expr; structure_item }
@@ -257,7 +267,7 @@ let action_mark_for_loop_index pipeline doc pos (d : Diagnostic.t) =
     | `Interface _ -> None
   in
   let* (index_loc : Warnings.loc) = m_index_loc in
-  let+ start = Position.of_lexical_position index_loc.loc_start in
+  let+ start = Document.position_of_lexical_position doc index_loc.loc_start in
   create_mark_action ~title:"Mark for-loop index as unused" doc start d
 ;;
 
@@ -306,7 +316,7 @@ let bar_regex =
 let action_remove_case pipeline doc (d : Diagnostic.t) =
   let open Option.O in
   let case_range =
-    enclosing_pos pipeline d.range.start
+    enclosing_pos doc pipeline d.range.start
     |> List.find_map ~f:(fun (_, node) ->
       match node with
       | Browse_raw.Case
@@ -340,7 +350,7 @@ let action_remove_case pipeline doc (d : Diagnostic.t) =
 let action_remove_constructor pipeline doc (d : Diagnostic.t) =
   let open Option.O in
   let case_range =
-    enclosing_pos pipeline d.range.start
+    enclosing_pos doc pipeline d.range.start
     |> List.find_map ~f:(fun (_, node) ->
       match node with
       | Browse_raw.Constructor_declaration { cd_loc = { loc_start; loc_end; _ }; _ } ->
@@ -348,8 +358,8 @@ let action_remove_constructor pipeline doc (d : Diagnostic.t) =
       | _ -> None)
   in
   let* case_start, case_end = case_range in
-  let* start = Position.of_lexical_position case_start in
-  let+ end_ = Position.of_lexical_position case_end in
+  let* start = Document.position_of_lexical_position doc case_start in
+  let+ end_ = Document.position_of_lexical_position doc case_end in
   let edit =
     Text_document.workspace_edit
       (Document.text_document doc)

@@ -11,7 +11,7 @@ let code_action_of_case_analysis
       doc
       (loc, newText)
   =
-  let range : Range.t = Range.of_loc loc in
+  let range : Range.t = Document.range_of_loc doc loc in
   let textedit : TextEdit.t = { range; newText } in
   let snippet =
     match supportsSnippetEdits with
@@ -58,6 +58,7 @@ let code_action_of_case_analysis
 
 type dispatch = Range.t -> (Loc.t * string, Exn_with_backtrace.t) result Fiber.t
 
+(* [range] is expressed in Merlin's UTF-8 byte coordinates. *)
 let dispatch merlin (range : Range.t) =
   let command =
     let start = Position.logical range.start in
@@ -116,7 +117,13 @@ let code_action (state : State.t) dispatch doc (params : CodeActionParams.t) =
   | `Other -> Fiber.return None
   | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return None
   | `Merlin _ ->
-    run state doc ~dispatch ~action_kind ~range:params.range ~postprocess:Option.some
+    run
+      state
+      doc
+      ~dispatch
+      ~action_kind
+      ~range:(Document.merlin_range doc params.range)
+      ~postprocess:Option.some
 ;;
 
 let t ~dispatch state =

@@ -3,6 +3,8 @@ open Option.O
 module H = Ocaml_parsing.Ast_helper
 module Typedtree_utils = Merlin_analysis.Typedtree_utils
 
+(* [range] is expressed in Merlin's UTF-8 byte coordinates, like the locations
+   it is compared against. *)
 let range_contains_loc range loc =
   match Range.of_loc_opt loc with
   | Some range' -> Range.contains range range'
@@ -49,11 +51,12 @@ let enclosing_structure_item typedtree range =
   | Found e -> Some e
 ;;
 
-let tightest_enclosing_binder_position typedtree range =
+let tightest_enclosing_binder_position doc typedtree range =
   let exception Found of Position.t in
   let module I = Ocaml_typing.Tast_iterator in
   let found_loc loc =
-    Position.of_lexical_position loc |> Option.iter ~f:(fun p -> raise (Found p))
+    Document.position_of_lexical_position doc loc
+    |> Option.iter ~f:(fun p -> raise (Found p))
   in
   let found_if_expr_contains (expr : Typedtree.expression) =
     let loc = expr.exp_loc in
@@ -168,8 +171,8 @@ let constructors_available (expr : Typedtree.expression) destination_env =
 
 let extract_local doc typedtree range =
   let* to_extract = largest_enclosed_expression typedtree range in
-  let* extract_range = Range.of_loc_opt to_extract.exp_loc in
-  let* edit_pos = tightest_enclosing_binder_position typedtree range in
+  let* extract_range = Document.range_of_loc_opt doc to_extract.exp_loc in
+  let* edit_pos = tightest_enclosing_binder_position doc typedtree range in
   let new_name = "var_name" in
   let* local_text = Text_document.substring (Document.text_document doc) extract_range in
   let newText = sprintf "let %s = %s in\n" new_name local_text in
@@ -182,10 +185,12 @@ let extract_local doc typedtree range =
 
 let extract_function doc typedtree range =
   let* to_extract = largest_enclosed_expression typedtree range in
-  let* extract_range = Range.of_loc_opt to_extract.exp_loc in
+  let* extract_range = Document.range_of_loc_opt doc to_extract.exp_loc in
   let* parent_item = enclosing_structure_item typedtree range in
   let* () = Option.some_if (constructors_available to_extract parent_item.str_env) () in
-  let* edit_pos = Position.of_lexical_position parent_item.str_loc.loc_start in
+  let* edit_pos =
+    Document.position_of_lexical_position doc parent_item.str_loc.loc_start
+  in
   let new_name = "fun_name" in
   let* args_str =
     let free_vars = must_pass to_extract parent_item.str_env in
@@ -215,7 +220,7 @@ let run_extract_local pipeline doc (params : CodeActionParams.t) =
     | `Interface _ -> None
     | `Implementation x -> Some x
   in
-  let+ edits = extract_local doc typedtree params.range in
+  let+ edits = extract_local doc typedtree (Document.merlin_range doc params.range) in
   CodeAction.create
     ~title:"Extract local"
     ~kind:CodeActionKind.RefactorExtract
@@ -231,7 +236,7 @@ let run_extract_function pipeline doc (params : CodeActionParams.t) =
     | `Interface _ -> None
     | `Implementation x -> Some x
   in
-  let+ edits = extract_function doc typedtree params.range in
+  let+ edits = extract_function doc typedtree (Document.merlin_range doc params.range) in
   CodeAction.create
     ~title:"Extract function"
     ~kind:CodeActionKind.RefactorExtract

@@ -52,6 +52,8 @@ let string_of_error (ident, reason) =
   Format.asprintf "'%a' is %s in inlining context" Pprintast.longident ident reason
 ;;
 
+(* [pos] is expressed in Merlin's UTF-8 byte coordinates, like the locations it
+   is compared against. *)
 let find_inline_task typedtree pos =
   let exception Found of inline_task in
   let module I = Ocaml_typing.Tast_iterator in
@@ -336,10 +338,12 @@ let inline_applicability pipeline task =
     optional error value. An error will be generated if any of the potential
     inlinings is not allowed due to shadowing. The successful edits will still
     be returned *)
-let inline_edits pipeline task =
+let inline_edits doc pipeline task =
   let open Option.O in
   let+ newText = inlined_text pipeline task in
-  let make_edit newText loc = TextEdit.create ~newText ~range:(Range.of_loc loc) in
+  let make_edit newText loc =
+    TextEdit.create ~newText ~range:(Document.range_of_loc doc loc)
+  in
   let edits = Queue.create () in
   let error = ref None in
   let insert_edit newText loc = Queue.enqueue edits (make_edit newText loc) in
@@ -378,14 +382,14 @@ let inline_edits pipeline task =
   Queue.to_list edits, !error
 ;;
 
-let inline_task pipeline (range : Range.t) =
+let inline_task doc pipeline (range : Range.t) =
   let open Option.O in
   let* typedtree =
     match Mtyper.get_typedtree (Mpipeline.typer_result pipeline) with
     | `Interface _ -> None
     | `Implementation x -> Some x
   in
-  find_inline_task typedtree range.start
+  find_inline_task typedtree (Document.merlin_range doc range).start
 ;;
 
 let disabled_code_action error =
@@ -405,7 +409,7 @@ let code_action_for_task pipeline doc task =
   | `Disabled error -> Some (disabled_code_action error)
   | `Applicable ->
     let open Option.O in
-    let* edits, m_error = inline_edits pipeline task in
+    let* edits, m_error = inline_edits doc pipeline task in
     (match edits, m_error with
      | [], None -> None
      | [], Some error -> Some (disabled_code_action error)
@@ -464,7 +468,7 @@ end
 
 let unresolved_code_action pipeline doc (params : CodeActionParams.t) =
   let open Option.O in
-  let* task = inline_task pipeline params.range in
+  let* task = inline_task doc pipeline params.range in
   (* Only edit construction is deferred: suppress unusable actions and determine
      [disabled] eagerly because the client may not offer to resolve that property. *)
   match inline_applicability pipeline task with
@@ -504,7 +508,8 @@ let resolve (state : State.t) (action : CodeAction.t) =
        let merlin = Document.merlin_exn doc in
        Document.Merlin.with_pipeline_exn ~name:"resolve-inline-code-action" merlin
        @@ fun pipeline ->
-       inline_task pipeline range |> Option.bind ~f:(code_action_for_task pipeline doc))
+       inline_task doc pipeline range
+       |> Option.bind ~f:(code_action_for_task pipeline doc))
       >>| function
       | None -> content_modified ()
       | Some resolved -> { resolved with data = action.data }
@@ -513,7 +518,8 @@ let resolve (state : State.t) (action : CodeAction.t) =
 ;;
 
 let code_action pipeline doc (params : CodeActionParams.t) =
-  inline_task pipeline params.range |> Option.bind ~f:(code_action_for_task pipeline doc)
+  inline_task doc pipeline params.range
+  |> Option.bind ~f:(code_action_for_task pipeline doc)
 ;;
 
 let t = Code_action.batchable RefactorInline code_action

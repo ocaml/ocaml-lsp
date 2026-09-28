@@ -22,7 +22,16 @@ let%expect_test "uses UTF-16 positions around astral Unicode characters" =
   let source = "let s = \"😀\";; let x = 1;; x\n" in
   (* The final [x] starts at UTF-16 code unit 27. Its UTF-8 byte offset is 29. *)
   Hover_helpers.test_hover source [ Position.create ~line:0 ~character:27 ];
-  [%expect {| no hover response |}]
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "int" },
+      "range": {
+        "end": { "character": 28, "line": 0 },
+        "start": { "character": 27, "line": 0 }
+      }
+    }
+    |}]
 ;;
 
 let%expect_test "returns type inferred under cursor (markdown formatting)" =

@@ -36,7 +36,9 @@ let has_missing_rec pipeline pos_start =
 ;;
 
 let code_action_add_rec diagnostics doc loc =
-  let textedit : TextEdit.t = { range = Range.of_loc loc; newText = "rec " } in
+  let textedit : TextEdit.t =
+    { range = Document.range_of_loc doc loc; newText = "rec " }
+  in
   let edit = Text_document.workspace_edit (Document.text_document doc) [ textedit ] in
   CodeAction.create
     ~diagnostics
@@ -48,7 +50,7 @@ let code_action_add_rec diagnostics doc loc =
 ;;
 
 let code_action pipeline doc (params : CodeActionParams.t) =
-  let pos_start = Position.logical params.range.start in
+  let pos_start = Document.merlin_position doc params.range.start in
   let* diagnostic =
     List.find params.context.diagnostics ~f:(fun (d : Diagnostic.t) ->
       let is_unbound () =

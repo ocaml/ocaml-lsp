@@ -39,7 +39,13 @@ let folding_range config { Range.start; end_ } =
     ()
 ;;
 
-let fold_over_parsetree config (parsetree : Mreader.parsetree) =
+let fold_over_parsetree doc config (parsetree : Mreader.parsetree) =
+  let module Range = struct
+    include Range
+
+    let of_loc = Document.range_of_loc doc
+  end
+  in
   let ranges = ref [] in
   let push (range : Range.t) =
     if not (Range.is_single_line range) (* don't fold a single line *)
@@ -327,7 +333,7 @@ let compute (state : State.t) (params : FoldingRangeParams.t) =
       let+ ranges =
         Document.Merlin.with_pipeline_exn ~name:"folding range" m (fun pipeline ->
           let parsetree = Mpipeline.reader_parsetree pipeline in
-          fold_over_parsetree config parsetree)
+          fold_over_parsetree (Document.Merlin.to_doc m) config parsetree)
       in
       let ranges =
         (* [rangeLimit] is a hint, so returning fewer ranges is allowed. *)

@@ -32,7 +32,7 @@ let code_action_of_type_enclosing doc (loc, typ) =
   let open Option.O in
   let+ original_text = Code_action.source_text doc loc in
   let newText = Printf.sprintf "(%s : %s)" original_text typ in
-  let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
+  let textedit : TextEdit.t = { range = Document.range_of_loc doc loc; newText } in
   let edit = Text_document.workspace_edit (Document.text_document doc) [ textedit ] in
   let title = String.capitalize action_kind in
   CodeAction.create
@@ -44,7 +44,7 @@ let code_action_of_type_enclosing doc (loc, typ) =
 ;;
 
 let code_action pipeline doc (params : CodeActionParams.t) =
-  let pos_start = Position.logical params.range.start in
+  let pos_start = Document.merlin_position doc params.range.start in
   let res =
     let context = check_typeable_context pipeline pos_start in
     match context with

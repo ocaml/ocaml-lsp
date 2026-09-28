@@ -17,11 +17,24 @@ let with_pipeline state uri ~default f =
     Document.Merlin.with_pipeline_exn merlin f)
 ;;
 
+let with_pipeline_doc state uri ~default f =
+  with_merlin state uri ~default (fun merlin ->
+    Document.Merlin.with_pipeline_exn merlin (f (Document.Merlin.to_doc merlin)))
+;;
+
 let with_impl_pipeline state uri ~default f =
   with_merlin state uri ~default (fun merlin ->
     match Document.Merlin.kind merlin with
     | Document.Kind.Intf -> Fiber.return default
     | Document.Kind.Impl -> Document.Merlin.with_pipeline_exn merlin f)
+;;
+
+let with_impl_pipeline_doc state uri ~default f =
+  with_merlin state uri ~default (fun merlin ->
+    match Document.Merlin.kind merlin with
+    | Document.Kind.Intf -> Fiber.return default
+    | Document.Kind.Impl ->
+      Document.Merlin.with_pipeline_exn merlin (f (Document.Merlin.to_doc merlin)))
 ;;
 
 let raise_invalid_params ?data ~message () =

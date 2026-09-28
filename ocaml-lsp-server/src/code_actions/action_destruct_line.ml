@@ -494,7 +494,10 @@ let code_action
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin merlin ->
-    (match Document.Merlin.kind merlin, extract_statement doc params.range with
+    (match
+       ( Document.Merlin.kind merlin
+       , extract_statement doc (Document.merlin_range doc params.range) )
+     with
      | Intf, _ | _, None -> Fiber.return None
      | Impl, Some statement ->
        Action_destruct.run

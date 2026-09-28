@@ -27,7 +27,7 @@ let supported_symbol_kind supported kind =
       | kind -> kind)
 ;;
 
-let rec items_to_symbols ~supports_deprecated_tag ~supported_kinds items =
+let rec items_to_symbols doc ~supports_deprecated_tag ~supported_kinds items =
   List.rev_map
     ~f:
       (fun
@@ -39,12 +39,12 @@ let rec items_to_symbols ~supports_deprecated_tag ~supported_kinds items =
         ; deprecated
         ; _
         } ->
-      let range = Range.of_loc location in
+      let range = Document.range_of_loc doc location in
       (* The LSP spec requires [selectionRange] to be contained in [range].
          Preserve valid selections, clip non-empty overlaps, and fall back to
          [range] for ghost, invalid, touching, or disjoint selections. *)
       let selectionRange =
-        match Range.of_loc_opt selection with
+        match Document.range_of_loc_opt doc selection with
         | None -> range
         | Some selection -> Lsp.Range.normalize_selection_range range ~selection
       in
@@ -65,7 +65,8 @@ let rec items_to_symbols ~supports_deprecated_tag ~supported_kinds items =
         ~selectionRange
         ?deprecated
         ?tags
-        ~children:(items_to_symbols ~supports_deprecated_tag ~supported_kinds children)
+        ~children:
+          (items_to_symbols doc ~supports_deprecated_tag ~supported_kinds children)
         ())
     items
 ;;
@@ -89,7 +90,9 @@ let run (client_capabilities : ClientCapabilities.t) doc uri =
             ~equal:(fun SymbolTag.Deprecated Deprecated -> true))
     in
     let supported_kinds = Capabilities.document_symbol_kind_support client_capabilities in
-    let symbols = items_to_symbols ~supports_deprecated_tag ~supported_kinds outline in
+    let symbols =
+      items_to_symbols doc ~supports_deprecated_tag ~supported_kinds outline
+    in
     (match Capabilities.document_symbol_hierarchical_support client_capabilities with
      | true -> Some (`DocumentSymbol symbols)
      | false ->

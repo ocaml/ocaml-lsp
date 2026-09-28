@@ -4,12 +4,12 @@ let code_action
       (mode : [ `Qualify | `Unqualify ])
       (action_kind : string)
       pipeline
-      _
+      doc
       (params : CodeActionParams.t)
   =
   let res =
     let command =
-      let pos_start = Position.logical params.range.start in
+      let pos_start = Document.merlin_position doc params.range.start in
       Query_protocol.Refactor_open (mode, pos_start)
     in
     Query_commands.dispatch pipeline command
@@ -19,12 +19,12 @@ let code_action
   | changes ->
     let code_action =
       let edit : WorkspaceEdit.t =
-        let edits =
+        let changes =
           List.map changes ~f:(fun (newText, loc) ->
-            { TextEdit.newText; range = Range.of_loc loc })
+            let range = Range.of_loc loc |> Document.range_of_merlin_range doc in
+            { TextEdit.newText; range })
         in
-        let uri = params.textDocument.uri in
-        WorkspaceEdit.create ~changes:[ uri, edits ] ()
+        WorkspaceEdit.create ~changes:[ params.textDocument.uri, changes ] ()
       in
       let kind = CodeActionKind.Other action_kind in
       let title = String.capitalize action_kind in

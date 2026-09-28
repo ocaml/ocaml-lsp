@@ -7,7 +7,7 @@ let code_action pipeline doc (params : CodeActionParams.t) =
   | `Other -> None
   | `Merlin m when Document.Merlin.kind m = Intf -> None
   | `Merlin _ ->
-    let pos = Position.logical params.range.Range.end_ in
+    let pos = Document.merlin_position doc params.range.Range.end_ in
     (* we want this predicate to quickly eliminate prefixes that don't fit to be
        a hole *)
     let prefix =
