@@ -1,6 +1,6 @@
 # Infer Interface Request
 
-Infer Interface Request is sent from the client to the server to get the infered
+Infer Interface Request is sent from the client to the server to get the inferred
 interface for a given module implementation.
 
 The document URI in the request has to be open before sending a the request.

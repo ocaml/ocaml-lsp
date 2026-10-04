@@ -13,7 +13,7 @@ There is no client capability relative to this request.
 
 ## Server capability
 
-- propert name: `handleLocate`
+- property name: `handleLocate`
 - property type: `boolean`
 
 ## Request

@@ -6,7 +6,7 @@ This custom request allows Merlin-type code navigation in a source buffer.
 
 ## Server capability
 
-- propert name: `handleJump`
+- property name: `handleJump`
 - property type: `boolean`
 
 ## Request

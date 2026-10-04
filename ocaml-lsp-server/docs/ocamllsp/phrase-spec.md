@@ -11,7 +11,7 @@ There is no client capability relative to this request.
 
 ## Server capability
 
-- propert name: `handlePhrase`
+- property name: `handlePhrase`
 - property type: `boolean`
 
 ## Request

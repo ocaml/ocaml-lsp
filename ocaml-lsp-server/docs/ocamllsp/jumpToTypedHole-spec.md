@@ -1,4 +1,4 @@
-# Jump To Typed Holes Requet
+# Jump To Typed Holes Request
 
 ### Description
 
