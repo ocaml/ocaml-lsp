@@ -15,7 +15,7 @@ export interface GetDocClientCapabilities {
 
 ## Server capability
 
-- property name: `handleDocumentation`
+- property name: `handleGetDocumentation`
 - property type: `boolean`
 
 

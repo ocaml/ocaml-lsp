@@ -24,7 +24,7 @@ There is no client capability relative to this request.
 
 ## Server Capability 
 
-- propert name: `handleLocateTypes`
+- property name: `handleLocateTypes`
 - property type: `boolean`
 
 ## Request
