@@ -49,7 +49,7 @@ depends: [
   "csexp" {>= "1.5"}
   "ocamlformat-rpc-lib" {>= "0.21.0"}
   "odoc" {with-doc}
-  "merlin-lib" {>= "5.8" & < "5.9"}
+  "merlin-lib" {>= "5.8" & < "5.10"}
   "ocaml-index" {post}
   "ppx_yojson_conv" {with-dev-setup}
 ]
