@@ -29,6 +29,8 @@
 
 ## Fixes
 
+- Report warnings that are configured as errors with error severity.
+  (#2224, fixes #563, @dayangac)
 - Avoid overlapping semantic tokens in `with type` constraints and destructive
   substitutions. (#2206, @rgrinberg)
 - Preserve nested or-patterns when formatting destruct-line case-analysis
