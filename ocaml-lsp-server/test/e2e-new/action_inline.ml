@@ -41,7 +41,7 @@ let () = counter#set 10; assert (callback 2 = 3)
     class counter = object
       val mutable x = 1
       method set n = x <- n
-      method callback = let callback = ((fun (x : int) y -> x + y) x) in callback
+      method callback = let callback = (let (x : int) = x in fun y -> x + y) in callback
     end
     let counter = new counter
     let callback = counter#callback
@@ -70,7 +70,7 @@ let () = counter#set 10; assert (callback () = 10)
       val mutable x = 1
       method set n = x <- n
       method get = x
-      method callback = let callback = ((fun self (ignored : unit) -> self#get) self) in callback
+      method callback = let callback = (fun (ignored : unit) -> self#get) in callback
     end
     let counter = new counter
     let callback = counter#callback
@@ -97,7 +97,7 @@ let () = counter#set 10; assert (callback 2 = 3)
     class counter = object
       val mutable x = 1
       method set n = x <- n
-      method callback = let callback = ((fun x y -> x + y) x) in callback
+      method callback = let callback = (let x = x in fun y -> x + y) in callback
     end
     let counter = new counter
     let callback = counter#callback
@@ -105,10 +105,7 @@ let () = counter#set 10; assert (callback 2 = 3)
     |}]
 ;;
 
-(* Repro: the partial application retains a redundant [self] parameter instead
-   of becoming [fun (case : int) -> self.visit self case]. The fully applied use
-   below is reduced correctly. *)
-let%expect_test "inline partial application retains a redundant parameter" =
+let%expect_test "inline partial application captures the supplied argument" =
   inline_test
     {|
 type iterator = { visit : iterator -> int -> unit }
@@ -124,7 +121,7 @@ let direct self case = function_case self case
     let iter cases ~f = List.iter f cases
     let function_case (self : iterator) (case : int) = self.visit self case
     let function_body (self : iterator) cases =
-      iter cases ~f:((fun (self : iterator) (case : int) -> self.visit self case) self)
+      iter cases ~f:(let (_ : iterator) = self in fun (case : int) -> self.visit self case)
     let direct self case = (self.visit self case)
     |}]
 ;;
@@ -139,8 +136,8 @@ let two x y = f x y
   [%expect
     {|
     let f x y z = x + y + z
-    let one x = ((fun x y z -> (x + y) + z) x)
-    let two x y = ((fun x y z -> (x + y) + z) x y)
+    let one x = (fun y z -> (x + y) + z)
+    let two x y = (fun z -> (x + y) + z)
     |}]
 ;;
 
@@ -158,7 +155,7 @@ let () = assert (g ({ value = 3 } : first) () = 3)
     type first = { value : int }
     type second = { value : int; extra : unit }
     let f (self : first) ignored = self.value
-    let g self = ((fun (self : first) ignored -> self.value) self)
+    let g self = (let (_ : first) = self in fun ignored -> self.value)
     let () = assert (g ({ value = 3 } : first) () = 3)
     |}]
 ;;
@@ -194,13 +191,13 @@ let () =
     let f x y = let outer = y + 1 in x - outer
     let y = 10
     let outer = 20
-    let captured = ((fun x y -> let outer = y + 1 in x - outer) y)
-    let nested = ((fun x y -> let outer = y + 1 in x - outer) outer)
+    let captured = (let x = y in fun y -> let outer = y + 1 in x - outer)
+    let nested = (let x = outer in fun y -> let outer = y + 1 in x - outer)
     let calls = ref 0
-    let effectful = ((fun x y -> let outer = y + 1 in x - outer) (incr calls; 30))
+    let effectful = (let x = incr calls; 30 in fun y -> let outer = y + 1 in x - outer)
     let cell = { value = 40 }
-    let snapshot = ((fun x y -> let outer = y + 1 in x - outer) cell.value)
-    let raised = try ignore ((fun x y -> let outer = y + 1 in x - outer) (failwith "argument")); false with Failure _ -> true
+    let snapshot = (let x = cell.value in fun y -> let outer = y + 1 in x - outer)
+    let raised = try ignore (let x = failwith "argument" in fun y -> let outer = y + 1 in x - outer); false with Failure _ -> true
     let () =
       assert (!calls = 1);
       cell.value <- 100;
@@ -236,10 +233,10 @@ let () =
     let f x y z = x - y + z
     let x = 3
     let y = 10
-    let swapped = ((fun x y z -> (x - y) + z) y x)
+    let swapped = (let (x, y) = (y, x) in fun z -> (x - y) + z)
     let log = ref []
     let argument tag value = log := !log @ [tag]; value
-    let effectful = ((fun x y z -> (x - y) + z) (argument 1 10) (argument 2 3))
+    let effectful = (let (x, y) = ((argument 1 10), (argument 2 3)) in fun z -> (x - y) + z)
     let () =
       assert (swapped 0 = 7);
       assert (!log = [2; 1]);
@@ -610,7 +607,8 @@ let _ =
     {|
     let _ =
       let f x y = x + y in
-      ((fun x y -> x + y) 0) |}]
+      (let x = 0 in fun y -> x + y)
+    |}]
 ;;
 
 let%expect_test "" =

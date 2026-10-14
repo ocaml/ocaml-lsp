@@ -207,7 +207,64 @@ let same_path paths (id : _ H.with_loc) (id' : _ H.with_loc) =
   Paths.same_path paths id.loc id'.loc
 ;;
 
-let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
+let bind_partial_args ~env pats args body =
+  let open Option.O in
+  (* Refutable patterns must still be matched when the remaining arguments
+     arrive. Restrict the supplied parameters to distinct variables. *)
+  let* names =
+    List.map pats ~f:(fun (pat : Parsetree.pattern) ->
+      match pat.ppat_desc with
+      | Ppat_var name | Ppat_constraint ({ ppat_desc = Ppat_var name; _ }, _) ->
+        Some name.txt
+      | _ -> None)
+    |> Option.all
+  in
+  if List.length (List.dedup_and_sort names ~compare:String.compare) <> List.length names
+  then None
+  else (
+    let bindings =
+      let can_capture id =
+        (* Instance variables also parse as identifiers. Bind their reads eagerly
+           rather than letting the residual function read them after mutation. *)
+        match Ocaml_typing.Env.find_value_by_name (Lident id) env with
+        | _, { val_kind = Val_reg | Val_prim _ | Val_self _; _ } -> true
+        | _ | (exception Not_found) -> false
+      in
+      List.map2_exn
+        (List.zip_exn names pats)
+        args
+        ~f:(fun (name, pat) (_, (arg : Parsetree.expression)) ->
+          match arg.pexp_desc, pat.ppat_desc with
+          | Pexp_ident { txt = Lident id; _ }, Ppat_var _
+            when String.equal name id && can_capture id ->
+            (* The residual function can capture the caller's binding directly. *)
+            None
+          | Pexp_ident { txt = Lident id; _ }, Ppat_constraint (var, typ)
+            when String.equal name id && can_capture id ->
+            (* Keep the type constraint: without it, record fields in the body
+               might resolve differently. No new binding for [name] is needed. *)
+            let var = { var with ppat_desc = Ppat_any } in
+            Some ({ pat with ppat_desc = Ppat_constraint (var, typ) }, arg)
+          | _ -> Some (pat, arg))
+      |> List.filter_opt
+    in
+    match bindings with
+    | [] -> Some body
+    | bindings ->
+      (* Evaluate arguments once, before creating the closure. A tuple keeps
+         right-to-left evaluation without capturing other argument expressions. *)
+      let pat, arg =
+        match bindings with
+        | [ binding ] -> binding
+        | _ ->
+          let pats, args = List.unzip bindings in
+          ( H.Pat.tuple (List.map pats ~f:(fun pat -> None, pat)) Closed
+          , H.Exp.tuple (List.map args ~f:(fun arg -> None, arg)) )
+      in
+      Some (H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] body))
+;;
+
+let beta_reduce ~env (paths : Paths.t) (app : Parsetree.expression) =
   let rec beta_reduce_arg body (pat : Parsetree.pattern) arg =
     let with_let () = H.Exp.let_ Nonrecursive [ H.Vb.mk pat arg ] body in
     let with_subst param = subst (same_path paths) arg param body in
@@ -225,21 +282,30 @@ let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
        | _ -> with_let ())
     | _ -> with_let ()
   in
-  let extract_param_pats params =
-    List.map params ~f:(fun p ->
-      match p.Parsetree.pparam_desc with
-      | Pparam_val (Nolabel, _, pat) -> Some pat
-      | _ -> None)
-    |> Option.all
-  in
   match app.pexp_desc with
-  | Pexp_apply ({ pexp_desc = Pexp_function (params, None, Pfunction_body body); _ }, args)
-    when List.length params = List.length args && all_unlabeled_params params ->
-    (match extract_param_pats params with
+  | Pexp_apply
+      (({ pexp_desc = Pexp_function (params, None, Pfunction_body body); _ } as fn), args)
+    when List.length args <= List.length params && all_unlabeled_params params ->
+    let supplied, remaining = List.split_n params (List.length args) in
+    let pats =
+      List.map supplied ~f:(fun p ->
+        match p.Parsetree.pparam_desc with
+        | Pparam_val (Nolabel, _, pat) -> Some pat
+        | _ -> None)
+      |> Option.all
+    in
+    (match pats with
+     | None -> app
      | Some pats ->
-       List.fold2_exn pats args ~init:body ~f:(fun body pat (_, arg) ->
-         beta_reduce_arg body pat arg)
-     | None -> app)
+       (match remaining with
+        | [] ->
+          List.fold2_exn pats args ~init:body ~f:(fun body pat (_, arg) ->
+            beta_reduce_arg body pat arg)
+        | _ ->
+          let body =
+            { fn with pexp_desc = Pexp_function (remaining, None, Pfunction_body body) }
+          in
+          bind_partial_args ~env pats args body |> Option.value ~default:app))
   | _ -> app
 ;;
 
@@ -365,7 +431,7 @@ let inline_edits pipeline task =
              let app_pexpr = find_parsetree_loc_exn pipeline expr.exp_loc in
              match app_pexpr.pexp_desc with
              | Pexp_apply ({ pexp_desc = Pexp_ident _; _ }, args) ->
-               beta_reduce paths (H.Exp.apply inlined_pexpr args)
+               beta_reduce ~env paths (H.Exp.apply inlined_pexpr args)
              | _ -> app_pexpr
            in
            Format.asprintf "(%a)" Pprintast.expression
