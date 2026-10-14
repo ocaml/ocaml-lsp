@@ -22,7 +22,8 @@ property type: `boolean`
 ## Request
 
 - method: `ocamllsp/inferIntf`
-- params: `DocumentUri` (see [`DocumentUri`](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#uri) in LSP specification)
+- params: `[DocumentUri]`, a single-element array such as `["file:///foo.ml"]`
+  (JSON-RPC params must be an array or an object; see [`DocumentUri`](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#uri) in LSP specification)
 
 ## Response
 
