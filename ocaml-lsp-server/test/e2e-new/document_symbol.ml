@@ -1031,3 +1031,62 @@ let%expect_test "symbol kinds are restricted to those the client supports" =
     ]
     |}]
 ;;
+
+let%expect_test "includes functions with explicit type annotations" =
+  let source =
+    {ocaml|type style = [ `Bold | `Italic ]
+
+let string_of_style : style -> string = function
+  | `Bold -> "bold"
+  | `Italic -> "italic"
+
+let string_of_style2 = function
+  | `Bold -> "bold"
+  | `Italic -> "italic"
+|ocaml}
+  in
+  let request client =
+    let open Fiber.O in
+    let+ response = Util.call_document_symbol client in
+    print_result response
+  in
+  Helpers.test source request;
+  [%expect
+    {|
+    [
+      {
+        "kind": 26,
+        "location": {
+          "range": {
+            "end": { "character": 32, "line": 0 },
+            "start": { "character": 0, "line": 0 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "style"
+      },
+      {
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 23, "line": 4 },
+            "start": { "character": 0, "line": 2 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "string_of_style"
+      },
+      {
+        "kind": 13,
+        "location": {
+          "range": {
+            "end": { "character": 23, "line": 8 },
+            "start": { "character": 0, "line": 6 }
+          },
+          "uri": "file:///test.ml"
+        },
+        "name": "string_of_style2"
+      }
+    ]
+    |}]
+;;
