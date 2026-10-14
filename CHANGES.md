@@ -29,6 +29,8 @@
 
 ## Fixes
 
+- Show an operator's own documentation when resolving its completion after a
+  module path, instead of the module's. (#2219, fixes #2202, @dayangac)
 - Avoid overlapping semantic tokens in `with type` constraints and destructive
   substitutions. (#2206, @rgrinberg)
 - Preserve nested or-patterns when formatting destruct-line case-analysis
