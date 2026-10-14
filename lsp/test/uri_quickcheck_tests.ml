@@ -26,6 +26,7 @@ type atom =
   | Lone_percent
   | Incomplete_escape
   | Invalid_escape
+  | Hidden_escape
 [@@deriving quickcheck, sexp_of]
 
 type scheme =
@@ -81,6 +82,8 @@ let encoded_atom = function
   | Lone_percent -> "%!"
   | Incomplete_escape -> "%A!"
   | Invalid_escape -> "%GG"
+  (* The malformed '%' must not combine with decoded neighbours into a new escape. *)
+  | Hidden_escape -> "%%32%36"
 ;;
 
 let encoded_component atoms = List.map atoms ~f:encoded_atom |> String.concat ~sep:""
@@ -114,8 +117,6 @@ let source ({ scheme; authority; path; query; fragment } : Case.t) =
   ^ suffix '#' fragment
 ;;
 
-let canonical source = Uri.of_string source |> Uri.to_string
-
 let uri_examples : Case.t list =
   [ { scheme = File
     ; authority = []
@@ -144,14 +145,7 @@ let uri_examples : Case.t list =
   ]
 ;;
 
-let with_windows_setting windows ~f =
-  let previous = !Uri.Private.win32 in
-  Exn.protect
-    ~f:(fun () ->
-      Uri.Private.win32 := windows;
-      f ())
-    ~finally:(fun () -> Uri.Private.win32 := previous)
-;;
+let with_windows_setting windows ~f = Uri.For_tests.with_win32 windows f
 
 let fail source label expected actual =
   failwith
@@ -163,29 +157,369 @@ let fail source label expected actual =
        actual)
 ;;
 
-let%expect_test "URI serialization reaches a fixed point" =
+module Wire = struct
+  type t = string [@@deriving sexp_of]
+
+  let quickcheck_generator =
+    Generator.string_of (Generator.char_uniform_inclusive '\000' '\255')
+  ;;
+
+  let quickcheck_observer = Observer.string
+  let quickcheck_shrinker = Shrinker.string
+end
+
+let byte_examples =
+  [ ""
+  ; "%"
+  ; "%2F"
+  ; "%25"
+  ; "%GG"
+  ; "?x=y#fragment"
+  ; "é😀"
+  ; String.init 256 ~f:Char.of_int_exn
+  ; String.make 4096 '%'
+  ]
+;;
+
+let check_equivalent left right =
+  let check label condition =
+    if not condition
+    then fail (Uri.to_string left) label (Uri.to_string left) (Uri.to_string right)
+  in
+  check
+    "equivalent URI spellings compare unequal"
+    (Uri.equal left right && Uri.equal right left);
+  check
+    "equal URIs compare differently"
+    (Uri.compare left right = 0 && Uri.compare right left = 0);
+  check "equal URIs have different hashes" (Uri.hash left = Uri.hash right);
+  check "equivalent URIs have different representations" (Poly.equal left right);
+  check
+    "equivalent URIs have different serializations"
+    (String.equal (Uri.to_string left) (Uri.to_string right))
+;;
+
+let check_uri_round_trip uri =
+  let source = Uri.to_string uri in
+  let from_string = Uri.of_string source in
+  let from_json =
+    Uri.yojson_of_t uri
+    |> Yojson.Safe.to_string
+    |> Yojson.Safe.from_string
+    |> Uri.t_of_yojson
+  in
+  List.iter [ from_string; from_json ] ~f:(fun parsed ->
+    check_equivalent uri parsed;
+    if
+      not
+        (Option.equal String.equal (Uri.query uri) (Uri.query parsed)
+         && Option.equal String.equal (Uri.fragment uri) (Uri.fragment parsed))
+    then failwith "URI round trip changed decoded components";
+    List.iter [ false; true ] ~f:(fun windows ->
+      with_windows_setting windows ~f:(fun () ->
+        let expected = Uri.to_path uri in
+        let actual = Uri.to_path parsed in
+        if not (String.equal expected actual)
+        then fail source "URI round trip changed the filesystem path" expected actual)))
+;;
+
+(* An independent byte encoder supplies known-equivalent spellings and an oracle
+   for decoding. Never use the production encoder/decoder to build expectations. *)
+type spelling =
+  | Literal
+  | Escaped_upper
+  | Escaped_lower
+  | Raw_unsafe
+
+type component =
+  | Authority
+  | Path
+  | Query
+  | Fragment
+
+let encode_component component spelling bytes =
+  let raw_punctuation =
+    match component with
+    | Authority -> ""
+    | Path | Query -> "[]"
+    | Fragment -> "[]#"
+  in
+  String.to_list bytes
+  |> List.map ~f:(fun c ->
+    match spelling with
+    | Raw_unsafe
+      when String.contains raw_punctuation c
+           || not (String.contains ":/?#[]@!$&'()*+,;=%" c) ->
+      (* Expose raw data, including punctuation forbidden in this component,
+         without changing component boundaries or introducing percent escapes. *)
+      String.of_char c
+    | Literal
+      when String.contains
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+             c -> String.of_char c
+    | Literal | Escaped_upper | Raw_unsafe -> Printf.sprintf "%%%02X" (Char.to_int c)
+    | Escaped_lower -> Printf.sprintf "%%%02x" (Char.to_int c))
+  |> String.concat
+;;
+
+module Components = struct
+  type t =
+    { scheme : scheme option
+    ; authority : Wire.t option
+    ; path : Wire.t option
+    ; query : Wire.t option
+    ; fragment : Wire.t option
+    }
+  [@@deriving quickcheck, sexp_of]
+
+  let render spelling { scheme; authority; path; query; fragment } =
+    let optional component prefix =
+      Option.value_map ~default:"" ~f:(fun s ->
+        prefix ^ encode_component component spelling s)
+    in
+    let scheme =
+      Option.value_map scheme ~default:"" ~f:(fun scheme ->
+        let name = string_of_scheme scheme in
+        let name =
+          match spelling with
+          | Escaped_lower -> String.uppercase name
+          | _ -> name
+        in
+        name ^ ":")
+    in
+    scheme
+    ^ optional Authority "//" authority
+    ^ optional Path "/" path
+    ^ optional Query "?" query
+    ^ optional Fragment "#" fragment
+  ;;
+end
+
+module Input = struct
+  type t =
+    | Raw of Wire.t
+    | Structured of Components.t
+    | Path of Wire.t
+  [@@deriving quickcheck, sexp_of]
+
+  let uri = function
+    | Raw source -> Uri.of_string source
+    | Structured components -> Components.render Literal components |> Uri.of_string
+    | Path bytes ->
+      with_windows_setting false ~f:(fun () -> Uri.of_path ("/root/" ^ bytes))
+  ;;
+end
+
+let%expect_test "URI values survive string and JSON serialization" =
   Test.run_exn
-    (module Case)
-    ~examples:uri_examples
-    ~f:(fun case ->
-      let source = source case in
-      let once = canonical source in
-      let twice = canonical once in
-      if not (String.equal once twice)
-      then fail source "URI serialization is not idempotent" once twice);
+    (module Input)
+    ~examples:(List.map byte_examples ~f:(fun s -> Input.Raw s))
+    ~f:(fun input -> check_uri_round_trip (Input.uri input));
   [%expect {| |}]
 ;;
 
-let%expect_test "URI JSON serialization preserves canonical values" =
+module Equivalent_case = struct
+  type t = Components.t * Input.t [@@deriving quickcheck, sexp_of]
+end
+
+let%expect_test "equivalent spellings preserve identity, hash, and ordering" =
+  Test.run_exn
+    (module Equivalent_case)
+    ~f:(fun (components, other) ->
+      let uris =
+        List.map [ Literal; Escaped_upper; Escaped_lower; Raw_unsafe ] ~f:(fun spelling ->
+          Components.render spelling components |> Uri.of_string)
+      in
+      let other = Input.uri other in
+      List.iter uris ~f:(fun left ->
+        check_uri_round_trip left;
+        List.iter uris ~f:(fun right ->
+          check_equivalent left right;
+          if
+            Int.compare (Uri.compare left other) 0
+            <> Int.compare (Uri.compare right other) 0
+            || Int.compare (Uri.compare other left) 0
+               <> Int.compare (Uri.compare other right) 0
+          then failwith "equivalent URIs are not interchangeable in ordering")));
+  [%expect {| |}]
+;;
+
+module Http_root = struct
+  type t = bool * Wire.t option * Wire.t option [@@deriving quickcheck, sexp_of]
+end
+
+let%expect_test "HTTP roots have the same identity with an empty or slash path" =
+  Test.run_exn
+    (module Http_root)
+    ~examples:[ false, None, None; true, Some "", Some "" ]
+    ~f:(fun (https, query, fragment) ->
+      let root = (if https then "https" else "http") ^ "://example.org" in
+      let optional component marker =
+        Option.value_map ~default:"" ~f:(fun bytes ->
+          marker ^ encode_component component Literal bytes)
+      in
+      let suffix = optional Query "?" query ^ optional Fragment "#" fragment in
+      let source = root ^ suffix in
+      let expected = root ^ "/" ^ suffix in
+      let uri = Uri.of_string source in
+      if not (String.equal expected (Uri.to_string uri))
+      then fail source "HTTP empty path was not normalized" expected (Uri.to_string uri);
+      check_equivalent uri (Uri.of_string expected);
+      check_equivalent uri (Uri.t_of_yojson (`String source));
+      check_uri_round_trip uri);
+  [%expect {| |}]
+;;
+
+module Triple = struct
+  type t = Input.t * Input.t * Input.t [@@deriving quickcheck, sexp_of]
+end
+
+let%expect_test "URI comparison is a total order consistent with equality and hash" =
+  Test.run_exn
+    (module Triple)
+    ~f:(fun (a, b, c) ->
+      let a, b, c = Input.uri a, Input.uri b, Input.uri c in
+      List.iter [ a; b; c ] ~f:(fun left ->
+        if not (Uri.equal left left && Uri.compare left left = 0)
+        then failwith "URI identity is not reflexive";
+        List.iter [ a; b; c ] ~f:(fun right ->
+          let comparison = Int.compare (Uri.compare left right) 0 in
+          if comparison <> -Int.compare (Uri.compare right left) 0
+          then failwith "URI comparison is not antisymmetric";
+          if not (Bool.equal (Uri.equal left right) (comparison = 0))
+          then failwith "URI equality disagrees with comparison";
+          if Uri.equal left right then check_equivalent left right));
+      (* Check every orientation, not only triples that happen to arrive sorted. *)
+      List.iter
+        [ a, b, c; b, c, a; c, a, b ]
+        ~f:(fun (a, b, c) ->
+          let ab, bc, ac = Uri.compare a b, Uri.compare b c, Uri.compare a c in
+          if (ab <= 0 && bc <= 0 && ac > 0) || (ab >= 0 && bc >= 0 && ac < 0)
+          then failwith "URI comparison is not transitive"));
+  [%expect {| |}]
+;;
+
+let%expect_test "percent-decoding recovers arbitrary component bytes exactly once" =
+  Test.run_exn
+    (module Wire)
+    ~examples:byte_examples
+    ~f:(fun bytes ->
+      let render spelling =
+        "x:/path?"
+        ^ encode_component Query spelling bytes
+        ^ "#"
+        ^ encode_component Fragment spelling bytes
+      in
+      List.iter [ Literal; Escaped_upper; Escaped_lower; Raw_unsafe ] ~f:(fun spelling ->
+        let source = render spelling in
+        let uri = Uri.of_string source in
+        List.iter
+          [ Uri.query uri; Uri.fragment uri ]
+          ~f:(fun actual ->
+            if not (Option.equal String.equal (Some bytes) actual)
+            then
+              fail
+                source
+                "component decoding changed bytes"
+                bytes
+                (Option.value actual ~default:"<absent>"));
+        let expected = render Literal in
+        if not (String.equal expected (Uri.to_string uri))
+        then
+          fail
+            source
+            "component normalization changed syntax"
+            expected
+            (Uri.to_string uri)));
+  [%expect {| |}]
+;;
+
+let%expect_test "reserved escapes and empty delimiters remain significant" =
+  Test.run_exn
+    (module Wire)
+    ~examples:byte_examples
+    ~f:(fun bytes ->
+      let middle = String.length bytes / 2 in
+      let distinct left right =
+        let a, b = Uri.of_string left, Uri.of_string right in
+        if Uri.equal a b || Uri.equal b a || Uri.compare a b = 0 || Uri.compare b a = 0
+        then fail left "meaningful URI syntax was conflated" left right
+      in
+      (* File paths deliberately have different equivalence rules; test reserved
+       path characters on a non-file URI, and suffixes on both schemes. *)
+      List.iter
+        [ Path, "https://host/"
+        ; Query, "https://host/?"
+        ; Fragment, "https://host/#"
+        ; Query, "file:///root/file.ml?"
+        ; Fragment, "file:///root/file.ml#"
+        ]
+        ~f:(fun (component, base) ->
+          let encode = encode_component component Escaped_upper in
+          let prefix = encode (String.prefix bytes middle) in
+          let suffix = encode (String.drop_prefix bytes middle) in
+          String.iter "/?:@!$&'()*+,;=" ~f:(fun c ->
+            let literal = base ^ prefix ^ String.of_char c ^ suffix in
+            let escaped = base ^ prefix ^ encode (String.of_char c) ^ suffix in
+            distinct literal escaped));
+      let path = encode_component Path Escaped_upper bytes in
+      List.iter [ "x:/"; "file:///root/" ] ~f:(fun base ->
+        let source = base ^ path in
+        distinct source (source ^ "?");
+        distinct source (source ^ "#");
+        distinct (source ^ "?") (source ^ "?#"));
+      distinct ("x:/" ^ path) ("x:///" ^ path);
+      distinct ("x:/" ^ path) ("y:/" ^ path);
+      (* Meaningfully different data must not compare equal either, even if a
+       comparator accidentally drops one component from its key. *)
+      List.iter
+        [ Authority, "https://"
+        ; Path, "https://host/"
+        ; Query, "https://host/?"
+        ; Fragment, "https://host/#"
+        ]
+        ~f:(fun (component, base) ->
+          let encoded = encode_component component Escaped_upper bytes in
+          distinct (base ^ "a" ^ encoded) (base ^ "b" ^ encoded)));
+  [%expect {| |}]
+;;
+
+let check_normalization source =
+  let uri = Uri.of_string source in
+  check_equivalent uri (Uri.t_of_yojson (`String source));
+  check_uri_round_trip uri
+;;
+
+let%expect_test "URI normalization is idempotent regardless of input syntax" =
+  Test.run_exn
+    (module Wire)
+    ~examples:
+      ([ ""
+       ; "?#"
+       ; "x:/"
+       ; "x:///"
+       ; "//host"
+       ; "file:relative"
+       ; "x:?%%36%31"
+       ; "x:%%34%31"
+       ; "#%%32%36"
+       ; "x:?%2%36"
+       ]
+       @ byte_examples)
+    ~f:(fun source ->
+      List.iter [ false; true ] ~f:(fun windows ->
+        with_windows_setting windows ~f:(fun () ->
+          List.iter
+            [ source; "file:" ^ source; "file://" ^ source; "file:///" ^ source ]
+            ~f:check_normalization)));
+  [%expect {| |}]
+;;
+
+let%expect_test "structured URI strings and JSON normalize identically and idempotently" =
   Test.run_exn
     (module Case)
     ~examples:uri_examples
-    ~f:(fun case ->
-      let source = source case |> canonical in
-      let uri = Uri.of_string source in
-      let round_trip = Uri.t_of_yojson (Uri.yojson_of_t uri) in
-      if not (Uri.equal uri round_trip)
-      then fail source "JSON round trip changed the URI" source (Uri.to_string round_trip));
+    ~f:(fun case -> check_normalization (source case));
   [%expect {| |}]
 ;;
 
@@ -231,6 +565,7 @@ let decoded_atom = function
   | Lone_percent -> "%!"
   | Incomplete_escape -> "%A!"
   | Invalid_escape -> "%GG"
+  | Hidden_escape -> "%26"
 ;;
 
 let decoded_component atoms = List.map atoms ~f:decoded_atom |> String.concat ~sep:""
@@ -256,21 +591,24 @@ let%expect_test "query and fragment components are percent-decoded" =
   [%expect {| |}]
 ;;
 
-let round_trip_path ~windows path =
+let check_path_round_trip ~windows path expected =
   with_windows_setting windows ~f:(fun () ->
     let uri = Uri.of_path path in
-    let direct = Uri.to_path uri in
-    let serialized = Uri.to_string uri in
-    let round_trip = Uri.of_string serialized |> Uri.to_path in
-    direct, round_trip)
+    check_uri_round_trip uri;
+    let actual = Uri.to_path uri in
+    if not (String.equal expected actual)
+    then fail path "filesystem path did not round trip" expected actual)
 ;;
 
-let check_path_round_trip ~windows path expected =
-  let direct, round_trip = round_trip_path ~windows path in
-  if not (String.equal expected direct)
-  then fail path "filesystem path did not round trip" expected direct;
-  if not (String.equal direct round_trip)
-  then fail path "URI serialization changed the filesystem path" direct round_trip
+let%expect_test "POSIX paths preserve case after any number of leading slashes" =
+  Test.run_exn
+    (module Wire)
+    ~examples:byte_examples
+    ~f:(fun bytes ->
+      List.iter [ "/Users/"; "//Users/"; "///Users/" ] ~f:(fun prefix ->
+        let path = prefix ^ bytes in
+        check_path_round_trip ~windows:false path path));
+  [%expect {| |}]
 ;;
 
 let%expect_test "absolute Unix filesystem paths round trip" =
@@ -298,7 +636,61 @@ let%expect_test "Windows UNC filesystem paths round trip" =
     (module Path)
     ~f:(fun atoms ->
       let suffix = decoded_component atoms |> String.tr ~target:'/' ~replacement:'\\' in
-      let path = "\\\\server\\share\\" ^ suffix in
-      check_path_round_trip ~windows:true path path);
+      List.iter [ "server"; "SeRvEr"; "localhost"; "LOCALHOST" ] ~f:(fun server ->
+        let path = "\\\\" ^ server ^ "\\share\\" ^ suffix in
+        let expected = "\\\\" ^ String.lowercase server ^ "\\share\\" ^ suffix in
+        check_path_round_trip ~windows:true path expected));
+  [%expect {| |}]
+;;
+
+let%expect_test "arbitrary byte paths round trip and match equivalent file URIs" =
+  (* These are pure codec tests; even NUL and invalid UTF-8 are intentional, and
+     no files with these names are created. Only platform separators, drive letters,
+     and UNC authority case are normalized. *)
+  Test.run_exn
+    (module Wire)
+    ~examples:byte_examples
+    ~f:(fun bytes ->
+      let unix = "/root/" ^ bytes in
+      let windows = String.tr bytes ~target:'/' ~replacement:'\\' in
+      let slash_suffix = String.tr windows ~target:'\\' ~replacement:'/' in
+      let quote = encode_component Path Escaped_lower in
+      let encode_path path =
+        String.split path ~on:'/'
+        |> List.map ~f:(encode_component Path Literal)
+        |> String.concat ~sep:"/"
+      in
+      List.iter
+        [ ( false
+          , unix
+          , unix
+          , "file:///root/" ^ encode_path bytes
+          , "FILE:/" ^ quote ("root/" ^ bytes) )
+        ; ( true
+          , "C:\\root\\" ^ windows
+          , "c:\\root\\" ^ windows
+          , "file:///c%3A/root/" ^ encode_path slash_suffix
+          , "FILE:/C%3a/" ^ quote ("root/" ^ slash_suffix) )
+        ; ( true
+          , "\\\\SeRvEr\\share\\" ^ windows
+          , "\\\\server\\share\\" ^ windows
+          , "file://server/share/" ^ encode_path slash_suffix
+          , "FILE://sErVeR/" ^ quote ("share/" ^ slash_suffix) )
+        ]
+        ~f:(fun (windows, path, expected, wire, alias) ->
+          check_path_round_trip ~windows path expected;
+          with_windows_setting windows ~f:(fun () ->
+            let uri = Uri.of_path path in
+            if not (String.equal wire (Uri.to_string uri))
+            then
+              fail
+                path
+                "filesystem path was not correctly escaped"
+                wire
+                (Uri.to_string uri);
+            if Option.is_some (Uri.query uri) || Option.is_some (Uri.fragment uri)
+            then failwith "filename bytes introduced URI suffixes";
+            check_equivalent uri (Uri.of_string alias);
+            check_equivalent uri (Uri.t_of_yojson (`String alias)))));
   [%expect {| |}]
 ;;
