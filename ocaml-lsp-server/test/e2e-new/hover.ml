@@ -445,3 +445,36 @@ let f ({ px; py } as p : point) = px + py
     }
     |}]
 ;;
+
+let%expect_test "hover on a binding introduced by and*" =
+  let source =
+    {ocaml|let ( let* ) x f = f x
+let ( and* ) a b = a, b
+
+let example () =
+  let* promise_1 = 1
+  and* promise_2 = "two" in
+  ignore (promise_1, promise_2)
+|ocaml}
+  in
+  Hover_helpers.test_hover
+    source
+    [ Position.create ~line:4 ~character:8; Position.create ~line:5 ~character:8 ];
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "int" },
+      "range": {
+        "end": { "character": 16, "line": 4 },
+        "start": { "character": 7, "line": 4 }
+      }
+    }
+    {
+      "contents": { "kind": "plaintext", "value": "string" },
+      "range": {
+        "end": { "character": 16, "line": 5 },
+        "start": { "character": 7, "line": 5 }
+      }
+    }
+    |}]
+;;
