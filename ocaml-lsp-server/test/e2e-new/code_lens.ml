@@ -160,3 +160,53 @@ let () = ()
     ]
     |}]
 ;;
+
+let%expect_test "code lenses do not show unrelated type aliases" =
+  let source =
+    {ocaml|type nat = int
+
+let rec fact (n : nat) : nat = if n = 0 then 1 else n * fact (n - 1)
+let incr (x : int) : int = x + 1
+let incr2 x = x + 1
+|ocaml}
+  in
+  let req client =
+    let text_document = TextDocumentIdentifier.create ~uri:Helpers.uri in
+    let* () =
+      Lsp_helpers.change_config
+        ~client
+        (DidChangeConfigurationParams.create
+           ~settings:(`Assoc [ "codelens", `Assoc [ "enable", `Bool true ] ]))
+    in
+    let* resp_codelens_toplevel = codelens client text_document in
+    Test.print_result (json_of_codelens resp_codelens_toplevel);
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect
+    {|
+    [
+      {
+        "command": { "command": "", "title": "int -> int" },
+        "range": {
+          "end": { "character": 19, "line": 4 },
+          "start": { "character": 0, "line": 4 }
+        }
+      },
+      {
+        "command": { "command": "", "title": "int -> int" },
+        "range": {
+          "end": { "character": 32, "line": 3 },
+          "start": { "character": 0, "line": 3 }
+        }
+      },
+      {
+        "command": { "command": "", "title": "nat -> nat" },
+        "range": {
+          "end": { "character": 68, "line": 2 },
+          "start": { "character": 0, "line": 2 }
+        }
+      }
+    ]
+    |}]
+;;
