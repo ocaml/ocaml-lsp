@@ -78,55 +78,176 @@ let prepare
         else None))
 ;;
 
-let workspace_edit_of_locations ~document_changes ~documents ~new_name locations =
+(* In a qualified pun such as [{ M.x }], Merlin reports [M.x] as the variable
+   occurrence but only [x] as the record-field occurrence. *)
+type record_pun =
+  { variable : Range.t
+  ; field : Range.t
+  ; end_ : Position.t (* Includes any type constraint or coercion. *)
+  }
+
+type file_occurrences =
+  { source : Msource.t
+  ; version : int option
+  ; ranges : Range.t list
+  ; record_puns : record_pun list
+  ; has_field_occurrence : bool
+  }
+
+let record_puns_and_fields (parsetree : Mreader.parsetree) =
+  let record_puns = ref [] in
+  let record_fields = ref [] in
+  let field_name_range (field : Longident.t Loc.loc) =
+    let name = Longident.last field.txt in
+    let loc = field.loc in
+    let loc_start =
+      { loc.loc_end with pos_cnum = loc.loc_end.pos_cnum - String.length name }
+    in
+    Range.of_loc { loc with loc_start }
+  in
+  let add_field (field : Longident.t Loc.loc) =
+    record_fields := field_name_range field :: !record_fields
+  in
+  let add_pun (field : Longident.t Loc.loc) ~value_loc =
+    let pun =
+      { variable = Range.of_loc field.loc
+      ; field = field_name_range field
+      ; end_ = (Range.of_loc value_loc).end_
+      }
+    in
+    record_puns := pun :: !record_puns;
+    match field.txt with
+    | Longident.Lident _ -> ()
+    | _ -> record_fields := pun.field :: !record_fields
+  in
+  (* A constrained pun wraps its synthetic identifier. Compare the identifier's
+     location, but keep the annotation in the range used to expand the pun. *)
+  let rec expression_location (value : Parsetree.expression) =
+    match value.pexp_desc with
+    | Pexp_constraint (value, _) | Pexp_coerce (value, _, _) -> expression_location value
+    | _ -> value.pexp_loc
+  in
+  let rec pattern_location (value : Parsetree.pattern) =
+    match value.ppat_desc with
+    | Ppat_constraint (value, _) -> pattern_location value
+    | _ -> value.ppat_loc
+  in
+  let iterator =
+    let expr (self : Ast_iterator.iterator) (expr : Parsetree.expression) =
+      (match expr.pexp_desc with
+       | Pexp_record (fields, _) ->
+         List.iter fields ~f:(fun (field, value) ->
+           if Loc.compare field.loc (expression_location value) = 0
+           then add_pun field ~value_loc:value.pexp_loc
+           else add_field field)
+       | Pexp_field (_, field) | Pexp_setfield (_, field, _) -> add_field field
+       | _ -> ());
+      Ast_iterator.default_iterator.expr self expr
+    in
+    let pat (self : Ast_iterator.iterator) (pat : Parsetree.pattern) =
+      (match pat.ppat_desc with
+       | Ppat_record (fields, _) ->
+         List.iter fields ~f:(fun (field, value) ->
+           if Loc.compare field.loc (pattern_location value) = 0
+           then add_pun field ~value_loc:value.ppat_loc
+           else add_field field)
+       | _ -> ());
+      Ast_iterator.default_iterator.pat self pat
+    in
+    let label_declaration
+          (self : Ast_iterator.iterator)
+          (declaration : Parsetree.label_declaration)
+      =
+      record_fields := Range.of_loc declaration.pld_name.loc :: !record_fields;
+      Ast_iterator.default_iterator.label_declaration self declaration
+    in
+    { Ast_iterator.default_iterator with expr; pat; label_declaration }
+  in
+  (match parsetree with
+   | `Implementation structure -> iterator.structure iterator structure
+   | `Interface signature -> iterator.signature iterator signature);
+  !record_puns, !record_fields
+;;
+
+let same_range left right = Lsp.Range.compare left right = 0
+
+let workspace_edit ~document_changes ~new_name files =
+  let renames_record_field =
+    List.exists files ~f:(fun (_, file) -> file.has_field_occurrence)
+  in
   let edits =
-    List.fold_left
-      locations
-      ~init:(Map.empty (module Uri))
-      ~f:(fun acc (uri, range) -> Map.add_multi acc ~key:uri ~data:range)
-    |> Map.mapi ~f:(fun ~key:doc_uri ~data:ranges ->
-      let source =
-        match Map.find documents doc_uri with
-        | Some document -> Document.source document
-        | None ->
-          let source_path = Uri.to_path doc_uri in
-          In_channel.with_open_text source_path In_channel.input_all |> Msource.make
-      in
-      List.map ranges ~f:(fun range ->
-        let edit =
+    List.map files ~f:(fun (uri, file) ->
+      let source = file.source in
+      let edits =
+        List.concat_map file.ranges ~f:(fun range ->
           let range = identifier_range source range in
-          TextEdit.create ~range ~newText:new_name
-        in
-        match edit.range.start with
-        | { character = 0; _ } -> edit
-        | pos ->
-          let (`Offset index) =
-            let mpos = Position.logical pos in
-            Msource.get_offset source mpos
+          let pun =
+            List.find file.record_puns ~f:(fun pun ->
+              let pun_range = if renames_record_field then pun.field else pun.variable in
+              same_range range pun_range)
           in
-          assert (index > 0)
-          (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
-              when [character = 0] in a separate matching branch *);
-          let source_txt = Msource.text source in
-          (* TODO: handle record field puning *)
-          (match source_txt.[index - 1] with
-           | '~' (* the occurrence is a named argument *)
-           | '?' (* is an optional argument *) ->
-             let empty_range_at_occur_end =
-               let occur_end_pos = edit.range.end_ in
-               { edit.range with start = occur_end_pos }
-             in
-             TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ new_name)
-           | _ -> edit))
-      |> List.stable_dedup ~compare:compare_text_edit)
+          match pun with
+          | Some pun ->
+            let variable =
+              if not renames_record_field
+              then new_name
+              else (
+                let (`Offset start_offset) =
+                  Msource.get_offset source (Position.logical range.start)
+                in
+                let (`Offset end_offset) =
+                  Msource.get_offset source (Position.logical range.end_)
+                in
+                String.sub
+                  (Msource.text source)
+                  ~pos:start_offset
+                  ~len:(end_offset - start_offset))
+            in
+            (* Insert after any annotation, without replacing its source text. *)
+            let expansion =
+              TextEdit.create
+                ~range:{ Range.start = pun.end_; end_ = pun.end_ }
+                ~newText:(" = " ^ variable)
+            in
+            if renames_record_field
+            then [ TextEdit.create ~range ~newText:new_name; expansion ]
+            else [ expansion ]
+          | None ->
+            let edit = TextEdit.create ~range ~newText:new_name in
+            let edit =
+              match range.start with
+              | { character = 0; _ } -> edit
+              | pos ->
+                let (`Offset index) =
+                  let mpos = Position.logical pos in
+                  Msource.get_offset source mpos
+                in
+                assert (index > 0)
+                (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
+                 when [character = 0] in a separate matching branch *);
+                let source_txt = Msource.text source in
+                (match source_txt.[index - 1] with
+                 | '~' (* the occurrence is a named argument *)
+                 | '?' (* is an optional argument *) ->
+                   let empty_range_at_occur_end =
+                     let occur_end_pos = edit.range.end_ in
+                     { edit.range with start = occur_end_pos }
+                   in
+                   TextEdit.create
+                     ~range:empty_range_at_occur_end
+                     ~newText:(":" ^ new_name)
+                 | _ -> edit)
+            in
+            [ edit ])
+        |> List.stable_dedup ~compare:compare_text_edit
+      in
+      uri, file.version, edits)
   in
   if document_changes
   then (
     let documentChanges =
-      Map.to_alist edits
-      |> List.map ~f:(fun (uri, edits) ->
+      List.map edits ~f:(fun (uri, version, edits) ->
         let textDocument =
-          let version = Map.find documents uri |> Option.map ~f:Document.version in
           OptionalVersionedTextDocumentIdentifier.create ~uri ?version ()
         in
         let edits = List.map edits ~f:(fun e -> `TextEdit e) in
@@ -134,7 +255,7 @@ let workspace_edit_of_locations ~document_changes ~documents ~new_name locations
     in
     WorkspaceEdit.create ~documentChanges ())
   else (
-    let changes = Map.to_alist edits in
+    let changes = List.map edits ~f:(fun (uri, _, edits) -> uri, edits) in
     WorkspaceEdit.create ~changes ())
 ;;
 
@@ -154,8 +275,11 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     let command =
       Query_protocol.Occurrences (`Ident_at (Position.logical position), `Renaming)
     in
-    let+ occurrences, _desync =
-      Document.Merlin.dispatch_exn ~name:"rename" merlin command
+    let* (occurrences, _desync), request_records =
+      Document.Merlin.with_pipeline_exn ~name:"rename" merlin (fun pipeline ->
+        let occurrences = Query_commands.dispatch pipeline command in
+        let records = Mpipeline.reader_parsetree pipeline |> record_puns_and_fields in
+        occurrences, records)
     in
     let locations =
       List.filter_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
@@ -170,8 +294,60 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
           in
           Some (uri, Range.of_loc loc))
     in
+    (* Capture every source and version before yielding. Parsing and edits must
+       use the same snapshots, including for documents other than the request. *)
+    let files =
+      List.fold_left
+        locations
+        ~init:(Map.empty (module Uri))
+        ~f:(fun files (uri, range) -> Map.add_multi files ~key:uri ~data:range)
+      |> Map.to_alist
+      |> List.map ~f:(fun (uri, ranges) ->
+        let document = Map.find documents uri in
+        let source =
+          match document with
+          | Some document -> Document.source document
+          | None ->
+            In_channel.with_open_text (Uri.to_path uri) In_channel.input_all
+            |> Msource.make
+        in
+        let version = Option.map document ~f:Document.version in
+        uri, source, version, ranges)
+    in
+    let+ files =
+      Fiber.parallel_map files ~f:(fun (file_uri, source, version, ranges) ->
+        let+ record_puns, fields =
+          (* The request's pipeline has already read its parsetree. Other files
+             get separate pipelines; never nest compiler states on the worker. *)
+          if Uri.equal uri file_uri
+          then Fiber.return request_records
+          else
+            let* config =
+              let handle = Merlin_config.DB.get state.merlin_config file_uri in
+              Fiber.finalize
+                (fun () -> Merlin_config.config handle)
+                ~finally:(fun () -> Merlin_config.destroy handle)
+            in
+            let+ result =
+              Document.Single_pipeline.use_with_config
+                ~name:"rename-record-puns"
+                state.merlin
+                ~source
+                ~config
+                ~f:(fun pipeline ->
+                  Mpipeline.reader_parsetree pipeline |> record_puns_and_fields)
+            in
+            match result with
+            | Ok result -> result
+            | Error exn -> Exn_with_backtrace.reraise exn
+        in
+        let has_field_occurrence =
+          List.exists ranges ~f:(fun range -> List.exists fields ~f:(same_range range))
+        in
+        file_uri, { source; version; ranges; record_puns; has_field_occurrence })
+    in
     let document_changes =
       Capabilities.workspace_edit_document_changes (State.client_capabilities state)
     in
-    workspace_edit_of_locations ~document_changes ~documents ~new_name:newName locations
+    workspace_edit ~document_changes ~new_name:newName files
 ;;

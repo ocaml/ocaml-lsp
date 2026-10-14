@@ -141,7 +141,7 @@ module Single_pipeline : sig
   val use_with_config
     :  ?name:string
     -> t
-    -> doc:Text_document.t
+    -> source:Msource.t
     -> config:Mconfig.t
     -> f:(Mpipeline.t -> 'a)
     -> ('a, Exn_with_backtrace.t) result Fiber.t
@@ -150,16 +150,12 @@ end = struct
 
   let create thread = { thread }
 
-  let use_with_config ?name t ~doc ~config ~f =
-    let make_pipeline =
-      let source = Msource.make (Text_document.text doc) in
-      fun () -> Mpipeline.make config source
-    in
+  let use_with_config ?name t ~source ~config ~f =
     let task =
       match
         Lev_fiber.Thread.task t.thread ~f:(fun () ->
           let start = Unix.gettimeofday () in
-          let pipeline = make_pipeline () in
+          let pipeline = Mpipeline.make config source in
           let res = Mpipeline.with_pipeline pipeline (fun () -> f pipeline) in
           let stop = Unix.gettimeofday () in
           res, start, stop)
@@ -190,7 +186,8 @@ end = struct
 
   let use ?name t ~doc ~config ~f =
     let* config = Merlin_config.config config in
-    use_with_config ?name t ~doc ~config ~f
+    let source = Msource.make (Text_document.text doc) in
+    use_with_config ?name t ~source ~config ~f
   ;;
 end
 
@@ -350,7 +347,7 @@ module Merlin = struct
   ;;
 
   let with_configurable_pipeline ?name ~config (t : t) f =
-    Single_pipeline.use_with_config ?name t.pipeline ~doc:t.tdoc ~config ~f
+    Single_pipeline.use_with_config ?name t.pipeline ~source:(source t) ~config ~f
   ;;
 
   let mconfig (t : t) = Merlin_config.config t.merlin_config
