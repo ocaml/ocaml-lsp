@@ -237,17 +237,16 @@ module Complete_by_prefix = struct
       prefix, Some [ TextEdit.create ~range ~newText:"" ]
   ;;
 
-  let process_dispatch_resp
+  let process_entries
         ~pipeline
         ~supports_deprecated_field
         ~supports_deprecated_tag
         ~supports_enum_member
         ~supports_snippets
         ~resolve
-        ~prefix
         doc
         pos
-        (completion : Query_protocol.completions)
+        (completion_entries : Query_protocol.Compl.entry list)
     =
     let range = edit_range doc pos in
     (* Only inspect constructor syntax when a snippet-capable client receives a
@@ -261,24 +260,6 @@ module Complete_by_prefix = struct
     in
     let supports_snippets =
       supports_snippets && Document.syntax (Document.Merlin.to_doc doc) = Ocaml
-    in
-    let completion_entries =
-      match completion.context with
-      | `Unknown -> completion.entries
-      | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
-        completion.entries
-        @ List.map labels ~f:(fun (name, typ) ->
-          let name =
-            if String.is_prefix prefix ~prefix:"~" && String.is_prefix name ~prefix:"?"
-            then "~" ^ String.chop_prefix_if_exists name ~prefix:"?"
-            else name
-          in
-          { Query_protocol.Compl.name
-          ; kind = `Label
-          ; desc = typ
-          ; info = ""
-          ; deprecated = false
-          })
     in
     (* we need to json-ify completion params to put them in completion item's
        [data] field to keep it across [textDocument/completion] and the
@@ -346,6 +327,50 @@ module Complete_by_prefix = struct
     plain @ calls
   ;;
 
+  let process_dispatch_resp
+        ~pipeline
+        ~supports_deprecated_field
+        ~supports_deprecated_tag
+        ~supports_enum_member
+        ~supports_snippets
+        ~resolve
+        ~prefix
+        doc
+        pos
+        (completion : Query_protocol.completions)
+    =
+    let completion_entries =
+      (* Squash any function argument names into the completions list for the
+         sake of LSP protocol compatibility. *)
+      match completion.context with
+      | `Unknown -> completion.entries
+      | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
+        completion.entries
+        @ List.map labels ~f:(fun (name, typ) ->
+          let name =
+            if String.is_prefix prefix ~prefix:"~" && String.is_prefix name ~prefix:"?"
+            then "~" ^ String.chop_prefix_if_exists name ~prefix:"?"
+            else name
+          in
+          { Query_protocol.Compl.name
+          ; kind = `Label
+          ; desc = typ
+          ; info = ""
+          ; deprecated = false
+          })
+    in
+    process_entries
+      ~pipeline
+      ~supports_deprecated_field
+      ~supports_deprecated_tag
+      ~supports_enum_member
+      ~supports_snippets
+      ~resolve
+      doc
+      pos
+      completion_entries
+  ;;
+
   let complete_keywords completion_position prefix =
     match prefix with
     | "" | "i" | "in" ->
@@ -397,6 +422,38 @@ module Complete_by_prefix = struct
       | Impl -> complete_keywords pos prefix
     in
     keyword_completionItems @ items |> reindex_sortText
+  ;;
+
+  let complete_nosquash doc ~prefix pos =
+    let+ items, labels =
+      Document.Merlin.with_pipeline_exn
+        ~name:"completion-prefix-nosquash"
+        doc
+        (fun pipeline ->
+           let completion = dispatch_cmd ~prefix (Position.logical pos) pipeline in
+           (* Don't squash any function argument names into the completions;
+              instead return them separately. *)
+           let items =
+             process_entries
+               ~pipeline
+               ~supports_deprecated_field:false
+               ~supports_deprecated_tag:false
+               ~supports_enum_member:true
+               ~supports_snippets:false
+               ~resolve:false
+               doc
+               pos
+               completion.entries
+           in
+           let labels =
+             match completion.context with
+             | `Unknown -> None
+             | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
+               Some labels
+           in
+           items, labels)
+    in
+    reindex_sortText items, labels
   ;;
 end
 
