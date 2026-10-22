@@ -5,8 +5,9 @@
 - Add custom
   [`ocamllsp/completePrefixAtPos`](/ocaml-lsp-server/docs/ocamllsp/completePrefixAtPos-spec.md)
   request, which completes a given prefix at a given position and returns
-  function argument labels separately from the completions. (@spwhitton)
-  This will be used by Emacs via the [ocaml-eglot](https://github.com/tarides/ocaml-eglot) package.
+  function argument labels separately from the completions.
+  This will be used by Emacs via the
+  [ocaml-eglot](https://github.com/tarides/ocaml-eglot) package. (#2230, @spwhitton)
 
 # 1.28.0
 
