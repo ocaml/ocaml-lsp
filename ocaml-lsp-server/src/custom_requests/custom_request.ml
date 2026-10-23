@@ -16,3 +16,4 @@ module Locate = Req_locate
 module Destruct = Req_destruct
 module Locate_types = Req_locate_types
 module Refactor_extract = Req_refactor_extract
+module Complete_prefix_at_pos = Req_complete_prefix_at_pos
