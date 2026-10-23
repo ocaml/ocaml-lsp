@@ -51,14 +51,17 @@ module Request_params = struct
 end
 
 let serialize (completions, labels) =
-  `Assoc
-    [ "entries", `List (List.map completions ~f:CompletionItem.yojson_of_t)
-    ; ( "context"
-        (* The complex, seemingly redundant structure here is intended to mirror
-           the output of 'merlin complete-prefix'. One day there may be forms of
-           context other than just function application. *)
-      , Option.value_map labels ~default:`Null ~f:(fun labels ->
-          `List
+  let entries = "entries", `List (List.map completions ~f:CompletionItem.yojson_of_t) in
+  match labels with
+  | None -> `Assoc [ entries ]
+  | Some labels ->
+    `Assoc
+      [ entries
+      ; ( "context"
+          (* The complex, seemingly redundant structure here is intended to mirror
+             the output of 'merlin complete-prefix'. One day there may be forms of
+             context other than just function application. *)
+        , `List
             [ `String "application"
             ; `Assoc
                 [ ( "labels"
@@ -66,8 +69,8 @@ let serialize (completions, labels) =
                       (List.map labels ~f:(fun (n, t) ->
                          `Assoc [ "name", `String n; "type", `String t ])) )
                 ]
-            ]) )
-    ]
+            ] )
+      ]
 ;;
 
 let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
@@ -77,7 +80,7 @@ let on_request ~(params : Jsonrpc.Structured.t option) (state : State.t) =
     in
     let doc = Document_store.get state.store uri in
     match Document.kind doc with
-    | `Other -> Fiber.return (`Assoc [ "entries", `Null; "context", `Null ])
+    | `Other -> Fiber.return (`Assoc [ "entries", `Null ])
     | `Merlin merlin ->
       Compl.Complete_by_prefix.complete_nosquash merlin ~prefix position >>| serialize)
 ;;

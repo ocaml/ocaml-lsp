@@ -26,13 +26,7 @@ let%expect_test "Serialization works as expected" =
   in
   let labels = [ "~key", "'_weak1"; "~data", "'_weak1" ] in
   print (serialize (completions, None));
-  [%expect
-    {|
-    {
-      "entries": [ { "detail": "'a option -> bool", "label": "is_none" } ],
-      "context": null
-    }
-    |}];
+  [%expect {| { "entries": [ { "detail": "'a option -> bool", "label": "is_none" } ] } |}];
   print (serialize (completions, Some []));
   [%expect
     {|
@@ -100,8 +94,7 @@ let go =
             }
           }
         }
-      ],
-      "context": null
+      ]
     }
     |}]
 ;;
@@ -147,8 +140,7 @@ let go =
             }
           }
         }
-      ],
-      "context": null
+      ]
     }
     |}]
 ;;
@@ -194,8 +186,7 @@ let go =
             }
           }
         }
-      ],
-      "context": null
+      ]
     }
     |}]
 ;;

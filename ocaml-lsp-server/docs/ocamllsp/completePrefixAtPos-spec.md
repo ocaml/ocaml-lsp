@@ -51,9 +51,11 @@ property type: `boolean`
 ```json
 {
     "entries": null | CompletionItem[],
-    "context": null | [ "application", { "labels": FunctionLabelItem[] } ]
+    "context"?: [ "application", { "labels": FunctionLabelItem[] } ]
 }
 ```
+
+`context` is omitted unless the position is in a function application.
 
 where a `FunctionLabelItem` has the form
 
