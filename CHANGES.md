@@ -26,6 +26,7 @@
   (#1857, @rgrinberg)
 - Distinguish built-in from user-defined types in semantic highlighting.
   (#1858, fixes #1139, @rgrinberg)
+- Topiary formatter added (#2226, toastal)
 
 ## Fixes
 
