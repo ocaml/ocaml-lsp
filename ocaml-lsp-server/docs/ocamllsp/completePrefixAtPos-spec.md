@@ -55,6 +55,10 @@ property type: `boolean`
 }
 ```
 
+`entries` null means this isn't a file of OCaml source we know how to do
+completion in.  `entries` an empty list means completions were computed
+successfully but there are no possible completions.
+
 `context` is omitted unless the position is in a function application.
 
 where a `FunctionLabelItem` has the form
