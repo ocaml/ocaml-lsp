@@ -17,17 +17,23 @@ let test ~line ~character ~prefix source =
 ;;
 
 let%expect_test "Serialization works as expected" =
-  let serialize = Req.For_testing.serialize in
-  let print j = Test.print_result j in
-  let completions =
-    [ CompletionItem.t_of_yojson
-        (`Assoc [ "detail", `String "'a option -> bool"; "label", `String "is_none" ])
+  let module C = Ocaml_lsp_server.Testing.Compl.Complete_by_prefix in
+  let print application_labels =
+    let entries =
+      [ CompletionItem.t_of_yojson
+          (`Assoc [ "detail", `String "'a option -> bool"; "label", `String "is_none" ])
+      ]
+    in
+    Test.print_result (Req.For_testing.serialize { C.entries; application_labels })
+  in
+  let labels =
+    [ { C.Function_label.name = "~key"; type_ = "'_weak1" }
+    ; { name = "~data"; type_ = "'_weak1" }
     ]
   in
-  let labels = [ "~key", "'_weak1"; "~data", "'_weak1" ] in
-  print (serialize (completions, None));
+  print None;
   [%expect {| { "entries": [ { "detail": "'a option -> bool", "label": "is_none" } ] } |}];
-  print (serialize (completions, Some []));
+  print (Some []);
   [%expect
     {|
     {
@@ -35,7 +41,7 @@ let%expect_test "Serialization works as expected" =
       "context": [ "application", { "labels": [] } ]
     }
     |}];
-  print (serialize (completions, Some labels));
+  print (Some labels);
   [%expect
     {|
     {

@@ -50,9 +50,13 @@ module Request_params = struct
   ;;
 end
 
-let serialize (completions, labels) =
-  let entries = "entries", `List (List.map completions ~f:CompletionItem.yojson_of_t) in
-  match labels with
+let serialize_label { Compl.Complete_by_prefix.Function_label.name; type_ } =
+  `Assoc [ "name", `String name; "type", `String type_ ]
+;;
+
+let serialize { Compl.Complete_by_prefix.entries; application_labels } =
+  let entries = "entries", `List (List.map entries ~f:CompletionItem.yojson_of_t) in
+  match application_labels with
   | None -> `Assoc [ entries ]
   | Some labels ->
     `Assoc
@@ -63,12 +67,7 @@ let serialize (completions, labels) =
              context other than just function application. *)
         , `List
             [ `String "application"
-            ; `Assoc
-                [ ( "labels"
-                  , `List
-                      (List.map labels ~f:(fun (n, t) ->
-                         `Assoc [ "name", `String n; "type", `String t ])) )
-                ]
+            ; `Assoc [ "labels", `List (List.map labels ~f:serialize_label) ]
             ] )
       ]
 ;;

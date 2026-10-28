@@ -13,20 +13,29 @@ module Resolve : sig
 end
 
 module Complete_by_prefix : sig
+  module Function_label : sig
+    type t =
+      { name : string
+      ; type_ : string
+      }
+  end
+
+  type t =
+    { entries : CompletionItem.t list
+    ; application_labels : Function_label.t list option
+      (** [None] unless the position is in a function application. *)
+    }
+
   (** Use Merlin to obtain completions for [prefix] at the given position.
       Unlike [textDocument/completion], in the case that Merlin reports that
       the position is a function application context, do not squash function
       argument names into the completions list. Instead, return those function
-      argument names and their types as the [(string * string) list option].
+      argument names and their types in [application_labels].
 
       Results don't depend on the client's completion capabilities: no snippet
       items, no deprecation fields or tags, no [data] for
       [completionItem/resolve], and variants always have kind [EnumMember]. *)
-  val complete_nosquash
-    :  Document.Merlin.t
-    -> prefix:string
-    -> Position.t
-    -> (CompletionItem.t list * (string * string) list option) Fiber.t
+  val complete_nosquash : Document.Merlin.t -> prefix:string -> Position.t -> t Fiber.t
 end
 
 (** Creates a server response for ["textDocument/completion"]. *)

@@ -19,5 +19,5 @@ val meth : string
 val on_request : params:Jsonrpc.Structured.t option -> State.t -> Json.t Fiber.t
 
 module For_testing : sig
-  val serialize : CompletionItem.t list * (string * string) list option -> Json.t
+  val serialize : Compl.Complete_by_prefix.t -> Json.t
 end

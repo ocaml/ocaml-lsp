@@ -424,8 +424,20 @@ module Complete_by_prefix = struct
     keyword_completionItems @ items |> reindex_sortText
   ;;
 
+  module Function_label = struct
+    type t =
+      { name : string
+      ; type_ : string
+      }
+  end
+
+  type t =
+    { entries : CompletionItem.t list
+    ; application_labels : Function_label.t list option
+    }
+
   let complete_nosquash doc ~prefix pos =
-    let+ items, labels =
+    let+ items, application_labels =
       Document.Merlin.with_pipeline_exn
         ~name:"completion-prefix-nosquash"
         doc
@@ -445,15 +457,16 @@ module Complete_by_prefix = struct
                pos
                completion.entries
            in
-           let labels =
+           let application_labels =
              match completion.context with
              | `Unknown -> None
              | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
-               Some labels
+               Some
+                 (List.map labels ~f:(fun (name, type_) -> { Function_label.name; type_ }))
            in
-           items, labels)
+           items, application_labels)
     in
-    reindex_sortText items, labels
+    { entries = reindex_sortText items; application_labels }
   ;;
 end
 
