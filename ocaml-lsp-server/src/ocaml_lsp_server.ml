@@ -106,6 +106,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_destruct.capability
               ; Req_locate_types.capability
               ; Req_refactor_extract.capability
+              ; Req_complete_prefix_at_pos.capability
               ] )
         ]
     in
@@ -641,6 +642,7 @@ let on_request
          ; Req_destruct.meth, Req_destruct.on_request
          ; Req_locate_types.meth, Req_locate_types.on_request
          ; Req_refactor_extract.meth, Req_refactor_extract.on_request
+         ; Req_complete_prefix_at_pos.meth, Req_complete_prefix_at_pos.on_request
          ]
          meth
          ~equal:String.equal
