@@ -45,6 +45,7 @@
     action_mark_remove
     code_actions
     code_lens
+    complete_prefix_at_pos
     completion
     completions
     formatting
