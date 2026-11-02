@@ -1,11 +1,14 @@
 (** Generic formatting facility for OCaml and Reason sources.
 
-    Relies on [ocamlformat] for OCaml, [ocamlformat-mlx] for OCaml.mlx, and
-    [refmt] for Reason. For OCaml files, the closest [.ocamlformat] or
-    [.ocp-indent] between the document and its workspace root selects the
-    formatter. [ocamlformat] wins when both files are in the same directory. If
-    neither is configured, [ocp-indent] is the fallback when [ocamlformat] is
-    missing. *)
+    Relies on [ocamlformat] for OCaml, [ocamlformat-mlx] for OCaml.mlx and
+    [refmt] for Reason, with [ocp-indent] and [topiary] as alternative OCaml
+    formatters. For OCaml files the closest [.ocamlformat], [.ocp-indent], or
+    [.topiary/languages.toml] between the document and its workspace root
+    selects the formatter. When multiple configs are in the same directory
+    [ocamlformat] wins, followed by [ocp-indent], then [topiary]
+    ([ocamlformat] > [ocp-indent] > [topiary]). If none is configured,
+    [ocamlformat] is preferred when available, then [ocp-indent], then
+    [topiary] as fallback. *)
 
 open Import
 
