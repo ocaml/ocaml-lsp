@@ -119,23 +119,11 @@ let find_parsetree_loc_exn pipeline loc =
   Option.value_exn (find_parsetree_loc pipeline loc)
 ;;
 
-(** [strip_attributes names e] removes all instances of the attributes whose name is in
-    [names] from [e]. *)
-let strip_attributes attr_names expr =
-  let module M = Ocaml_parsing.Ast_mapper in
-  let expr_map (map : M.mapper) expr =
-    { (M.default_mapper.expr map expr) with
-      pexp_attributes =
-        List.filter expr.pexp_attributes ~f:(fun (a : Parsetree.attribute) ->
-          not (List.exists ~f:(String.equal a.attr_name.txt) attr_names))
-    }
-  in
-  let mapper = { M.default_mapper with expr = expr_map } in
-  mapper.expr mapper expr
+(** Removes every attribute prefixed by ["merlin."] (e.g. [merlin.loc],
+    [merlin.loc_stack]), on every kind of node, so that they are not printed. *)
+let strip_merlin_attributes =
+  Merlin_analysis.Parsetree_utils.expr_remove_merlin_attributes
 ;;
-
-let merlin_attributes = [ "merlin.loc"; "merlin.loc_stack" ]
-let strip_merlin_attributes = strip_attributes merlin_attributes
 
 (** Mapping from [Location.t] to [Path.t]. Computed from the typedtree. Useful
     for determining whether two parsetree identifiers refer to the same path. *)
