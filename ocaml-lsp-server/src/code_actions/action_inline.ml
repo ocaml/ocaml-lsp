@@ -119,19 +119,10 @@ let find_parsetree_loc_exn pipeline loc =
   Option.value_exn (find_parsetree_loc pipeline loc)
 ;;
 
-(** [strip_attribute name e] removes all instances of the attribute called
-    [name] in [e]. *)
-let strip_attribute attr_name expr =
-  let module M = Ocaml_parsing.Ast_mapper in
-  let expr_map (map : M.mapper) expr =
-    { (M.default_mapper.expr map expr) with
-      pexp_attributes =
-        List.filter expr.pexp_attributes ~f:(fun (a : Parsetree.attribute) ->
-          not (String.equal a.attr_name.txt attr_name))
-    }
-  in
-  let mapper = { M.default_mapper with expr = expr_map } in
-  mapper.expr mapper expr
+(** Removes every attribute prefixed by ["merlin."] (e.g. [merlin.loc],
+    [merlin.loc_stack]), on every kind of node, so that they are not printed. *)
+let strip_merlin_attributes =
+  Merlin_analysis.Parsetree_utils.expr_remove_merlin_attributes
 ;;
 
 (** Mapping from [Location.t] to [Path.t]. Computed from the typedtree. Useful
@@ -246,7 +237,7 @@ let beta_reduce (paths : Paths.t) (app : Parsetree.expression) =
 let inlined_text pipeline task =
   let open Option.O in
   let+ expr = find_parsetree_loc pipeline task.inlined_expr.exp_loc in
-  let expr = strip_attribute "merlin.loc" expr in
+  let expr = strip_merlin_attributes expr in
   Format.asprintf "(%a)" Pprintast.expression expr
 ;;
 
@@ -369,7 +360,7 @@ let inline_edits pipeline task =
              | _ -> app_pexpr
            in
            Format.asprintf "(%a)" Pprintast.expression
-           @@ strip_attribute "merlin.loc" reduced_pexpr
+           @@ strip_merlin_attributes reduced_pexpr
          in
          insert_edit newText expr.exp_loc);
       true)
