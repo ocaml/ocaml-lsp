@@ -55,7 +55,11 @@ let%expect_test "returns a selection range for modules" =
           "start": { "character": 15, "line": 1 }
         },
         {
-          "end": { "character": 22, "line": 1 },
+          "end": { "character": 25, "line": 1 },
+          "start": { "character": 2, "line": 1 }
+        },
+        {
+          "end": { "character": 25, "line": 2 },
           "start": { "character": 2, "line": 1 }
         },
         {
@@ -224,8 +228,8 @@ let%expect_test "comment-only document without a trailing newline" =
     [
       [
         {
-          "end": { "character": 13, "line": 0 },
-          "start": { "character": 0, "line": 0 }
+          "end": { "character": 7, "line": 0 },
+          "start": { "character": 7, "line": 0 }
         }
       ]
     ]
