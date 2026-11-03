@@ -49,7 +49,7 @@ possible and does not make any assumptions about IO.
  (description "An LSP server for OCaml.")
  (depends
   yojson
-  (base (>= v0.16.0))
+  (base (>= v0.17.0))
   (lsp (= :version))
   (jsonrpc (= :version))
   (re (>= 1.5.0))
