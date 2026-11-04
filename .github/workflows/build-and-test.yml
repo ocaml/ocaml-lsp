@@ -48,11 +48,11 @@ jobs:
           ocaml-compiler: "5.4"
 
       # Remove this pin once a compatible version of Merlin has been released
-      - name: Pin dev Merlin
-        run: opam --cli=2.1 pin --with-version=5.6-504 https://github.com/ocaml/merlin.git#main
+      # - name: Pin dev Merlin
+      #   run: opam --cli=2.1 pin --with-version=5.6-504 https://github.com/ocaml/merlin.git#main
 
       - name: Build and install dependencies
-        run: opam install .
+        run: opam install . --deps-only --with-test
 
       # the makefile explains why we don't use --with-test
       # ppx expect is not yet compatible with 5.1 and test output vary from one

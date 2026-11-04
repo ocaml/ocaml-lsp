@@ -121,37 +121,18 @@ module Complete_by_prefix = struct
     Query_commands.dispatch pipeline complete
   ;;
 
-  let process_dispatch_resp
+  let process_entries
         ~deprecated
         ~resolve
-        ~prefix
         doc
         pos
-        (completion : Query_protocol.completions)
+        (completion_entries : Query_protocol.Compl.entry list)
     =
     let range =
       let logical_pos = Position.logical pos in
       range_prefix
         pos
         (prefix_of_position ~short_path:true (Document.Merlin.source doc) logical_pos)
-    in
-    let completion_entries =
-      match completion.context with
-      | `Unknown -> completion.entries
-      | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
-        completion.entries
-        @ List.map labels ~f:(fun (name, typ) ->
-          let name =
-            if String.is_prefix prefix ~prefix:"~" && String.is_prefix name ~prefix:"?"
-            then "~" ^ String.drop_prefix_if_exists name ~prefix:"?"
-            else name
-          in
-          { Query_protocol.Compl.name
-          ; kind = `Label
-          ; desc = typ
-          ; info = ""
-          ; deprecated = false (* TODO this is wrong *)
-          })
     in
     (* we need to json-ify completion params to put them in completion item's
        [data] field to keep it across [textDocument/completion] and the
@@ -171,6 +152,37 @@ module Complete_by_prefix = struct
     List.mapi
       completion_entries
       ~f:(completionItem_of_completion_entry ~deprecated ~range ~compl_params)
+  ;;
+
+  let process_dispatch_resp
+        ~deprecated
+        ~resolve
+        ~prefix
+        doc
+        pos
+        (completion : Query_protocol.completions)
+    =
+    let completion_entries =
+      (* Squash any function argument names into the completions list for the
+         sake of LSP protocol compatibility. *)
+      match completion.context with
+      | `Unknown -> completion.entries
+      | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
+        completion.entries
+        @ List.map labels ~f:(fun (name, typ) ->
+          let name =
+            if String.is_prefix prefix ~prefix:"~" && String.is_prefix name ~prefix:"?"
+            then "~" ^ String.drop_prefix_if_exists name ~prefix:"?"
+            else name
+          in
+          { Query_protocol.Compl.name
+          ; kind = `Label
+          ; desc = typ
+          ; info = ""
+          ; deprecated = false (* TODO this is wrong *)
+          })
+    in
+    process_entries ~deprecated ~resolve doc pos completion_entries
   ;;
 
   let complete_keywords completion_position prefix =
@@ -207,6 +219,39 @@ module Complete_by_prefix = struct
     in
     keyword_completionItems
     @ process_dispatch_resp ~deprecated ~resolve ~prefix doc pos completion
+  ;;
+
+  module Function_label = struct
+    type t =
+      { name : string
+      ; type_ : string
+      }
+  end
+
+  type t =
+    { entries : CompletionItem.t list
+    ; application_labels : Function_label.t list option
+    }
+
+  let complete_nosquash doc ~prefix pos =
+    let+ (completion : Query_protocol.completions) =
+      Document.Merlin.with_pipeline_exn
+        ~name:"completion-prefix-nosquash"
+        doc
+        (dispatch_cmd ~prefix (Position.logical pos))
+    in
+    (* Don't squash any function argument names into the completions; instead
+       return them separately. *)
+    let entries =
+      process_entries ~deprecated:false ~resolve:false doc pos completion.entries
+    in
+    let application_labels =
+      match completion.context with
+      | `Unknown -> None
+      | `Application { Query_protocol.Compl.labels; argument_type = _ } ->
+        Some (List.map labels ~f:(fun (name, type_) -> { Function_label.name; type_ }))
+    in
+    { entries; application_labels }
   ;;
 end
 
