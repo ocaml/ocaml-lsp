@@ -1,15 +1,4 @@
-# Unreleased
-
-## Features
-
-- Add custom
-  [`ocamllsp/completePrefixAtPos`](/ocaml-lsp-server/docs/ocamllsp/completePrefixAtPos-spec.md)
-  request, which completes a given prefix at a given position and returns
-  function argument labels separately from the completions.
-  This will be used by Emacs via the
-  [ocaml-eglot](https://github.com/tarides/ocaml-eglot) package. (#2230, @spwhitton)
-
-# 1.28.0
+# 1.28.1
 
 ## Features
 
@@ -38,6 +27,12 @@
 - Distinguish built-in from user-defined types in semantic highlighting.
   (#1858, fixes #1139, @rgrinberg)
 - Topiary formatter added (#2226, toastal)
+- Add custom
+  [`ocamllsp/completePrefixAtPos`](/ocaml-lsp-server/docs/ocamllsp/completePrefixAtPos-spec.md)
+  request, which completes a given prefix at a given position and returns
+  function argument labels separately from the completions.
+  This will be used by Emacs via the
+  [ocaml-eglot](https://github.com/tarides/ocaml-eglot) package. (#2230, @spwhitton)
 
 ## Fixes
 
