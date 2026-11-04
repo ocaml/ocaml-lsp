@@ -129,9 +129,7 @@ let%expect_test "open the closest dune file without crossing a project boundary"
     closest action:
     {
       "command": {
-        "arguments": [
-          "file://<workspace>/lib/dune"
-        ],
+        "arguments": [ "file://<workspace>/lib/dune" ],
         "command": "ocamllsp/open-dune-file",
         "title": "Open dune file"
       },
