@@ -54,6 +54,27 @@ let foo = 123
       "kind": "type-annotate",
       "title": "Type-annotate"
     }
+    {
+      "edit": {
+        "documentChanges": [
+          {
+            "edits": [
+              {
+                "newText": "0 | _",
+                "range": {
+                  "end": { "character": 7, "line": 1 },
+                  "start": { "character": 4, "line": 1 }
+                }
+              }
+            ],
+            "textDocument": { "uri": "file:///foo.ml", "version": 0 }
+          }
+        ]
+      },
+      "isPreferred": false,
+      "kind": "destruct (enumerate cases)",
+      "title": "Destruct (enumerate cases)"
+    }
     |}]
 ;;
 

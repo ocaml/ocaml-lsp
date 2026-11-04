@@ -38,7 +38,7 @@ let%expect_test "an unexpected Dune connection error is logged without stopping 
   Fun.protect
     ~finally:(fun () ->
       Unix.chmod blocked 0o700;
-      ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int))
+      ignore (Test.run_command_status ("rm -rf -- " ^ Filename.quote temp) : int))
     (fun () ->
        let logged = Fiber.Ivar.create () in
        let on_notification _ = function
@@ -121,7 +121,7 @@ let%expect_test "a connected but uninitialized Dune rejects promotion commands" 
        | exception Unix.Unix_error (Unix.ESRCH, _, _) -> ());
       ignore (Test.waitpid fake_pid : Unix.process_status);
       Unix.close listener;
-      ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int))
+      ignore (Test.run_command_status ("rm -rf -- " ^ Filename.quote temp) : int))
     (fun () ->
        let connecting = Fiber.Ivar.create () in
        let on_notification _ = function

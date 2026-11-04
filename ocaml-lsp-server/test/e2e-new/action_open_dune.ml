@@ -66,8 +66,10 @@ let print_action ~root label action =
   (match action with
    | None -> `Null
    | Some action -> CodeAction.yojson_of_t action)
-  |> Yojson.Safe.pretty_to_string ~std:false
+  |> Yojson.Safe.to_string
   |> String.substr_replace_all ~pattern:root ~with_:"<workspace>"
+  |> Yojson.Safe.from_string
+  |> Yojson.Safe.pretty_to_string ~std:false
   |> print_endline
 ;;
 
@@ -129,9 +131,7 @@ let%expect_test "open the closest dune file without crossing a project boundary"
     closest action:
     {
       "command": {
-        "arguments": [
-          "file://<workspace>/lib/dune"
-        ],
+        "arguments": [ "file://<workspace>/lib/dune" ],
         "command": "ocamllsp/open-dune-file",
         "title": "Open dune file"
       },

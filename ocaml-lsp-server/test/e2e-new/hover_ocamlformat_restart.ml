@@ -73,7 +73,8 @@ let%expect_test "restart ocamlformat-rpc after process exit" =
      exec \"$REAL_OCAMLFORMAT_RPC\" \"$@\"\n";
   Unix.chmod shim 0o700;
   Fun.protect
-    ~finally:(fun () -> ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int))
+    ~finally:(fun () ->
+      ignore (Test.run_command_status ("rm -rf -- " ^ Filename.quote temp) : int))
     (fun () ->
        let started = Mailbox.create () in
        let on_notification _ = function
@@ -146,7 +147,8 @@ let%expect_test "reports a failed ocamlformat-rpc version negotiation" =
   Test.write_file fake "#!/bin/sh\necho not-a-csexp-response\n";
   Unix.chmod fake 0o700;
   Fun.protect
-    ~finally:(fun () -> ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int))
+    ~finally:(fun () ->
+      ignore (Test.run_command_status ("rm -rf -- " ^ Filename.quote temp) : int))
     (fun () ->
        let errors = Mailbox.create () in
        let on_notification _ = function

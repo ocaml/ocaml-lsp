@@ -244,20 +244,40 @@ include T
 
 let write_file path data = Fs_io.write_file ~perm:0o666 ~path ~data |> Result.ok_exn
 
+(* Unix domain socket paths are limited to 104 bytes on macos, but the default
+   temp directories are already quite long ([/var/folder.../T]). We need to take
+   that into accound when choosing a temp directory because [rpc.sock] are put
+   inside by dune rpc's tests.
+   https://serverfault.com/questions/641347/check-if-a-path-exceeds-maximum-for-unix-domain-socket
+   *)
 let temp_dir ?temp_dir prefix =
-  let dir = Filename.temp_file ?temp_dir prefix "" in
+  let temp_dir =
+    match temp_dir with
+    | Some dir -> dir
+    | None ->
+      let dir = Filename.get_temp_dir_name () in
+      if String.length dir > 40 then Unix.realpath "/tmp" else dir
+  in
+  let dir = Filename.temp_file ~temp_dir prefix "" in
   Sys.remove dir;
   Unix.mkdir dir 0o700;
   dir
 ;;
 
-let run_command ?cwd command =
-  let command =
+let run_command_status ?cwd command =
+  let cwd =
     match cwd with
-    | None -> command
-    | Some cwd -> Printf.sprintf "cd %s && %s" (Filename.quote cwd) command
+    | None -> Spawn.Working_dir.Inherit
+    | Some cwd -> Path cwd
   in
-  if Sys.command command <> 0 then failwith command
+  let pid = Spawn.spawn ~cwd ~prog:"/bin/sh" ~argv:[ "sh"; "-c"; command ] () in
+  match Unix.waitpid [] pid with
+  | _, WEXITED code -> code
+  | _, (WSIGNALED _ | WSTOPPED _) -> -1
+;;
+
+let run_command ?cwd command =
+  if run_command_status ?cwd command <> 0 then failwith command
 ;;
 
 let null_device = if Sys.win32 then "NUL" else "/dev/null"

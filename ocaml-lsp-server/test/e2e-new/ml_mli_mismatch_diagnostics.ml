@@ -48,7 +48,7 @@ let create_project () =
 
 let destroy_project project =
   stop_process project.dune_pid;
-  ignore (Sys.command ("rm -rf -- " ^ Filename.quote project.temp) : int)
+  ignore (Test.run_command_status ("rm -rf -- " ^ Filename.quote project.temp) : int)
 ;;
 
 let sanitize_string project string =

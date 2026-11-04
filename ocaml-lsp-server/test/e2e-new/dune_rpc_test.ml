@@ -345,7 +345,7 @@ let create_project name =
     }
   | exception exn ->
     stop_process dune_pid;
-    ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int);
+    ignore (Test.run_command_status ("rm -rf -- " ^ Filename.quote temp) : int);
     raise exn
 ;;
 
@@ -400,7 +400,7 @@ let restart_dune project =
 
 let destroy_project project =
   Option.iter project.dune_pid ~f:stop_process;
-  ignore (Sys.command ("rm -rf -- " ^ Filename.quote project.temp) : int)
+  ignore (Test.run_command_status ("rm -rf -- " ^ Filename.quote project.temp) : int)
 ;;
 
 let run_with_workspace ?capabilities ?trace ~root ~runtime_dir events ~f =
