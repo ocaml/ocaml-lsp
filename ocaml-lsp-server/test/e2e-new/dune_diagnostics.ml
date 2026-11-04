@@ -272,7 +272,7 @@ let%expect_test "Dune success refreshes load paths in every Merlin state" =
     ~finally:(fun () ->
       stop_dune dune_pid gate;
       Unix.close ocamllsp_stderr;
-      ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int))
+      ignore (Test.run_command_status ("rm -rf -- " ^ Filename.quote temp) : int))
     (fun () ->
        let events = Events.create () in
        let handler =

@@ -251,13 +251,20 @@ let temp_dir ?temp_dir prefix =
   dir
 ;;
 
-let run_command ?cwd command =
-  let command =
+let run_command_status ?cwd command =
+  let cwd =
     match cwd with
-    | None -> command
-    | Some cwd -> Printf.sprintf "cd %s && %s" (Filename.quote cwd) command
+    | None -> Spawn.Working_dir.Inherit
+    | Some cwd -> Path cwd
   in
-  if Sys.command command <> 0 then failwith command
+  let pid = Spawn.spawn ~cwd ~prog:"/bin/sh" ~argv:[ "sh"; "-c"; command ] () in
+  match Unix.waitpid [] pid with
+  | _, WEXITED code -> code
+  | _, (WSIGNALED _ | WSTOPPED _) -> -1
+;;
+
+let run_command ?cwd command =
+  if run_command_status ?cwd command <> 0 then failwith command
 ;;
 
 let null_device = if Sys.win32 then "NUL" else "/dev/null"

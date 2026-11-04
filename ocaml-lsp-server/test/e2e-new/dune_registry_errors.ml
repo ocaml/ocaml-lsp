@@ -7,7 +7,8 @@ let%expect_test "repeated Dune registry polling errors are logged once" =
   Unix.mkdir root 0o700;
   Unix.mkdir runtime_dir 0o700;
   Fun.protect
-    ~finally:(fun () -> ignore (Sys.command ("rm -rf -- " ^ Filename.quote temp) : int))
+    ~finally:(fun () ->
+      ignore (Test.run_command_status ("rm -rf -- " ^ Filename.quote temp) : int))
     (fun () ->
        let first_warning = Fiber.Ivar.create () in
        let warning_count = ref 0 in
