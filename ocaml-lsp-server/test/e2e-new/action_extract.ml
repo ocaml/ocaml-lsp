@@ -1,5 +1,5 @@
-let extract_local_test = Code_actions.code_action_test ~title:"Extract local"
-let extract_function_test = Code_actions.code_action_test ~title:"Extract function"
+let extract_local_test = Code_actions_extract.test ~kind:`Local
+let extract_function_test = Code_actions_extract.test ~kind:`Function
 
 let%expect_test "extract local constant" =
   extract_local_test
