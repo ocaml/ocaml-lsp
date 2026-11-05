@@ -49,3 +49,72 @@ let sum2 = sum + num
     ]
     |}]
 ;;
+
+let%expect_test "highlight module names" =
+  let source =
+    {ocaml|module M = struct
+  let x = 1
+end
+
+let y = M.x
+module N = M
+|ocaml}
+  in
+  let req client =
+    let* response = document_highlight client (Position.create ~line:0 ~character:7) in
+    print_highlights response;
+    let* response = document_highlight client (Position.create ~line:4 ~character:8) in
+    print_highlights response;
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect
+    {|
+    [
+      {
+        "kind": 1,
+        "range": {
+          "end": { "character": 8, "line": 0 },
+          "start": { "character": 7, "line": 0 }
+        }
+      },
+      {
+        "kind": 1,
+        "range": {
+          "end": { "character": 9, "line": 4 },
+          "start": { "character": 8, "line": 4 }
+        }
+      },
+      {
+        "kind": 1,
+        "range": {
+          "end": { "character": 12, "line": 5 },
+          "start": { "character": 11, "line": 5 }
+        }
+      }
+    ]
+    [
+      {
+        "kind": 1,
+        "range": {
+          "end": { "character": 8, "line": 0 },
+          "start": { "character": 7, "line": 0 }
+        }
+      },
+      {
+        "kind": 1,
+        "range": {
+          "end": { "character": 9, "line": 4 },
+          "start": { "character": 8, "line": 4 }
+        }
+      },
+      {
+        "kind": 1,
+        "range": {
+          "end": { "character": 12, "line": 5 },
+          "start": { "character": 11, "line": 5 }
+        }
+      }
+    ]
+    |}]
+;;
