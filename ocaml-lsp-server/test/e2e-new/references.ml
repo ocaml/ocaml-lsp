@@ -28,6 +28,28 @@ let check_include_declaration client ~uri position ~print =
   >>| print "without declaration:"
 ;;
 
+let%expect_test "includeDeclaration also works with an escaped document URI" =
+  let uri = Uri.of_path "/test.ml" in
+  Helpers.test
+    ~uri
+    ~wire_uri:"file:///%74est.ml"
+    "let value = 1\nlet use = value\n"
+    (fun client ->
+       let+ locations =
+         references
+           client
+           ~uri
+           (Position.create ~line:0 ~character:5)
+           ~includeDeclaration:false
+       in
+       match locations with
+       | Some [ { Location.range; uri = location_uri } ] ->
+         assert (Uri.equal uri location_uri);
+         assert (range.start.line = 1 && range.start.character = 10)
+       | _ -> failwith "expected only the use, not the declaration");
+  [%expect {| |}]
+;;
+
 let%expect_test "includeDeclaration filters the declaration" =
   let source =
     {ocaml|let num = 42

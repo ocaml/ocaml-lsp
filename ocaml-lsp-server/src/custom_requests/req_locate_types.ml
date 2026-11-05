@@ -159,12 +159,12 @@ let map_payload type_ result =
   ; result =
       (match result with
        | `Found (file, pos) ->
-         let uri = Option.map ~f:DocumentUri.of_string file
+         let uri = Option.map ~f:DocumentUri.of_path file
          and pos = pos |> Position.of_lexical_position |> Option.value_exn in
          `Found (uri, pos)
        | (`Not_in_env _ | `Builtin _) as s -> s
-       | `Not_found (file, ty) -> `Not_found (DocumentUri.of_string file, ty)
-       | `File_not_found file -> `File_not_found (DocumentUri.of_string file))
+       | `Not_found (file, ty) -> `Not_found (DocumentUri.of_path file, ty)
+       | `File_not_found file -> `File_not_found (DocumentUri.of_path file))
   }
 ;;
 
