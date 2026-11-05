@@ -296,3 +296,34 @@ let%expect_test "can get markdown documentation when the client prefers it" =
     }
     |}]
 ;;
+
+let%expect_test "can get documentation for an operator after a module path" =
+  let source =
+    {ocaml|let _ = Bool.
+let _ = Stdlib.
+|ocaml}
+  in
+  let req client =
+    let* response =
+      completion_item_resolve client "(&&)" (Position.create ~line:0 ~character:13)
+    in
+    print_completion_item response;
+    let* response =
+      completion_item_resolve client "( * )" (Position.create ~line:1 ~character:15)
+    in
+    print_completion_item response;
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect
+    {|
+    {
+      "documentation": "[e0 && e1] is the lazy boolean conjunction of expressions [e0] and [e1].\n    If [e0] evaluates to [false], [e1] is not evaluated. Right-associative\n    operator at precedence level 3/11.",
+      "label": "(&&)"
+    }
+    {
+      "documentation": "Integer multiplication.\n    Left-associative operator, see {!Ocaml_operators} for more information.",
+      "label": "( * )"
+    }
+    |}]
+;;
