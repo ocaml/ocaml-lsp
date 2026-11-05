@@ -445,3 +445,66 @@ let f ({ px; py } as p : point) = px + py
     }
     |}]
 ;;
+
+let%expect_test "constructor doc comments are not merged with their neighbours" =
+  let source =
+    {ocaml|type t =
+  | Foo (** doc comment for Foo *)
+  | Bar (** doc comment for Bar *)
+
+type s =
+  | Baz of string
+    (** a long doc comment for Baz *)
+  | Qux of int (** a shorter doc comment for Qux *)
+
+let _ = Foo
+let _ = Bar
+let _ = Baz "hello"
+let _ = Qux 42
+|ocaml}
+  in
+  Hover_helpers.test_hover
+    source
+    [ Position.create ~line:9 ~character:8
+    ; Position.create ~line:10 ~character:8
+    ; Position.create ~line:11 ~character:8
+    ; Position.create ~line:12 ~character:8
+    ];
+  [%expect
+    {|
+    {
+      "contents": { "kind": "plaintext", "value": "t\n***\ndoc comment for Foo" },
+      "range": {
+        "end": { "character": 11, "line": 9 },
+        "start": { "character": 8, "line": 9 }
+      }
+    }
+    {
+      "contents": { "kind": "plaintext", "value": "t\n***\ndoc comment for Bar" },
+      "range": {
+        "end": { "character": 11, "line": 10 },
+        "start": { "character": 8, "line": 10 }
+      }
+    }
+    {
+      "contents": {
+        "kind": "plaintext",
+        "value": "string -> s\n***\na long doc comment for Baz"
+      },
+      "range": {
+        "end": { "character": 11, "line": 11 },
+        "start": { "character": 8, "line": 11 }
+      }
+    }
+    {
+      "contents": {
+        "kind": "plaintext",
+        "value": "int -> s\n***\na shorter doc comment for Qux"
+      },
+      "range": {
+        "end": { "character": 11, "line": 12 },
+        "start": { "character": 8, "line": 12 }
+      }
+    }
+    |}]
+;;
