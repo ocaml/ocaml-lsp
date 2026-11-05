@@ -69,7 +69,7 @@ let caller self = f self
   [%expect
     {|
     let f self case = self + case
-    let caller self = ((fun self case -> self + case) self)
+    let caller self = (fun case -> self + case)
     |}]
 ;;
 
