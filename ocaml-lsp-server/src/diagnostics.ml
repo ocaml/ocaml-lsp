@@ -338,13 +338,19 @@ let error_to_diagnostics ~diagnostics ~merlin error =
     then first_n_lines_of_range original_range 1
     else original_range
   in
-  let severity =
-    match error.source with
-    | Warning -> DiagnosticSeverity.Warning
-    | _ -> DiagnosticSeverity.Error
-  in
   let make_message ppf m = String.strip (Format.asprintf "%a@." ppf m) in
   let message = make_message Loc.print_main error in
+  let severity =
+    (* Merlin pre-renders warnings, so a fatal one is only recognisable by its
+       "Error (warning ...)" or "Error (alert ...)" message *)
+    match error.source with
+    | Warning
+      when not
+             (String.is_prefix message ~prefix:"Error (warning"
+              || String.is_prefix message ~prefix:"Error (alert") ->
+      DiagnosticSeverity.Warning
+    | _ -> DiagnosticSeverity.Error
+  in
   let message, related_information =
     match diagnostics.related_information with
     | false -> message, None
