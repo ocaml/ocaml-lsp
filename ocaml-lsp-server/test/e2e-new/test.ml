@@ -1,3 +1,6 @@
+(* [Stdune.Spawn] (stdune >= 3.25) would shadow the [spawn] library below. *)
+module Spawn_lib = Spawn
+
 module Import = struct
   include struct
     include Stdune
@@ -65,6 +68,7 @@ module Import = struct
   include Lsp.Types
   module Uri = Lsp.Uri
   module Position = Ocaml_lsp_server.Position
+  module Spawn = Spawn_lib
 end
 
 open Import
@@ -82,7 +86,7 @@ module T : sig
     -> (unit Client.t -> 'a Fiber.t)
     -> 'a
 end = struct
-  let _PATH = Bin.parse_path (Option.value ~default:"" @@ Env.get Env.initial "PATH")
+  let _PATH = Bin.parse_path (Option.value ~default:"" @@ Sys.getenv_opt "PATH")
   let bin = Bin.which "ocamllsp" ~path:_PATH |> Option.value_exn |> Path.to_string
 
   let run_with_status ?(extra_env = []) ?handler f =

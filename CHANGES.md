@@ -1,3 +1,11 @@
+# Unreleased
+
+## Fixes
+
+- Fix build with stdune >= 3.25: avoid `Stdune.Pid` (backport of #1608) and
+  use the standard library instead of `Stdune.Env.get` and
+  `Stdune.Io.String_path.read_file`, whose signatures changed. (#2236)
+
 # 1.26.1
 
 ## Features

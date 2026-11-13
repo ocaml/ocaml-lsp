@@ -14,7 +14,7 @@ let%expect_test "metrics" =
         Yojson.Safe.to_channel stdout json;
         print_endline "";
         print_endline "metrics contents:";
-        print_endline (Stdune.Io.String_path.read_file (Uri.to_path p.uri));
+        print_endline (In_channel.with_open_bin (Uri.to_path p.uri) In_channel.input_all);
         let res = ShowDocumentResult.create ~success:true in
         Fiber.return (Lsp_fiber.Rpc.Reply.now res, ())
       | _ -> assert false
