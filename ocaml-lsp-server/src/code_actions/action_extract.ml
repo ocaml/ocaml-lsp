@@ -200,7 +200,7 @@ let extract_function doc typedtree range =
   in
   let* func_text = Text_document.substring (Document.text_document doc) extract_range in
   let new_function = sprintf "let %s %s = %s\n\n" new_name args_str func_text in
-  let new_call = sprintf "%s %s" new_name args_str in
+  let new_call = sprintf "(%s %s)" new_name args_str in
   let insert_range = { Range.start = edit_pos; end_ = edit_pos } in
   Some
     [ TextEdit.create ~newText:new_function ~range:insert_range
