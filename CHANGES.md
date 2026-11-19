@@ -1,3 +1,10 @@
+# Unreleased
+
+## Fixes
+
+- Keep local bindings extracted from an `if` branch inside that branch and
+  preserve the evaluation of expressions after the conditional. (#2241, @smorimoto)
+
 # 1.28.1
 
 ## Features
