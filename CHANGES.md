@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Restore inherited signal masks on normal shutdown without reporting an internal error. (#2251, @smorimoto)
+
 # 1.28.1
 
 ## Features
