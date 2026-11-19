@@ -15,19 +15,56 @@ let select_complete_lines (range : Range.t) =
       Some (Range.create ~start ~end_))
 ;;
 
-let split_cases code =
-  let lines = String.split code ~on:'\n' in
-  let case_regex = Re.Perl.re {|^\s*\|.*->|} |> Re.compile in
-  let drop_from_lines lines regex =
-    List.map lines ~f:(Re.replace_string (Re.compile regex) ~by:"")
+module Lexer = Ocaml_preprocess.Lexer_raw
+module Parser = Ocaml_preprocess.Parser_raw
+
+let split_case line =
+  let open Option.O in
+  let* source = String.chop_prefix (String.strip line) ~prefix:"|" in
+  let lexer = Lexer.make (Lexer.keywords []) in
+  let rec token = function
+    | Lexer.Return token -> token
+    | Refill refill -> token (refill ())
+    | Fail _ -> raise Parser.Error
   in
-  match List.for_all ~f:(Re.execp case_regex) lines with
-  | false -> None
-  | true ->
-    let without_pipes = drop_from_lines lines (Re.Perl.re {|\s*\|\s*|}) in
-    let lhs_patterns = drop_from_lines without_pipes (Re.Perl.re {|\s*->.*$|}) in
-    let rhs_expressions = drop_from_lines without_pipes (Re.Perl.re {|^.*->\s*|}) in
-    Some (lhs_patterns, rhs_expressions)
+  let arrows = ref [] in
+  let first = ref true in
+  let next lexbuf =
+    if !first
+    then (
+      first := false;
+      Parser.FUNCTION)
+    else (
+      let result = token (Lexer.token_without_comments lexer lexbuf) in
+      (match result with
+       | Parser.MINUSGREATER ->
+         arrows := (Lexing.lexeme_start lexbuf, Lexing.lexeme_end lexbuf) :: !arrows
+       | _ -> ());
+      result)
+  in
+  match Parser.parse_expression next (Lexing.from_string source) with
+  | { pexp_desc =
+        Pexp_function
+          ([], None, Pfunction_cases ([ { pc_lhs; pc_guard = None; _ } ], _, _))
+    ; _
+    } ->
+    (* The case arrow follows the complete pattern, including any type arrows.
+       Keep the source on both sides so comments and RHS functions survive. *)
+    List.find_map (List.rev !arrows) ~f:(fun (start, stop) ->
+      if start < pc_lhs.ppat_loc.loc_end.pos_cnum
+      then None
+      else
+        Some
+          ( String.strip (String.prefix source start)
+          , String.strip (String.drop_prefix source stop) ))
+  | _ -> None
+  | exception (Parser.Error | Ocaml_parsing.Syntaxerr.Error _) -> None
+;;
+
+let split_cases code =
+  let open Option.O in
+  let+ cases = String.split code ~on:'\n' |> List.map ~f:split_case |> Option.all in
+  List.unzip cases
 ;;
 
 let pick_rhs rhs_expressions =
