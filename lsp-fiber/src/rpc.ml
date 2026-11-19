@@ -266,21 +266,26 @@ struct
     =
     let* () = Fiber.return () in
     let jsonrpc_req = create_request t req in
-    let+ resp, cancel_status =
+    let* result, cancel_status =
       Fiber.Cancel.with_handler
         cancel
         ~on_cancel:(fun () -> on_cancel jsonrpc_req.id)
         (fun () ->
-           let+ resp = Session.request (Fdecl.get t.session) jsonrpc_req in
-           match resp.result with
-           | Error { code = RequestCancelled; _ } -> `Cancelled
-           | Ok _ when Fiber.Cancel.fired cancel -> `Cancelled
-           | Ok s -> `Ok (Out_request.response_of_json req s)
-           | Error e -> raise (Jsonrpc.Response.Error.E e))
+           (* The handler is only unregistered when this fiber returns normally. *)
+           Fiber.collect_errors (fun () ->
+             Session.request (Fdecl.get t.session) jsonrpc_req))
     in
-    match cancel_status with
-    | Cancelled () -> `Cancelled
-    | Not_cancelled -> resp
+    match result with
+    | Error errors -> Fiber.reraise_all errors
+    | Ok resp ->
+      Fiber.return
+        (match resp.result with
+         | Error { code = RequestCancelled; _ } -> `Cancelled
+         | Error e -> raise (Jsonrpc.Response.Error.E e)
+         | Ok s ->
+           (match cancel_status with
+            | Cancelled () -> `Cancelled
+            | Not_cancelled -> `Ok (Out_request.response_of_json req s)))
   ;;
 
   let notification (t : _ t) (n : Out_notification.t) : unit Fiber.t =
