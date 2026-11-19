@@ -24,7 +24,8 @@ type semantic_tokens_cache =
       No Promotions       |  O   |   O    |
     v}
 
-    Register on transitions into X; unregister on transitions out of X. *)
+    For clients supporting code action dynamic registration, register on transitions
+    into X; unregister on transitions out of X. *)
 
 type doc =
   { document : Document.t option
@@ -47,6 +48,16 @@ let make s pool = { db = Hashtbl.create (module Uri); server = Server s; pool }
 let code_action_id uri = "ocamllsp-promote/" ^ Uri.to_string uri
 let method_ = "textDocument/codeAction"
 
+let request t req =
+  let (Server server) = t.server in
+  let server = Fdecl.get server in
+  let* params = Server.initialized server in
+  match params.capabilities.textDocument with
+  | Some { codeAction = Some { dynamicRegistration = Some true; _ }; _ } ->
+    Fiber.Pool.task t.pool ~f:(fun () -> Server.request server req)
+  | _ -> Fiber.return ()
+;;
+
 let unregister_request t uris =
   match uris with
   | [] -> Fiber.return ()
@@ -56,11 +67,8 @@ let unregister_request t uris =
         let id = code_action_id uri in
         Unregistration.create ~id ~method_)
     in
-    let (Server server) = t.server in
-    let server = Fdecl.get server in
     let req = UnregistrationParams.create ~unregisterations in
-    Fiber.Pool.task t.pool ~f:(fun () ->
-      Server.request server (Server_request.ClientUnregisterCapability req))
+    request t (Server_request.ClientUnregisterCapability req)
 ;;
 
 let register_request t uris =
@@ -87,11 +95,8 @@ let register_request t uris =
         in
         Registration.create ~id ~method_ ~registerOptions ())
     in
-    let (Server server) = t.server in
-    let server = Fdecl.get server in
     let req = RegistrationParams.create ~registrations in
-    Fiber.Pool.task t.pool ~f:(fun () ->
-      Server.request server (Server_request.ClientRegisterCapability req))
+    request t (Server_request.ClientRegisterCapability req)
 ;;
 
 let open_document t doc =
