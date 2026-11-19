@@ -29,18 +29,18 @@ let f =
     var_name + 1 |}]
 ;;
 
-let%expect_test "extract function single parameter" =
+let%expect_test "extract function used as an argument" =
   extract_function_test
     {|
 let f x =
-  $(x * 2)$ + 3
+  print_int $(x * 2)$
 |};
   [%expect
     {|
     let fun_name x = (x * 2)
 
     let f x =
-      fun_name x + 3 |}]
+      print_int (fun_name x) |}]
 ;;
 
 let%expect_test "extract function multiple parameter" =
@@ -56,7 +56,7 @@ let f x =
 
     let f x =
       let y = 0 in
-      fun_name y x + 3 |}]
+      (fun_name y x) + 3 |}]
 ;;
 
 let%expect_test "extract function with local module" =
@@ -102,7 +102,7 @@ let f () =
     let fun_name () = (let exception Local in raise Local)
 
     let f () =
-      fun_name ()
+      (fun_name ())
     |}]
 ;;
 
@@ -128,7 +128,7 @@ let f x = $x + 1$
     let x = 0
     let fun_name x = x + 1
 
-    let f x = fun_name x |}]
+    let f x = (fun_name x) |}]
 ;;
 
 let%expect_test "extract function with bound variable" =
@@ -144,7 +144,7 @@ let f x = $x + y$
     let y = 1
     let fun_name x = x + y
 
-    let f x = fun_name x |}]
+    let f x = (fun_name x) |}]
 ;;
 
 let%expect_test "extract higher order function" =
@@ -158,7 +158,7 @@ let f x =
     let fun_name x = List.map (fun y -> y + 1) x
 
     let f x =
-      fun_name x |}]
+      (fun_name x) |}]
 ;;
 
 let%expect_test "extract higher order function" =
@@ -172,7 +172,7 @@ let f y =
     let fun_name y = List.map (fun y -> y + 1) y
 
     let f y =
-      fun_name y |}]
+      (fun_name y) |}]
 ;;
 
 let%expect_test "extract inside let binding" =
@@ -188,7 +188,7 @@ let f y =
 
     let f y =
       let y = y + 1 in
-      fun_name y |}]
+      (fun_name y) |}]
 ;;
 
 let%expect_test "extract free variable" =
@@ -202,5 +202,5 @@ let f () =
     let fun_name () = z + 1
 
     let f () =
-      fun_name () |}]
+      (fun_name ()) |}]
 ;;
