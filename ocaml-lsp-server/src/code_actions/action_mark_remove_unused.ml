@@ -130,13 +130,58 @@ let rec mark_value_unused_edit name contexts =
   | _ -> None
 ;;
 
+let preserve_parameter_label doc name pos contexts (edit : TextEdit.t) =
+  let text_document = Document.text_document doc in
+  let offset = Text_document.absolute_position text_document pos in
+  let parameter (param : Typedtree.function_param) =
+    let pat =
+      match param.fp_kind with
+      | Tparam_pat pat | Tparam_optional_default (pat, _) -> pat
+    in
+    match param.fp_arg_label, pat.pat_desc with
+    | (Labelled label | Optional label), Tpat_var (_, binder, _)
+      when String.equal binder.txt name
+           && String.equal label name
+           && binder.loc.loc_start.pos_cnum = offset
+           && (not param.fp_loc.loc_ghost)
+           && not binder.loc.loc_ghost ->
+      let start_offset = param.fp_loc.loc_start.pos_cnum in
+      if start_offset < 0 || start_offset >= offset
+      then None
+      else (
+        let range =
+          Text_document.range_of_utf8_offsets
+            text_document
+            ~start_offset
+            ~end_offset:offset
+        in
+        let* prefix = Text_document.substring text_document range in
+        let sigil = String.prefix prefix 1 in
+        let rest = String.drop_prefix prefix 1 in
+        if
+          (String.equal sigil "~" || String.equal sigil "?")
+          && not (String.is_prefix rest ~prefix:(label ^ ":"))
+        then
+          (* Expand the pun without changing its public label, preserving any
+           parentheses and comments before the binding. *)
+          Some { TextEdit.range; newText = sigil ^ label ^ ":" ^ rest ^ "_" }
+        else None)
+    | _ -> None
+  in
+  List.find_map contexts ~f:(function
+    | Browse_raw.Expression { exp_desc = Texp_function (params, _); _ } ->
+      List.find_map params ~f:parameter
+    | _ -> None)
+  |> Option.value ~default:edit
+;;
+
 let code_action_mark_value_unused pipeline doc (diagnostic : Diagnostic.t) =
   let open Option.O in
   let* var_name = Text_document.substring (Document.text_document doc) diagnostic.range in
   let pos = diagnostic.range.start in
-  let+ text_edit =
-    enclosing_pos pipeline pos |> List.rev_map ~f:snd |> mark_value_unused_edit var_name
-  in
+  let contexts = enclosing_pos pipeline pos |> List.rev_map ~f:snd in
+  let+ text_edit = mark_value_unused_edit var_name contexts in
+  let text_edit = preserve_parameter_label doc var_name pos contexts text_edit in
   let edit = Text_document.workspace_edit (Document.text_document doc) [ text_edit ] in
   CodeAction.create
     ~diagnostics:[ diagnostic ]

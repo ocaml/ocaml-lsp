@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Preserve public argument labels when marking a punned function parameter as unused. (#2248, @smorimoto)
+
 # 1.28.1
 
 ## Features

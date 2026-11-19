@@ -55,6 +55,29 @@ let f =
     |}]
 ;;
 
+let%expect_test "mark unused parameter preserves its public label" =
+  List.iter
+    [ "let f ~$x$ = ()"
+    ; "let f ?$x$ () = ()"
+    ; "let f ?($x$ : int = 0) () = ()"
+    ; "let f ~((* before *) $x$ (* after *) : int) = ()"
+    ; "let f ~x:($x$ : int) = ()"
+    ; "let f ~ (* before *) ($x$ : int) = ()"
+    ]
+    ~f:(fun source ->
+      mark_test `Value source;
+      print_newline ());
+  [%expect
+    {|
+    let f ~x:_x = ()
+    let f ?x:_x () = ()
+    let f ?x:(_x : int = 0) () = ()
+    let f ~x:((* before *) _x (* after *) : int) = ()
+    let f ~x:(_x : int) = ()
+    let f ~x: (* before *) (_x : int) = ()
+    |}]
+;;
+
 (* todo *)
 let%expect_test "mark value in top level let" =
   mark_test
