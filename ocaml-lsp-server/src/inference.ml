@@ -7,11 +7,25 @@ let get_typer doc =
     Mpipeline.typer_result pipeline)
 ;;
 
+(* [str_type] also contains the items bound by a top-level [open struct ... end],
+   which are not part of the module's interface. *)
+let implementation_signature (impl : Typedtree.structure) =
+  let hidden =
+    List.concat_map impl.str_items ~f:(fun (item : Typedtree.structure_item) ->
+      match item.str_desc with
+      | Tstr_open { open_bound_items; _ } ->
+        List.map open_bound_items ~f:Types.signature_item_id
+      | _ -> [])
+  in
+  List.filter impl.str_type ~f:(fun item ->
+    not (List.mem hidden (Types.signature_item_id item) ~equal:Ident.equal))
+;;
+
 let get_doc_signature typer =
   let typedtree = Mtyper.get_typedtree typer in
   match typedtree with
   | `Interface intf -> intf.sig_type
-  | `Implementation impl -> impl.str_type
+  | `Implementation impl -> implementation_signature impl
 ;;
 
 (** Called by the code action for insert-interface. *)
@@ -57,7 +71,7 @@ let infer_intf_for_impl doc =
         let typedtree = Mtyper.get_typedtree typer in
         match typedtree with
         | `Interface _ -> assert false
-        | `Implementation doc -> doc.str_type
+        | `Implementation doc -> implementation_signature doc
       in
       let env = Mtyper.initial_env typer in
       let verbosity = (Mpipeline.final_config pipeline).query.verbosity in

@@ -1,3 +1,10 @@
+# Unreleased
+
+## Fixes
+
+- Leave out items bound by a top-level `open struct ... end` when inferring an
+  interface. (#2239, fixes #2231, @Lotion-3)
+
 # 1.28.1
 
 ## Features

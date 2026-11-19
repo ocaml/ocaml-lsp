@@ -65,8 +65,5 @@ let x = hidden
     Fiber.return ()
   in
   Helpers.test source req;
-  [%expect {|
-    val hidden : int
-    val x : int
-    |}]
+  [%expect {| val x : int |}]
 ;;
