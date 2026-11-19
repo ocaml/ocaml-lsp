@@ -3,6 +3,7 @@ open Import
 type t
 
 val create : unit -> t
+val binary_not_found : t -> bool
 val stop : t -> unit Fiber.t
 
 val format_type

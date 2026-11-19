@@ -22,7 +22,11 @@ end
 let send_exit_before_initialize () =
   let stdin_i, stdin_o = Unix.pipe ~cloexec:true () in
   let stdout_i, stdout_o = Unix.pipe ~cloexec:true () in
-  let env = Unix.environment () |> Array.to_list |> Spawn.Env.of_list in
+  let inherited =
+    Array.to_list (Unix.environment ())
+    |> List.filter ~f:(fun entry -> not (String.is_prefix entry ~prefix:"PATH="))
+  in
+  let env = Spawn.Env.of_list ("PATH=" :: inherited) in
   let pid =
     Spawn.spawn ~env ~prog:Test.bin ~argv:[ Test.bin ] ~stdin:stdin_i ~stdout:stdout_o ()
   in

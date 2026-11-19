@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Exit cleanly before initialisation when the optional formatter is unavailable. (#2252, @smorimoto)
+
 # 1.28.1
 
 ## Features
