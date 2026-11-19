@@ -532,7 +532,7 @@ let%expect_test "can combine cases with one unique RHS" =
     match card with
     | Ace -> _
    $ | King -> _
-    $| Queen -> "Face card!"
+    $| Queen -> "Face | card!"
     | Jack -> "Face card?"
     | Number _ -> _
 |ocaml};
@@ -540,7 +540,7 @@ let%expect_test "can combine cases with one unique RHS" =
     {|
     match card with
     | Ace -> _
-    | King | Queen -> "Face card!"
+    | King | Queen -> "Face | card!"
     | Jack -> "Face card?"
     | Number _ -> _
     |}]
