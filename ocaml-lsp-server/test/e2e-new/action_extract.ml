@@ -29,6 +29,21 @@ let f =
     var_name + 1 |}]
 ;;
 
+let%expect_test "extract local from a nested parameterised function" =
+  extract_local_test
+    {|
+let f x =
+  let g y = $  x + y  $ + 1 in
+  g 1
+|};
+  [%expect
+    {|
+    let f x =
+      let g y =   let var_name = x + y in
+    var_name   + 1 in
+      g 1 |}]
+;;
+
 let%expect_test "extract function single parameter" =
   extract_function_test
     {|
