@@ -926,6 +926,19 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
     Dune.update_workspaces (State.dune state) (State.workspaces state);
     Fiber.return state
   | Initialized _ ->
+    let* () =
+      if Ocamlformat_rpc.binary_not_found state.ocamlformat_rpc
+      then
+        task_if_running state.detached ~f:(fun () ->
+          let message =
+            "Unable to find 'ocamlformat-rpc' binary. Types on hover may not be \
+             well-formatted. You need to install either 'ocamlformat' of version > \
+             0.21.0 or, otherwise, 'ocamlformat-rpc' package."
+          in
+          let log = ShowMessageParams.create ~type_:Info ~message in
+          Server.notification server (Server_notification.ShowMessage log))
+      else Fiber.return ()
+    in
     let+ () =
       task_if_running state.detached ~f:(fun () ->
         register_dune_and_cram_text_document_sync server (State.client_capabilities state))
@@ -998,24 +1011,10 @@ let start stream =
     ()
   in
   let run_ocamlformat_rpc () =
-    let* state = Ocamlformat_rpc.run ~logger:(State.log_msg server) ocamlformat_rpc in
-    let message =
-      match state with
-      | Error `Binary_not_found ->
-        Some
-          "Unable to find 'ocamlformat-rpc' binary. Types on hover may not be \
-           well-formatted. You need to install either 'ocamlformat' of version > 0.21.0 \
-           or, otherwise, 'ocamlformat-rpc' package."
-      | Error `Disabled | Ok () -> None
+    let+ (_ : (unit, _) result) =
+      Ocamlformat_rpc.run ~logger:(State.log_msg server) ocamlformat_rpc
     in
-    match message with
-    | None -> Fiber.return ()
-    | Some message ->
-      let* (_ : InitializeParams.t) = Server.initialized server in
-      let state = Server.state server in
-      task_if_running state.detached ~f:(fun () ->
-        let log = ShowMessageParams.create ~type_:Info ~message in
-        Server.notification server (Server_notification.ShowMessage log))
+    ()
   in
   let run () =
     let run_detached () =

@@ -130,7 +130,10 @@ type state =
       }
   | Running of Process.t
 
-type t = state ref
+type t =
+  { state : state ref
+  ; binary : string option
+  }
 
 let maybe_fill ivar x =
   let* v = Fiber.Ivar.peek ivar in
@@ -139,7 +142,7 @@ let maybe_fill ivar x =
   | None -> Fiber.Ivar.fill ivar x
 ;;
 
-let get_process t =
+let get_process { state = t; _ } =
   match !t with
   | Running p -> Fiber.return @@ Ok p
   | Disabled | Stopped -> Fiber.return @@ Error `No_process
@@ -191,9 +194,15 @@ let create_state () =
   Waiting_for_init { ask_init = Fiber.Ivar.create (); wait_init = Fiber.Ivar.create () }
 ;;
 
-let create () = ref (if Sys.win32 then Disabled else create_state ())
+let create () =
+  { state = ref (if Sys.win32 then Disabled else create_state ())
+  ; binary = (if Sys.win32 then None else Bin.which "ocamlformat-rpc")
+  }
+;;
 
-let stop t =
+let binary_not_found t = (not Sys.win32) && Option.is_none t.binary
+
+let stop { state = t; _ } =
   match !t with
   | Disabled | Stopped -> Fiber.return ()
   | Waiting_for_init { wait_init; ask_init } ->
@@ -255,11 +264,11 @@ let run_rpc ~logger ~bin t =
            | _ -> ())))
 ;;
 
-let run ~logger t =
+let run ~logger { state = t; binary } =
   match !t with
   | Disabled -> Fiber.return (Error `Disabled)
   | _ ->
-    (match Bin.which "ocamlformat-rpc" with
+    (match binary with
      | None ->
        t := Stopped;
        Fiber.return (Error `Binary_not_found)
