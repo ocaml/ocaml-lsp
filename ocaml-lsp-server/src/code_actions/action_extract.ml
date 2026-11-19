@@ -49,15 +49,21 @@ let enclosing_structure_item typedtree range =
   | Found e -> Some e
 ;;
 
-let tightest_enclosing_binder_position typedtree range =
-  let exception Found of Position.t in
+type insertion_site =
+  | Binder of Position.t
+  | Conditional_branch of Range.t
+
+let local_insertion_site typedtree range =
+  let exception Found of insertion_site in
   let module I = Ocaml_typing.Tast_iterator in
-  let found_loc loc =
-    Position.of_lexical_position loc |> Option.iter ~f:(fun p -> raise (Found p))
-  in
-  let found_if_expr_contains (expr : Typedtree.expression) =
-    let loc = expr.exp_loc in
-    if range_contained_by_loc range loc then found_loc loc.loc_start
+  let found_if_expr_contains ?(is_branch = false) (expr : Typedtree.expression) =
+    match Range.of_loc_opt expr.exp_loc with
+    | Some expr_range when Range.contains expr_range range ->
+      let site =
+        if is_branch then Conditional_branch expr_range else Binder expr_range.start
+      in
+      raise (Found site)
+    | _ -> ()
   in
   let found_if_case_contains cases =
     List.iter cases ~f:(fun (case : _ Typedtree.case) ->
@@ -70,6 +76,9 @@ let tightest_enclosing_binder_position typedtree range =
       match expr.exp_desc with
       | Texp_let (_, _, body) | Texp_while (_, body) | Texp_for (_, _, _, _, _, body) ->
         found_if_expr_contains body
+      | Texp_ifthenelse (_, then_, else_) ->
+        found_if_expr_contains ~is_branch:true then_;
+        Option.iter else_ ~f:(found_if_expr_contains ~is_branch:true)
       | Texp_letop { body; _ } -> found_if_case_contains [ body ]
       | Texp_function (_, Tfunction_cases { cases; _ }) -> found_if_case_contains cases
       | Texp_match _ ->
@@ -169,15 +178,19 @@ let constructors_available (expr : Typedtree.expression) destination_env =
 let extract_local doc typedtree range =
   let* to_extract = largest_enclosed_expression typedtree range in
   let* extract_range = Range.of_loc_opt to_extract.exp_loc in
-  let* edit_pos = tightest_enclosing_binder_position typedtree range in
+  let* insertion_site = local_insertion_site typedtree extract_range in
   let new_name = "var_name" in
   let* local_text = Text_document.substring (Document.text_document doc) extract_range in
-  let newText = sprintf "let %s = %s in\n" new_name local_text in
-  let insert_range = { Range.start = edit_pos; end_ = edit_pos } in
+  let binding = sprintf "let %s = %s in\n" new_name local_text in
+  let insert position newText =
+    TextEdit.create ~range:(Range.create ~start:position ~end_:position) ~newText
+  in
+  let replacement = TextEdit.create ~newText:new_name ~range:extract_range in
   Some
-    [ TextEdit.create ~newText ~range:insert_range
-    ; TextEdit.create ~newText:new_name ~range:extract_range
-    ]
+    (match insertion_site with
+     | Binder position -> [ insert position binding; replacement ]
+     | Conditional_branch range ->
+       [ insert range.start ("(" ^ binding); replacement; insert range.end_ ")" ])
 ;;
 
 let extract_function doc typedtree range =
