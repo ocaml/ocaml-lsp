@@ -24,7 +24,7 @@ let split_cases code =
   match List.for_all ~f:(Re.execp case_regex) lines with
   | false -> None
   | true ->
-    let without_pipes = drop_from_lines lines (Re.Perl.re {|\s*\|\s*|}) in
+    let without_pipes = drop_from_lines lines (Re.Perl.re {|^\s*\|\s*|}) in
     let lhs_patterns = drop_from_lines without_pipes (Re.Perl.re {|\s*->.*$|}) in
     let rhs_expressions = drop_from_lines without_pipes (Re.Perl.re {|^.*->\s*|}) in
     Some (lhs_patterns, rhs_expressions)
