@@ -49,3 +49,21 @@ let f (x : t) = x
     type t = Foo of int | Bar of bool
     val f : t -> t |}]
 ;;
+
+let%expect_test "items bound by open struct are not part of the interface" =
+  let source =
+    {ocaml|open struct
+  let hidden = 1
+end
+
+let x = hidden
+|ocaml}
+  in
+  let req client =
+    let* response = infer_intf client in
+    let () = Yojson.Safe.Util.to_string response |> print_string in
+    Fiber.return ()
+  in
+  Helpers.test source req;
+  [%expect {| val x : int |}]
+;;
