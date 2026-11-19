@@ -545,3 +545,19 @@ let%expect_test "can combine cases with one unique RHS" =
     | Number _ -> _
     |}]
 ;;
+
+let%expect_test "combine cases preserves arrows in patterns, comments and functions" =
+  code_action_test
+    ~print_none:true
+    ~title:"Combine-cases"
+    {ocaml|
+    let f = function
+   $ | "->" (* -> *) -> fun x -> x + 1
+    $| "other" -> fun x -> x + 1
+|ocaml};
+  [%expect
+    {|
+    let f = function
+    | "->" (* -> *) | "other" -> fun x -> x + 1
+    |}]
+;;
