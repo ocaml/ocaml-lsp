@@ -1,3 +1,10 @@
+# Unreleased
+
+## Fixes
+
+- Preserve literal `|` characters in strings when combining match cases.
+  (#2240, @smorimoto)
+
 # 1.28.1
 
 ## Features
