@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Build the Dune RPC test fixtures with both Dune 3.24 and 3.25. (#2253, @smorimoto)
+
 # 1.28.1
 
 ## Features
