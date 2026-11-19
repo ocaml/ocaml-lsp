@@ -8,6 +8,7 @@ type atom =
   | Space
   | Tab
   | Nul
+  | Bom
   | Newline
   | Two_byte
   | Three_byte
@@ -25,6 +26,7 @@ let string_of_atom = function
   | Space -> " "
   | Tab -> "\t"
   | Nul -> "\000"
+  | Bom -> "\u{FEFF}"
   | Newline -> "\n"
   | Two_byte -> "é"
   | Three_byte -> "€"
