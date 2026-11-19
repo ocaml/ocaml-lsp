@@ -72,6 +72,7 @@ let tightest_enclosing_binder_position typedtree range =
         found_if_expr_contains body
       | Texp_letop { body; _ } -> found_if_case_contains [ body ]
       | Texp_function (_, Tfunction_cases { cases; _ }) -> found_if_case_contains cases
+      | Texp_function (_, Tfunction_body body) -> found_if_expr_contains body
       | Texp_match _ ->
         let m = Typedtree_utils.texp_match_of_expr expr |> Option.value_exn in
         found_if_case_contains m.computation_cases
@@ -169,7 +170,7 @@ let constructors_available (expr : Typedtree.expression) destination_env =
 let extract_local doc typedtree range =
   let* to_extract = largest_enclosed_expression typedtree range in
   let* extract_range = Range.of_loc_opt to_extract.exp_loc in
-  let* edit_pos = tightest_enclosing_binder_position typedtree range in
+  let* edit_pos = tightest_enclosing_binder_position typedtree extract_range in
   let new_name = "var_name" in
   let* local_text = Text_document.substring (Document.text_document doc) extract_range in
   let newText = sprintf "let %s = %s in\n" new_name local_text in

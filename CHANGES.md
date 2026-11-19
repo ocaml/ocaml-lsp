@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Keep extracted local bindings in scope of the enclosing function parameters. (#2243, @smorimoto)
+
 # 1.28.1
 
 ## Features
