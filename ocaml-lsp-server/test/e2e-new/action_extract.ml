@@ -29,6 +29,21 @@ let f =
     var_name + 1 |}]
 ;;
 
+let%expect_test "extract local in an untaken branch with a padded selection" =
+  extract_local_test
+    {|
+let () =
+  if true then () else$ print_int (1 / 0)$;
+  print_endline "always"
+|};
+  [%expect
+    {|
+    let () =
+      if true then () else (let var_name = print_int (1 / 0) in
+    var_name);
+      print_endline "always" |}]
+;;
+
 let%expect_test "extract function single parameter" =
   extract_function_test
     {|
