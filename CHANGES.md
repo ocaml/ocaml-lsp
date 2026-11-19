@@ -2,7 +2,8 @@
 
 ## Fixes
 
-- Preserve literal `|` characters in strings when combining match cases.
+- Preserve pipes in literals and arrows in patterns, comments and right-hand
+  sides when combining match cases.
   (#2240, @smorimoto)
 
 # 1.28.1
