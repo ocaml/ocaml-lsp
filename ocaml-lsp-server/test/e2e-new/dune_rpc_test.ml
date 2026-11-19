@@ -220,6 +220,36 @@ let stop_process pid =
   ignore (Test.waitpid pid : Unix.process_status)
 ;;
 
+let register_rpc ~runtime_dir ~root ~socket_path ~pid =
+  let module Registry = Dune_rpc.Private.Registry in
+  let env variable =
+    if String.equal variable "XDG_RUNTIME_DIR"
+    then Some runtime_dir
+    else Sys.getenv_opt variable
+  in
+  let config = Registry.Config.create (Xdg.create ~env ()) in
+  let watch_dir = Registry.Config.watch_dir config in
+  let mkdir path =
+    match Unix.mkdir path 0o700 with
+    | () -> ()
+    | exception Unix.Unix_error (Unix.EEXIST, _, _) -> ()
+  in
+  mkdir (Filename.dirname watch_dir);
+  mkdir watch_dir;
+  (* The registry format is stable across Dune's change from int to Pid.t. *)
+  let contents =
+    let open Csexp in
+    List
+      [ List [ Atom "where"; Atom (Dune_rpc.Private.Where.to_string (`Unix socket_path)) ]
+      ; List [ Atom "root"; Atom root ]
+      ; List [ Atom "pid"; Atom (Int.to_string pid) ]
+      ]
+    |> to_string
+  in
+  let path = Filename.concat watch_dir (Printf.sprintf "%d.csexp" pid) in
+  Test.write_file path contents
+;;
+
 let wait_for_rpc_registration runtime_dir pid =
   let rpc_dir = Filename.concat runtime_dir "dune/rpc" in
   let registration = Filename.concat rpc_dir (Printf.sprintf "%d.csexp" pid) in

@@ -7,22 +7,6 @@ let mkdir path =
   | exception Unix.Unix_error (Unix.EEXIST, _, _) -> ()
 ;;
 
-let register runtime_dir dune =
-  let env variable =
-    if String.equal variable "XDG_RUNTIME_DIR"
-    then Some runtime_dir
-    else Sys.getenv_opt variable
-  in
-  let config = Dune_rpc.Private.Registry.Config.create (Xdg.create ~env ()) in
-  let watch_dir = Dune_rpc.Private.Registry.Config.watch_dir config in
-  mkdir (Filename.dirname watch_dir);
-  mkdir watch_dir;
-  let (`Caller_should_write file) =
-    Dune_rpc.Private.Registry.Config.register config dune
-  in
-  Test.write_file file.path file.contents
-;;
-
 let%expect_test "an unexpected Dune connection error is logged without stopping LSP" =
   let temp = Test.temp_dir "ocamllsp-dune-connect-error-" in
   let root = Filename.concat temp "workspace" in
@@ -30,10 +14,7 @@ let%expect_test "an unexpected Dune connection error is logged without stopping 
   let blocked = Filename.concat temp "blocked" in
   List.iter [ root; runtime_dir; blocked ] ~f:mkdir;
   let socket = Filename.concat blocked "rpc.sock" in
-  let dune =
-    Dune_rpc.Private.Registry.Dune.create ~where:(`Unix socket) ~root ~pid:4242
-  in
-  register runtime_dir dune;
+  register_rpc ~runtime_dir ~root ~socket_path:socket ~pid:4242;
   Unix.chmod blocked 0o000;
   Fun.protect
     ~finally:(fun () ->
@@ -110,10 +91,7 @@ let%expect_test "a connected but uninitialized Dune rejects promotion commands" 
       Unix._exit 0
     | pid -> pid
   in
-  let dune =
-    Dune_rpc.Private.Registry.Dune.create ~where:(`Unix socket_path) ~root ~pid:fake_pid
-  in
-  register runtime_dir dune;
+  register_rpc ~runtime_dir ~root ~socket_path ~pid:fake_pid;
   Fun.protect
     ~finally:(fun () ->
       (match Unix.kill fake_pid Sys.sigterm with

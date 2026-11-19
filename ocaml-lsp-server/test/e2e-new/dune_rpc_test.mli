@@ -61,6 +61,13 @@ type project = private
 
 val start_dune : ?build_dir:string -> ?jobs:int -> string -> string -> int
 
+val register_rpc
+  :  runtime_dir:string
+  -> root:string
+  -> socket_path:string
+  -> pid:int
+  -> unit
+
 (** Wait until [pid] appears in the Dune RPC registry under [runtime_dir]. *)
 val wait_for_rpc_registration : string -> int -> unit
 

@@ -1,6 +1,13 @@
 open Test.Import
 module Rpc = Dune_rpc.Private
 
+module Conv = struct
+  (* Dune 3.25 moved Conv from Dune_rpc.Private to Stdune. *)
+  open! Stdune
+  open! Dune_rpc.Private
+  include Conv
+end
+
 type t =
   { root : string
   ; runtime_dir : string
@@ -16,32 +23,18 @@ let mkdir path =
   | exception Unix.Unix_error (Unix.EEXIST, _, _) -> ()
 ;;
 
-let register runtime_dir dune =
-  let env variable =
-    if String.equal variable "XDG_RUNTIME_DIR"
-    then Some runtime_dir
-    else Sys.getenv_opt variable
-  in
-  let config = Rpc.Registry.Config.create (Xdg.create ~env ()) in
-  let watch_dir = Rpc.Registry.Config.watch_dir config in
-  mkdir (Filename.dirname watch_dir);
-  mkdir watch_dir;
-  let (`Caller_should_write file) = Rpc.Registry.Config.register config dune in
-  Test.write_file file.path file.contents
-;;
-
 let read_packet input ~version =
   match Csexp.input_opt input with
   | Error message -> failwith message
   | Ok None -> None
   | Ok (Some sexp) ->
-    (match Rpc.Conv.of_sexp Rpc.Packet.sexp ~version sexp with
+    (match Conv.of_sexp Rpc.Packet.sexp ~version sexp with
      | Ok packet -> Some packet
-     | Error error -> Rpc.Conv.dyn_of_error error |> Dyn.to_string |> failwith)
+     | Error error -> Conv.dyn_of_error error |> Dyn.to_string |> failwith)
 ;;
 
 let write_packet output packet =
-  Rpc.Conv.to_sexp Rpc.Packet.sexp packet |> Csexp.to_channel output;
+  Conv.to_sexp Rpc.Packet.sexp packet |> Csexp.to_channel output;
   flush output
 ;;
 
@@ -56,7 +49,7 @@ let response
   with
   | None -> failwith "unsupported fake Dune RPC response version"
   | Some (_, Rpc.Decl.Generation.T conversion) ->
-    Rpc.Conv.to_sexp conversion.resp (conversion.downgrade_resp value)
+    Conv.to_sexp conversion.resp (conversion.downgrade_resp value)
 ;;
 
 let selected_version menu method_ =
@@ -175,8 +168,7 @@ let start ?(diagnostics = fun _root -> []) ?(progress = []) name =
     | pid -> pid
   in
   Unix.close listener;
-  let dune = Rpc.Registry.Dune.create ~where:(`Unix socket_path) ~root ~pid in
-  register runtime_dir dune;
+  Dune_rpc_test.register_rpc ~runtime_dir ~root ~socket_path ~pid;
   { root; runtime_dir; pid }
 ;;
 
