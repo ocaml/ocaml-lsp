@@ -413,7 +413,11 @@ let run_with_workspace ?capabilities ?trace ~root ~runtime_dir events ~f =
          | Some capabilities -> capabilities
          | None ->
            let window = WindowClientCapabilities.create ~workDoneProgress:true () in
-           ClientCapabilities.create ~window ()
+           let codeAction =
+             CodeActionClientCapabilities.create ~dynamicRegistration:true ()
+           in
+           let textDocument = TextDocumentClientCapabilities.create ~codeAction () in
+           ClientCapabilities.create ~window ~textDocument ()
        in
        let workspace = WorkspaceFolder.create ~uri:(Uri.of_path root) ~name:"dune-rpc" in
        let server_pid = ref None in

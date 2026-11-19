@@ -5,7 +5,10 @@ module Fake = Dune_rpc_fake
 
 let capabilities =
   let publishDiagnostics = PublishDiagnosticsClientCapabilities.create () in
-  let textDocument = TextDocumentClientCapabilities.create ~publishDiagnostics () in
+  let codeAction = CodeActionClientCapabilities.create ~dynamicRegistration:true () in
+  let textDocument =
+    TextDocumentClientCapabilities.create ~publishDiagnostics ~codeAction ()
+  in
   let window = WindowClientCapabilities.create ~workDoneProgress:true () in
   ClientCapabilities.create ~textDocument ~window ()
 ;;

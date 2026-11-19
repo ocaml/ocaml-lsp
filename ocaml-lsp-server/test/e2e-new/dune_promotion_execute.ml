@@ -43,13 +43,13 @@ let%expect_test "request and execute a Dune promotion" =
     ~finally:(fun () -> destroy_project project)
     (fun () ->
        let events = Lifecycle_events.create () in
-       run project events ~f:(fun client _workspace ->
+       let capabilities = ClientCapabilities.create () in
+       run ~capabilities project events ~f:(fun client _workspace ->
          let* () = Signal.wait (Events.dune_ready events.dune) in
          Test.write_file project.gate "";
          let* (_ : PublishDiagnosticsParams.t) =
            Events.wait_for_diagnostics events.dune ~f:has_dune_diagnostic
          in
-         let* (_ : RegistrationParams.t) = Mailbox.wait events.registrations in
          let uri = Uri.of_path project.expected in
          let* action = request_promotion client uri in
          print_payload project "promotion code action:" (CodeAction.yojson_of_t action);
@@ -87,7 +87,12 @@ let%expect_test "request and execute a Dune promotion" =
          let* invalid =
            Fiber.collect_errors (fun () -> execute client "dune/not-a-command")
          in
-         print_command_error "invalid command" invalid));
+         let* () = print_command_error "invalid command" invalid in
+         Printf.printf
+           "registrations: %d; unregistrations: %d\n"
+           (List.length (Mailbox.take_pending events.registrations))
+           (List.length (Mailbox.take_pending events.unregistrations));
+         Fiber.return ()));
   [%expect
     {|
     promotion code action:
@@ -109,5 +114,6 @@ let%expect_test "request and execute a Dune promotion" =
     null argument (InvalidParams): invalid Dune promotion arguments
     incomplete argument (InvalidParams): invalid Dune promotion arguments
     invalid command (InvalidRequest): invalid command
+    registrations: 0; unregistrations: 0
     |}]
 ;;
