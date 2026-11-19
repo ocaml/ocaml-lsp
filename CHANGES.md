@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Keep calls to extracted functions grouped when replacing an argument or a receiver. (#2242, @smorimoto)
+
 # 1.28.1
 
 ## Features
