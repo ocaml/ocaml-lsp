@@ -26,7 +26,10 @@ module Signal_watcher = struct
     in
     Option.iter t.old_sigpipe ~f:(Sys.set_signal Sys.sigpipe);
     Sys.set_signal Sys.sigchld t.old_sigchld;
-    if used_mask <> blocked_signals then
+    if
+      used_mask
+      <> List.sort_uniq ~compare:Int.compare (t.old_sigmask @ blocked_signals)
+    then
       Code_error.raise "cannot restore old sigmask"
         [
           ("stop_sig", Dyn.int stop_sig);

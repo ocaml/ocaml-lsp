@@ -28,3 +28,10 @@
   ppx_sexp_conv.runtime-lib)
  (preprocess
   (pps ppx_expect base_quickcheck.ppx_quickcheck ppx_sexp_conv)))
+
+(test
+ (name signal_mask)
+ (modules signal_mask)
+ (enabled_if
+  (= %{os_type} Unix))
+ (libraries fiber lev_fiber unix))
