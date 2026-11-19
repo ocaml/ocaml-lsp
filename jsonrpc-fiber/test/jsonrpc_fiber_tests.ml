@@ -1058,6 +1058,68 @@ let%expect_test "stopping a session wakes pending requests" =
     <opaque> |}]
 ;;
 
+let%expect_test "input EOF drains replies waiting for requests" =
+  let run ~respond =
+    let request_sent = Fiber.Ivar.create () in
+    let request = Jsonrpc.Request.create ~id:(`Int 1) ~method_:"outer" () in
+    let nested = Jsonrpc.Request.create ~id:(`Int 2) ~method_:"nested" () in
+    let packets = ref 0 in
+    let input =
+      In.create (fun () ->
+        incr packets;
+        match !packets with
+        | 1 -> Fiber.return (Some (Jsonrpc.Packet.Request request))
+        | 2 ->
+          let+ () = Fiber.Ivar.read request_sent in
+          if respond
+          then Some (Jsonrpc.Packet.Response (Jsonrpc.Response.ok nested.id `Null))
+          else None
+        | _ -> Fiber.return None)
+    in
+    let output =
+      Out.create (function
+        | Some (Jsonrpc.Packet.Request _) -> Fiber.Ivar.fill request_sent ()
+        | Some (Response response) ->
+          print_json (Jsonrpc.Response.yojson_of_t response);
+          Fiber.return ()
+        | None ->
+          print_endline "output closed";
+          Fiber.return ()
+        | Some (Notification _ | Batch_call _ | Batch_response _) -> assert false)
+    in
+    let on_request ctx =
+      let reply =
+        Reply.later (fun send ->
+          let* result =
+            Fiber.collect_errors (fun () -> Jrpc.request (Context.session ctx) nested)
+          in
+          let result =
+            match result with
+            | Ok { result = Ok `Null; _ } -> "answered"
+            | Error [ { Exn_with_backtrace.exn = Jsonrpc_fiber.Stopped req; _ } ]
+              when req = nested -> "stopped"
+            | Ok _ | Error _ -> "unexpected result"
+          in
+          send (Jsonrpc.Response.ok request.id (`String result)))
+      in
+      Fiber.return (reply, ())
+    in
+    let session = Jrpc.create ~name:"EOF" ~on_request (input, output) () in
+    Fiber_test.test Dyn.opaque (fun () -> Jrpc.run session)
+  in
+  run ~respond:false;
+  run ~respond:true;
+  [%expect
+    {|
+    { "id": 1, "jsonrpc": "2.0", "result": "stopped" }
+    output closed
+    <opaque>
+    { "id": 1, "jsonrpc": "2.0", "result": "answered" }
+    output closed
+    <opaque>
+    |}]
+;;
+
 let%expect_test "cancellation and response ordering follows the request model" =
   let run_order ~label ~respond_first =
     let request_sent = Fiber.Ivar.create () in
