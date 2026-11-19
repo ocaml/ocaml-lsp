@@ -147,7 +147,8 @@ let close_document t uri =
     match Hashtbl.find t.db uri with
     | None -> Fiber.return ()
     | Some doc ->
-      let close_doc () = maybe_close_doc !doc in
+      let closing_doc = !doc in
+      let close_doc () = maybe_close_doc closing_doc in
       if !doc.promotions = 0
       then (
         Hashtbl.remove t.db uri;
