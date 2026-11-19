@@ -32,5 +32,6 @@
 (test
  (name signal_mask)
  (modules signal_mask)
- (enabled_if (= %{os_type} Unix))
+ (enabled_if
+  (= %{os_type} Unix))
  (libraries fiber lev_fiber unix))
