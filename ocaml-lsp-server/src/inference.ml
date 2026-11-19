@@ -228,17 +228,17 @@ let update_signatures
       let* typers = Fiber.parallel_map [ intf_merlin; impl_merlin ] ~f:get_typer in
       let intf_typer = List.hd_exn typers in
       let impl_typer = List.nth_exn typers 1 in
-      (match Mtyper.get_typedtree intf_typer with
-       | `Interface old_intf ->
-         let formatter sig_item =
-           let* config = Document.Merlin.mconfig intf_merlin in
-           let verbosity = config.query.verbosity in
-           let env = Mtyper.initial_env intf_typer in
-           Fiber.return
-             (Printtyp.wrap_printing_env ~verbosity env (fun () ->
-                Format.asprintf "%a@." Printtyp.signature [ sig_item ]))
-         in
-         let new_sigs = get_doc_signature impl_typer in
-         build_signature_edits ~old_intf ~new_sigs ~range ~formatter
-       | _ -> invalid_arg "expected an interface")))
+      match Mtyper.get_typedtree intf_typer with
+      | `Interface old_intf ->
+        let formatter sig_item =
+          let* config = Document.Merlin.mconfig intf_merlin in
+          let verbosity = config.query.verbosity in
+          let env = Mtyper.initial_env intf_typer in
+          Fiber.return
+            (Printtyp.wrap_printing_env ~verbosity env (fun () ->
+               Format.asprintf "%a@." Printtyp.signature [ sig_item ]))
+        in
+        let new_sigs = get_doc_signature impl_typer in
+        build_signature_edits ~old_intf ~new_sigs ~range ~formatter
+      | _ -> invalid_arg "expected an interface"))
 ;;
