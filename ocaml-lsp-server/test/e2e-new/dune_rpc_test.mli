@@ -16,6 +16,7 @@ end
 module Events : sig
   type t
 
+  val merlin_config_exited : t -> Signal.t
   val dune_ready : t -> Signal.t
   val dune_progress : t -> Signal.t
   val multiple_instances : t -> Signal.t

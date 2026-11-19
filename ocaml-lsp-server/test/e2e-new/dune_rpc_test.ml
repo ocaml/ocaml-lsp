@@ -74,6 +74,7 @@ module Events = struct
 
   type t =
     { dune_ready : Signal.t
+    ; merlin_config_exited : Signal.t
     ; dune_progress : Signal.t
     ; multiple_instances : Signal.t
     ; errors : LogMessageParams.t Mailbox.t
@@ -84,6 +85,7 @@ module Events = struct
 
   let create () =
     { dune_ready = Signal.create ()
+    ; merlin_config_exited = Signal.create ()
     ; dune_progress = Signal.create ()
     ; multiple_instances = Signal.create ()
     ; errors = Mailbox.create ()
@@ -93,6 +95,7 @@ module Events = struct
     }
   ;;
 
+  let merlin_config_exited t = t.merlin_config_exited
   let dune_ready t = t.dune_ready
   let dune_progress t = t.dune_progress
   let multiple_instances t = t.multiple_instances
@@ -144,6 +147,8 @@ module Events = struct
     | LogMessage { message; _ } when String.is_substring message ~substring:" ignores " ->
       Signal.notify t.multiple_instances
     | LogMessage ({ type_ = Error; _ } as params) -> Mailbox.push t.errors params
+    | LogTrace { message = "Merlin configuration process exited"; _ } ->
+      Signal.notify t.merlin_config_exited
     | LogTrace { message; _ } when String.is_prefix message ~prefix:"Dune build " ->
       Signal.notify t.dune_progress
     | WorkDoneProgress progress -> Mailbox.push t.progress progress

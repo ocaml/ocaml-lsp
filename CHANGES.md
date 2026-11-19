@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Release Merlin resources when a document with a pending Dune promotion closes. (#2245, @smorimoto)
+
 # 1.28.1
 
 ## Features
