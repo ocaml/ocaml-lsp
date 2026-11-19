@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Return ordinary RPC errors to callers of cancellable requests. (#2249, @smorimoto)
+
 # 1.28.1
 
 ## Features

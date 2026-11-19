@@ -300,7 +300,7 @@ let%expect_test "server enforces initialization ordering" =
     notification handled: workspace/didChangeConfiguration |}]
 ;;
 
-let%expect_test "remote request cancellation returns Cancelled" =
+let%expect_test "cancellable requests preserve remote cancellation and errors" =
   let make_server io =
     let on_request =
       let on_request
@@ -315,12 +315,13 @@ let%expect_test "remote request cancellation returns Cancelled" =
           let capabilities = ServerCapabilities.create () in
           let result = InitializeResult.create ~capabilities () in
           Fiber.return (Rpc.Reply.now result, ())
-        | ExecuteCommand _ ->
-          Jsonrpc.Response.Error.raise
-            (Jsonrpc.Response.Error.make
-               ~message:"cancelled remotely"
-               ~code:RequestCancelled
-               ())
+        | ExecuteCommand command ->
+          let code, message =
+            if command.command = "cancel"
+            then Jsonrpc.Response.Error.Code.RequestCancelled, "cancelled remotely"
+            else InvalidParams, "invalid command"
+          in
+          Jsonrpc.Response.Error.raise (Jsonrpc.Response.Error.make ~message ~code ())
         | _ ->
           Jsonrpc.Response.Error.raise
             (Jsonrpc.Response.Error.make ~message:"unexpected" ~code:InternalError ())
@@ -344,6 +345,22 @@ let%expect_test "remote request cancellation returns Cancelled" =
        | Error [ _ ] -> print_endline "request_with_cancel: raised"
        | Ok `Cancelled -> print_endline "request_with_cancel: cancelled"
        | Ok (`Ok _) | Error _ -> print_endline "request_with_cancel: unexpected");
+      let command = ExecuteCommandParams.create ~command:"error" () in
+      let* result =
+        Fiber.collect_errors (fun () ->
+          Client.request_with_cancel
+            client
+            (Fiber.Cancel.create ())
+            (Client_request.ExecuteCommand command))
+      in
+      (match result with
+       | Error [ { Stdune.Exn_with_backtrace.exn = Jsonrpc.Response.Error.E error; _ } ]
+         ->
+         Printf.printf
+           "request_with_cancel: %s: %s\n"
+           (Jsonrpc.Response.Error.Code.to_string error.code)
+           error.message
+       | _ -> failwith "expected a JSON-RPC error");
       Client.notification client Exit
     in
     Fiber.fork_and_join_unit (fun () -> running) request
@@ -352,6 +369,7 @@ let%expect_test "remote request cancellation returns Cancelled" =
   [%expect
     {|
     request_with_cancel: cancelled
+    request_with_cancel: InvalidParams: invalid command
     Successful termination of test
     [TEST] finished |}]
 ;;
