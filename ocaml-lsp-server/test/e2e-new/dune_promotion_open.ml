@@ -7,7 +7,7 @@ let%expect_test "promotion removal while its document is open" =
     ~finally:(fun () -> destroy_project project)
     (fun () ->
        let events = Lifecycle_events.create () in
-       run project events ~f:(fun client _workspace ->
+       run ~trace:Verbose project events ~f:(fun client _workspace ->
          let* () = Signal.wait (Events.dune_ready events.dune) in
          Test.write_file project.gate "";
          let uri = Uri.of_path project.expected in
@@ -15,6 +15,24 @@ let%expect_test "promotion removal while its document is open" =
          let* registration = Mailbox.wait events.registrations in
          let* () = open_document client ~uri ~text:project.old_source in
          let* opened_unregistration = Mailbox.wait events.unregistrations in
+         let* (_ : PublishDiagnosticsParams.t) =
+           Events.wait_for_diagnostics events.dune ~f:(fun params ->
+             List.exists params.diagnostics ~f:(fun diagnostic ->
+               diagnostic.source = Some "ocamllsp"))
+         in
+         let* () =
+           Client.notification
+             client
+             (TextDocumentDidClose
+                (DidCloseTextDocumentParams.create
+                   ~textDocument:(TextDocumentIdentifier.create ~uri)))
+         in
+         let* (_ : RegistrationParams.t) = Mailbox.wait events.registrations in
+         let* () = Signal.wait (Events.merlin_config_exited events.dune) in
+         print_endline
+           "Merlin configuration process exited after closing promotion target";
+         let* () = open_document client ~uri ~text:project.old_source in
+         let* (_ : UnregistrationParams.t) = Mailbox.wait events.unregistrations in
          Test.write_file project.expected "let answer = 42";
          Test.write_file project.trigger "fixed\n";
          let* cleared =
@@ -48,6 +66,7 @@ let%expect_test "promotion removal while its document is open" =
          Fiber.return ()));
   [%expect
     {|
+    Merlin configuration process exited after closing promotion target
     initial textDocument/publishDiagnostics:
     {
       "diagnostics": [
