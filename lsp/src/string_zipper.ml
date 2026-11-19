@@ -219,6 +219,7 @@ module Advance (Char : sig
   end) : sig
   val advance : t -> code_units:int -> t
 end = struct
+  let decoder_prefix = Bytes.of_string " "
   let feed_current_chunk dec t = Substring.Uutf.src t.current ~pos:t.rel_pos dec
 
   let finish_chunk (t : t) consumed =
@@ -265,8 +266,12 @@ end = struct
     then t
     else (
       let dec = Uutf.decoder ~nln ~encoding:`UTF_8 `Manual in
+      (* Uutf strips an initial BOM. Consume a prefix so U+FEFF in the
+         document is decoded as text, then exclude its byte from offsets. *)
+      Uutf.Manual.src dec decoder_prefix 0 1;
+      ignore (Uutf.decode dec);
       feed_current_chunk dec t;
-      loop dec t 0 code_units)
+      loop dec t 1 code_units)
   ;;
 end
 

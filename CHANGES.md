@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Preserve U+FEFF and its neighbours in incremental edits and position lookups. (#2244, @smorimoto)
+
 # 1.28.1
 
 ## Features
