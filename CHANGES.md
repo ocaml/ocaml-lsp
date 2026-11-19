@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Finish deferred replies on disconnect while preserving responses already received. (#2250, @smorimoto)
+
 # 1.28.1
 
 ## Features

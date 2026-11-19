@@ -271,7 +271,9 @@ struct
          | Notification r -> on_notification r
          | Request r -> on_request r
          | Response r ->
-           let* () = Fiber.Pool.task later ~f:(fun () -> on_response r) in
+           (* Claim the registration before EOF can stop pending requests. *)
+           let response = on_response r in
+           let* () = Fiber.Pool.task later ~f:(fun () -> response) in
            loop ()
          | Batch_call _ -> Code_error.raise "batch requests aren't supported" []
          | Batch_response _ -> assert false)
@@ -357,6 +359,7 @@ struct
           (fun () ->
              let* () = loop () in
              begin_draining t;
+             let* () = stop_pending_requests t in
              Fiber.Pool.stop later)
           (fun () -> Fiber.Pool.run later)
       in
