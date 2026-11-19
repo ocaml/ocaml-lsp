@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Release temporary implementation documents after inferring or updating an interface. (#2246, @smorimoto)
+
 # 1.28.1
 
 ## Features

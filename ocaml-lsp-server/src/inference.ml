@@ -65,13 +65,20 @@ let infer_intf_for_impl doc =
         Format.asprintf "%a@." Printtyp.signature sig_))
 ;;
 
-let open_document_from_file (state : State.t) uri =
-  Document.make_from_file
-    (State.wheel state)
-    state.merlin_config
-    state.merlin
-    uri
-    ~position_encoding:(State.position_encoding state)
+let with_document (state : State.t) uri ~default f =
+  match Document_store.get_opt state.store uri with
+  | Some doc -> f doc
+  | None ->
+    Document.make_from_file
+      (State.wheel state)
+      state.merlin_config
+      state.merlin
+      uri
+      ~position_encoding:(State.position_encoding state)
+    >>= (function
+     | None -> Fiber.return default
+     | Some doc ->
+       Fiber.finalize (fun () -> f doc) ~finally:(fun () -> Document.close doc))
 ;;
 
 let infer_intf (state : State.t) intf_doc =
@@ -85,16 +92,9 @@ let infer_intf (state : State.t) intf_doc =
       let impl_uri =
         Document.get_impl_intf_counterparts (Some m) intf_uri |> List.hd_exn
       in
-      let* impl_opt =
-        match Document_store.get_opt state.store impl_uri with
-        | Some impl -> Fiber.return (Some impl)
-        | None -> open_document_from_file state impl_uri
-      in
-      match impl_opt with
-      | None -> Fiber.return None
-      | Some impl_doc ->
+      with_document state impl_uri ~default:None (fun impl_doc ->
         let+ res = infer_missing_intf_for_impl impl_doc intf_doc in
-        Some res)
+        Some res))
 ;;
 
 (** Extracts an [Ident.t] from all variants that have one at the top level. For
@@ -216,14 +216,7 @@ let update_signatures
     let impl_uri =
       Document.get_impl_intf_counterparts (Some intf_merlin) intf_uri |> List.hd_exn
     in
-    let* impl_doc =
-      match Document_store.get_opt state.store impl_uri with
-      | Some impl -> Fiber.return (Some impl)
-      | None -> open_document_from_file state impl_uri
-    in
-    match impl_doc with
-    | None -> Fiber.return []
-    | Some impl_doc ->
+    with_document state impl_uri ~default:[] (fun impl_doc ->
       let impl_merlin = Document.merlin_exn impl_doc in
       (* CR-someday bwiedenbeck: These calls to Merlin to get the type information (and
          the subsequent processing we do with it) are expensive on large documents.
@@ -235,17 +228,17 @@ let update_signatures
       let* typers = Fiber.parallel_map [ intf_merlin; impl_merlin ] ~f:get_typer in
       let intf_typer = List.hd_exn typers in
       let impl_typer = List.nth_exn typers 1 in
-      (match Mtyper.get_typedtree intf_typer with
-       | `Interface old_intf ->
-         let formatter sig_item =
-           let* config = Document.Merlin.mconfig intf_merlin in
-           let verbosity = config.query.verbosity in
-           let env = Mtyper.initial_env intf_typer in
-           Fiber.return
-             (Printtyp.wrap_printing_env ~verbosity env (fun () ->
-                Format.asprintf "%a@." Printtyp.signature [ sig_item ]))
-         in
-         let new_sigs = get_doc_signature impl_typer in
-         build_signature_edits ~old_intf ~new_sigs ~range ~formatter
-       | _ -> invalid_arg "expected an interface"))
+      match Mtyper.get_typedtree intf_typer with
+      | `Interface old_intf ->
+        let formatter sig_item =
+          let* config = Document.Merlin.mconfig intf_merlin in
+          let verbosity = config.query.verbosity in
+          let env = Mtyper.initial_env intf_typer in
+          Fiber.return
+            (Printtyp.wrap_printing_env ~verbosity env (fun () ->
+               Format.asprintf "%a@." Printtyp.signature [ sig_item ]))
+        in
+        let new_sigs = get_doc_signature impl_typer in
+        build_signature_edits ~old_intf ~new_sigs ~range ~formatter
+      | _ -> invalid_arg "expected an interface"))
 ;;
