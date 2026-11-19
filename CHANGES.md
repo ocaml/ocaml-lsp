@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Register Dune promotion actions dynamically only when the client supports it. (#2247, @smorimoto)
+
 # 1.28.1
 
 ## Features
